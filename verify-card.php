@@ -1,0 +1,358 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Card Authentication/Verification Script
+ *
+ * This script demonstrates card verification using the Global Payments SDK.
+ * It validates cards without processing charges, perfect for authentication
+ * scenarios, subscription setups, and card validation workflows.
+ *
+ * PHP version 8.0 or higher
+ *
+ * @category  Authentication
+ * @package   GlobalPayments_Examples
+ * @author    Global Payments
+ * @license   MIT License
+ * @link      https://github.com/globalpayments
+ */
+
+require_once 'vendor/autoload.php';
+
+use Dotenv\Dotenv;
+use GlobalPayments\Api\Entities\Address;
+use GlobalPayments\Api\Entities\Customer;
+use GlobalPayments\Api\Entities\Exceptions\ApiException;
+use GlobalPayments\Api\PaymentMethods\CreditCardData;
+use GlobalPayments\Api\ServiceConfigs\Gateways\PorticoConfig;
+use GlobalPayments\Api\ServicesContainer;
+
+// Disable error display for production security
+ini_set('display_errors', '0');
+
+// Set JSON response header
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+// Handle preflight requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
+/**
+ * Configure the Global Payments SDK
+ *
+ * @return void
+ * @throws Exception If environment configuration fails
+ */
+function configureSdk(): void
+{
+    $dotenv = Dotenv::createImmutable(__DIR__);
+    $dotenv->load();
+
+    $config = new PorticoConfig();
+    $config->secretApiKey = $_ENV['SECRET_API_KEY'];
+    $config->developerId = $_ENV['DEVELOPER_ID'] ?? '000000';
+    $config->versionNumber = $_ENV['VERSION_NUMBER'] ?? '0000';
+    $config->serviceUrl = $_ENV['SERVICE_URL'] ?? 'https://cert.api2.heartlandportico.com';
+    
+    ServicesContainer::configureService($config);
+}
+
+/**
+ * Sanitize and validate postal code
+ *
+ * @param string|null $postalCode The postal code to sanitize
+ * @return string Sanitized postal code
+ */
+function sanitizePostalCode(?string $postalCode): string
+{
+    if ($postalCode === null) {
+        return '';
+    }
+    
+    // Remove non-alphanumeric characters except hyphens and spaces
+    $sanitized = preg_replace('/[^a-zA-Z0-9\-\s]/', '', $postalCode);
+    
+    // Limit to reasonable length
+    return substr(trim($sanitized), 0, 10);
+}
+
+/**
+ * Validate card verification request data
+ *
+ * @param array $data Request data
+ * @return array Validation errors
+ */
+function validateRequest(array $data): array
+{
+    $errors = [];
+
+    if (empty($data['payment_token'])) {
+        $errors[] = 'Payment token is required';
+    }
+
+    if (empty($data['verification_type'])) {
+        $errors[] = 'Verification type is required';
+    }
+
+    $validTypes = ['basic', 'avs', 'cvv', 'full'];
+    if (!empty($data['verification_type']) && !in_array($data['verification_type'], $validTypes)) {
+        $errors[] = 'Invalid verification type. Must be: ' . implode(', ', $validTypes);
+    }
+
+    return $errors;
+}
+
+/**
+ * Create address object for AVS verification
+ *
+ * @param array $data Request data
+ * @return Address|null
+ */
+function createAddress(array $data): ?Address
+{
+    if (empty($data['billing_address'])) {
+        return null;
+    }
+
+    $addressData = $data['billing_address'];
+    $address = new Address();
+    
+    if (!empty($addressData['street'])) {
+        $address->streetAddress1 = substr(trim($addressData['street']), 0, 50);
+    }
+    
+    if (!empty($addressData['city'])) {
+        $address->city = substr(trim($addressData['city']), 0, 30);
+    }
+    
+    if (!empty($addressData['state'])) {
+        $address->state = substr(trim($addressData['state']), 0, 20);
+    }
+    
+    if (!empty($addressData['postal_code'])) {
+        $address->postalCode = sanitizePostalCode($addressData['postal_code']);
+    }
+    
+    if (!empty($addressData['country'])) {
+        $address->country = substr(trim($addressData['country']), 0, 2);
+    }
+
+    return $address;
+}
+
+/**
+ * Create customer object for enhanced verification
+ *
+ * @param array $data Request data
+ * @return Customer|null
+ */
+function createCustomer(array $data): ?Customer
+{
+    if (empty($data['customer'])) {
+        return null;
+    }
+
+    $customerData = $data['customer'];
+    $customer = new Customer();
+    
+    if (!empty($customerData['id'])) {
+        $customer->id = substr(trim($customerData['id']), 0, 50);
+    }
+    
+    if (!empty($customerData['email'])) {
+        $customer->email = substr(trim($customerData['email']), 0, 100);
+    }
+    
+    if (!empty($customerData['phone'])) {
+        $customer->homePhone = preg_replace('/[^0-9]/', '', $customerData['phone']);
+    }
+
+    return $customer;
+}
+
+/**
+ * Perform card verification based on type
+ *
+ * @param CreditCardData $card The credit card to verify
+ * @param string $verificationType Type of verification
+ * @param Address|null $address Billing address for AVS
+ * @param Customer|null $customer Customer data
+ * @return array Verification result
+ */
+function performVerification(
+    CreditCardData $card, 
+    string $verificationType, 
+    ?Address $address = null,
+    ?Customer $customer = null
+): array {
+    switch ($verificationType) {
+        case 'basic':
+            // Basic card verification without additional checks
+            $response = $card->verify()
+                ->withAllowDuplicates(true)
+                ->execute();
+            break;
+
+        case 'avs':
+            // Address Verification Service check
+            $response = $card->verify()
+                ->withAllowDuplicates(true)
+                ->withAddress($address)
+                ->execute();
+            break;
+
+        case 'cvv':
+            // CVV verification (CVV already included in token)
+            $response = $card->verify()
+                ->withAllowDuplicates(true)
+                ->execute();
+            break;
+
+        case 'full':
+            // Full verification with all available checks
+            $builder = $card->verify()
+                ->withAllowDuplicates(true);
+                
+            if ($address) {
+                $builder->withAddress($address);
+            }
+            
+            if ($customer) {
+                $builder->withCustomerData($customer);
+            }
+            
+            $response = $builder->execute();
+            break;
+
+        default:
+            throw new ApiException('Invalid verification type');
+    }
+
+    return [
+        'transaction_id' => $response->transactionReference->transactionId,
+        'response_code' => $response->responseCode,
+        'response_message' => $response->responseMessage,
+        'avs_response_code' => $response->avsResponseCode ?? null,
+        'avs_response_message' => $response->avsResponseMessage ?? null,
+        'cvn_response_code' => $response->cvnResponseCode ?? null,
+        'cvn_response_message' => $response->cvnResponseMessage ?? null,
+        'commercial_indicator' => $response->commercialIndicator ?? null,
+        'card_type' => $response->cardType ?? null,
+        'card_last4' => $response->cardLast4 ?? null
+    ];
+}
+
+// Main request processing
+try {
+    // Only accept POST requests
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Method not allowed. Use POST.',
+            'error' => ['code' => 'METHOD_NOT_ALLOWED']
+        ]);
+        exit;
+    }
+
+    // Initialize SDK
+    configureSdk();
+
+    // Get and decode request data
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
+    
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new ApiException('Invalid JSON data');
+    }
+
+    // Validate request
+    $errors = validateRequest($data);
+    if (!empty($errors)) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Validation failed',
+            'errors' => $errors
+        ]);
+        exit;
+    }
+
+    // Initialize payment method with token
+    $card = new CreditCardData();
+    $card->token = $data['payment_token'];
+
+    // Create address and customer objects if provided
+    $address = createAddress($data);
+    $customer = createCustomer($data);
+
+    // Perform verification
+    $verificationResult = performVerification(
+        $card, 
+        $data['verification_type'], 
+        $address, 
+        $customer
+    );
+
+    // Check if verification was successful
+    $isSuccessful = $verificationResult['response_code'] === '00';
+
+    if (!$isSuccessful) {
+        http_response_code(422); // Unprocessable Entity
+        echo json_encode([
+            'success' => false,
+            'message' => 'Card verification failed',
+            'verification_result' => $verificationResult,
+            'error' => [
+                'code' => 'VERIFICATION_FAILED',
+                'details' => $verificationResult['response_message']
+            ]
+        ]);
+        exit;
+    }
+
+    // Success response
+    echo json_encode([
+        'success' => true,
+        'message' => 'Card verification successful',
+        'verification_result' => $verificationResult,
+        'data' => [
+            'verified' => true,
+            'verification_type' => $data['verification_type'],
+            'transaction_id' => $verificationResult['transaction_id']
+        ]
+    ]);
+
+} catch (ApiException $e) {
+    // Handle API-specific errors
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Authentication processing failed',
+        'error' => [
+            'code' => 'API_ERROR',
+            'details' => $e->getMessage()
+        ]
+    ]);
+
+} catch (Exception $e) {
+    // Handle unexpected errors
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Internal server error',
+        'error' => [
+            'code' => 'INTERNAL_ERROR',
+            'details' => 'An unexpected error occurred'
+        ]
+    ]);
+
+    // Log error for debugging (not exposed to client)
+    error_log('Card verification error: ' . $e->getMessage());
+}
