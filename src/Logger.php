@@ -221,7 +221,7 @@ class Logger
 
         $status = $success ? 'SUCCESS' : 'FAILED';
         $message = sprintf('Card verification %s (%s)', $status, $verificationType);
-        
+
         $level = $success ? self::INFO : self::WARNING;
         $this->log($level, $message, $context, self::CHANNEL_VERIFICATION);
     }
@@ -291,7 +291,7 @@ class Logger
     {
         $timestamp = (new DateTime())->format('Y-m-d H:i:s.v');
         $contextData = array_merge($this->context, $context);
-        
+
         $logData = [
             'timestamp' => $timestamp,
             'level' => $level,
@@ -317,9 +317,9 @@ class Logger
         try {
             $filename = $this->getLogFilename($channel);
             $filepath = $this->logDirectory . '/' . $filename;
-            
+
             file_put_contents($filepath, $logEntry . PHP_EOL, FILE_APPEND | LOCK_EX);
-            
+
             // Rotate log if it gets too large (10MB)
             if (filesize($filepath) > 10 * 1024 * 1024) {
                 $this->rotateLog($filepath);
@@ -379,7 +379,7 @@ class Logger
     {
         $rotatedPath = $filepath . '.' . date('YmdHis');
         rename($filepath, $rotatedPath);
-        
+
         // Compress rotated log
         if (function_exists('gzencode') && is_readable($rotatedPath)) {
             $compressed = gzencode(file_get_contents($rotatedPath));
@@ -397,7 +397,7 @@ class Logger
     private function maskSensitiveData(array $data): array
     {
         $sensitiveKeys = [
-            'card_number', 'cvv', 'cvn', 'password', 'secret', 'token', 
+            'card_number', 'cvv', 'cvn', 'password', 'secret', 'token',
             'api_key', 'authorization', 'payment_token'
         ];
 
@@ -423,7 +423,7 @@ class Logger
         if (strlen($value) <= 4) {
             return str_repeat('*', strlen($value));
         }
-        
+
         return substr($value, 0, 4) . str_repeat('*', strlen($value) - 8) . substr($value, -4);
     }
 

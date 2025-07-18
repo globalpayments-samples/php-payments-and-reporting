@@ -22,6 +22,13 @@ A comprehensive PHP implementation demonstrating secure card authentication and 
   - Batch verification for multiple cards
   - Customer data integration
 
+- **Transaction Dashboard** ✨ *NEW!*
+  - Real-time transaction monitoring
+  - Global Payments brand-compliant interface
+  - Advanced filtering and search capabilities
+  - Transaction history and analytics
+  - Mobile-responsive design
+
 - **Production-Ready Code**
   - Comprehensive error handling
   - Detailed logging and monitoring
@@ -100,13 +107,19 @@ php-card-authentication/
 │   ├── basic-verification.php      # Basic card validation
 │   ├── advanced-verification.php   # AVS + CVV checks
 │   └── stored-card-verify.php     # Token-based verification
-├── 📁 src/                        # Source code (if using classes)
+├── 📁 src/                        # Source code
+│   ├── TransactionReporter.php    # ✨ Transaction reporting class
+│   ├── ErrorHandler.php           # Error handling utilities
+│   └── Logger.php                 # Logging utilities
+├── 📁 logs/                       # Application logs
 ├── 📁 tests/                      # PHPUnit tests
 ├── 📁 docs/                       # Documentation
 ├── config.php                     # API configuration endpoint
 ├── index.html                     # Web interface
+├── dashboard.html                 # ✨ Transaction dashboard
 ├── verify-card.php               # Main verification API
 ├── tokenize-card.php             # Tokenization endpoint
+├── transactions-api.php          # ✨ Transaction reporting API
 ├── composer.json                 # Dependencies
 ├── .env.sample                   # Environment template
 ├── Dockerfile                    # Docker configuration
@@ -139,6 +152,46 @@ Returns public configuration for client-side SDK initialization.
 
 ### POST /verify-card.php
 Performs card authentication/verification.
+
+### GET /transactions-api.php ✨ *NEW!*
+Returns transaction data for the dashboard.
+
+**Parameters:**
+- `limit` - Number of transactions to return (default: 25, max: 100)
+- `page` - Page number for pagination (default: 1)
+- `start_date` - Start date filter (YYYY-MM-DD format)
+- `end_date` - End date filter (YYYY-MM-DD format)
+- `transaction_id` - Specific transaction ID to retrieve
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "transactions": [
+      {
+        "id": "TXN123456",
+        "amount": "0.00",
+        "status": "approved",
+        "timestamp": "2024-01-15 10:30:00",
+        "card": {
+          "type": "visa",
+          "last4": "1234"
+        },
+        "response": {
+          "code": "00",
+          "message": "Approved"
+        }
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "pageSize": 25,
+      "totalCount": 1
+    }
+  }
+}
+```
 
 **Request:**
 ```json
@@ -390,6 +443,57 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
 | P    | Not processed |
 | S    | CVV should be on card but merchant indicated not present |
 | U    | Issuer not certified or not provided |
+
+## 📊 Transaction Dashboard ✨ *NEW!*
+
+The project now includes a comprehensive transaction dashboard that provides real-time monitoring of your Global Payments transactions.
+
+### Features
+
+- **Real-time Transaction Monitoring**: View completed transactions from your Global Payments account
+- **Global Payments Branding**: Follows official GP brand guidelines with proper colors and typography
+- **Advanced Filtering**: Filter by date range, transaction status, and search specific transactions
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **Transaction Analytics**: View key metrics like approval rates and total amounts
+- **Direct Integration**: Seamlessly integrates with existing card authentication flow
+
+### Accessing the Dashboard
+
+1. **From the Main Interface**: Click the "📊 View Transaction Dashboard" button on the main card authentication page
+2. **Direct Access**: Navigate to `/dashboard.html` in your browser
+3. **API Integration**: Use the `/transactions-api.php` endpoint for programmatic access
+
+### Dashboard Components
+
+- **Statistics Cards**: Overview of total transactions, approvals, declines, and amounts
+- **Transaction Table**: Detailed view of all transactions with key information
+- **Filtering Controls**: Date range selection and status filtering
+- **Search Functionality**: Find specific transactions by ID, card number, or response message
+- **Pagination**: Handle large datasets with efficient pagination
+
+### API Usage
+
+The dashboard uses the Global Payments Reporting API to fetch transaction data:
+
+```php
+// Example: Get recent transactions
+$reporter = new TransactionReporter();
+$transactions = $reporter->getRecentTransactions(50, 1);
+
+// Example: Get transactions by date range
+$transactions = $reporter->getTransactionsByDateRange('2024-01-01', '2024-01-31');
+
+// Example: Get specific transaction details
+$transaction = $reporter->getTransactionDetails('TXN123456');
+```
+
+### Brand Compliance
+
+The dashboard follows Global Payments brand guidelines:
+- **Primary Color**: #262AFF (Global Blue)
+- **Typography**: DM Sans font family
+- **Design Elements**: Rounded corners, clean layouts, and proper spacing
+- **Responsive**: Mobile-first design approach
 
 ## 🚀 Production Deployment
 

@@ -43,7 +43,7 @@ class ErrorHandler
         $this->logger = $logger ?? new Logger();
         $this->debugMode = $debugMode;
         $this->initializeErrorCodes();
-        
+
         // Register error and exception handlers
         $this->registerHandlers();
     }
@@ -58,13 +58,13 @@ class ErrorHandler
     public function handleException(Throwable $exception, string $context = 'general'): array
     {
         $errorId = $this->generateErrorId();
-        
+
         // Log the error
         $this->logError($exception, $context, $errorId);
-        
+
         // Determine error type and create response
         $errorData = $this->analyzeException($exception);
-        
+
         $response = [
             'success' => false,
             'error' => [
@@ -99,16 +99,16 @@ class ErrorHandler
      * @return array Payment error response
      */
     public function handlePaymentError(
-        string $responseCode, 
-        string $responseMessage, 
+        string $responseCode,
+        string $responseMessage,
         array $additionalData = []
     ): array {
         $errorId = $this->generateErrorId();
-        
+
         // Map response code to user-friendly message
         $userMessage = $this->mapPaymentErrorMessage($responseCode, $responseMessage);
         $category = $this->categorizePaymentError($responseCode);
-        
+
         // Log payment error
         $this->logger->warning('Payment error occurred', [
             'error_id' => $errorId,
@@ -142,7 +142,7 @@ class ErrorHandler
     public function handleValidationErrors(array $errors, string $context = 'validation'): array
     {
         $errorId = $this->generateErrorId();
-        
+
         $this->logger->warning('Validation errors occurred', [
             'error_id' => $errorId,
             'context' => $context,
@@ -172,7 +172,7 @@ class ErrorHandler
     public function handleRateLimitError(int $retryAfter = 60): array
     {
         $errorId = $this->generateErrorId();
-        
+
         $this->logger->warning('Rate limit exceeded', [
             'error_id' => $errorId,
             'retry_after' => $retryAfter,
@@ -203,7 +203,7 @@ class ErrorHandler
     public function sendErrorResponse(array $errorResponse, ?int $httpStatus = null): void
     {
         $status = $httpStatus ?? $this->getHttpStatusFromError($errorResponse);
-        
+
         http_response_code($status);
         header('Content-Type: application/json');
         echo json_encode($errorResponse);
@@ -250,10 +250,10 @@ class ErrorHandler
     {
         // Register exception handler
         set_exception_handler([$this, 'globalExceptionHandler']);
-        
+
         // Register error handler
         set_error_handler([$this, 'globalErrorHandler']);
-        
+
         // Register shutdown handler for fatal errors
         register_shutdown_function([$this, 'shutdownHandler']);
     }
@@ -303,7 +303,7 @@ class ErrorHandler
     public function shutdownHandler(): void
     {
         $error = error_get_last();
-        
+
         if ($error && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE])) {
             $this->logger->critical('Fatal Error', [
                 'type' => $error['type'],
@@ -322,7 +322,7 @@ class ErrorHandler
                         'type' => 'SYSTEM_ERROR'
                     ]
                 ];
-                
+
                 $this->sendErrorResponse($response, 500);
             }
         }
@@ -337,7 +337,7 @@ class ErrorHandler
     private function analyzeException(Throwable $exception): array
     {
         $class = get_class($exception);
-        
+
         switch (true) {
             case $exception instanceof GatewayException:
                 return [
@@ -345,28 +345,28 @@ class ErrorHandler
                     'message' => $this->sanitizeErrorMessage($exception->getMessage()),
                     'type' => 'GATEWAY_ERROR'
                 ];
-                
+
             case $exception instanceof ApiException:
                 return [
                     'code' => 'API_ERROR',
                     'message' => $this->sanitizeErrorMessage($exception->getMessage()),
                     'type' => 'API_ERROR'
                 ];
-                
+
             case $exception instanceof BuilderException:
                 return [
                     'code' => 'BUILDER_ERROR',
                     'message' => 'Invalid request configuration',
                     'type' => 'CONFIGURATION_ERROR'
                 ];
-                
+
             case $exception instanceof ConfigurationException:
                 return [
                     'code' => 'CONFIG_ERROR',
                     'message' => 'Service configuration error',
                     'type' => 'CONFIGURATION_ERROR'
                 ];
-                
+
             default:
                 return [
                     'code' => 'INTERNAL_ERROR',
@@ -428,7 +428,7 @@ class ErrorHandler
         ];
 
         $message = preg_replace($patterns, '[REDACTED]', $message);
-        
+
         // Limit message length
         return substr($message, 0, 200);
     }
@@ -446,7 +446,7 @@ class ErrorHandler
                 unset($frame['args']); // Remove arguments which may contain sensitive data
             }
         }
-        
+
         return array_slice($trace, 0, 10); // Limit trace depth
     }
 
@@ -469,7 +469,7 @@ class ErrorHandler
     private function getHttpStatusFromError(array $errorResponse): int
     {
         $errorType = $errorResponse['error']['type'] ?? 'UNKNOWN';
-        
+
         return match ($errorType) {
             'VALIDATION_ERROR' => 400,
             'RATE_LIMIT_ERROR' => 429,
