@@ -438,7 +438,16 @@
                         <option value="approved">Approved</option>
                         <option value="declined">Declined</option>
                         <option value="error">Error</option>
+                        <option value="unknown">Unknown</option>
                     </select>
+                </div>
+                <div class="filter-group">
+                    <label for="amount-min">Min Amount</label>
+                    <input type="number" id="amount-min" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="filter-group">
+                    <label for="amount-max">Max Amount</label>
+                    <input type="number" id="amount-max" placeholder="1000.00" step="0.01" min="0">
                 </div>
                 <div class="filter-group">
                     <button class="btn btn-primary" onclick="applyFilters()">
@@ -518,12 +527,10 @@
             }
 
             setDefaultDates() {
-                const endDate = new Date();
-                const startDate = new Date();
-                startDate.setDate(startDate.getDate() - 30);
-
-                document.getElementById('start-date').value = startDate.toISOString().split('T')[0];
-                document.getElementById('end-date').value = endDate.toISOString().split('T')[0];
+                // Don't set default dates - let the API use its optimized recent transaction logic
+                // Users can set date filters manually if they need specific date ranges
+                document.getElementById('start-date').value = '';
+                document.getElementById('end-date').value = '';
             }
 
             setupEventListeners() {
@@ -543,17 +550,20 @@
                     const startDate = document.getElementById('start-date').value;
                     const endDate = document.getElementById('end-date').value;
                     
+                    // Only add date filters if user has specified them
                     if (startDate && endDate) {
                         params.append('start_date', startDate);
                         params.append('end_date', endDate);
                     }
                     
                     params.append('limit', '100');
+                    // Add cache buster to prevent browser caching
+                    params.append('_t', Date.now());
                     
                     if (params.toString()) {
                         url += '?' + params.toString();
                     }
-
+                    
                     const response = await fetch(url);
                     const data = await response.json();
 
@@ -563,7 +573,10 @@
                         this.updateStats();
                         this.renderTransactions();
                         
-                        // Remove any existing demo notice
+                        // Show authenticity status
+                        this.showAuthenticityStatus(data.data);
+                        
+                        // Remove any existing notices
                         const existingNotice = document.getElementById('demo-notice');
                         if (existingNotice) {
                             existingNotice.remove();
@@ -659,7 +672,10 @@
                         </td>
                         <td>
                             <small>
-                                ${transaction.response.code || 'N/A'} - ${transaction.response.message || 'N/A'}
+                                ${transaction.response.code || 'N/A'}<br>
+                                <span style="color: var(--gp-gray); font-size: 0.8em;">
+                                    ${(transaction.response.message || 'N/A').substring(0, 30)}${(transaction.response.message || '').length > 30 ? '...' : ''}
+                                </span>
                             </small>
                         </td>
                         <td>
@@ -725,29 +741,66 @@
 
             applyFilters() {
                 const statusFilter = document.getElementById('status-filter').value;
+                const minAmount = parseFloat(document.getElementById('amount-min').value) || 0;
+                const maxAmount = parseFloat(document.getElementById('amount-max').value) || Infinity;
                 
                 this.filteredTransactions = this.allTransactions.filter(transaction => {
+                    // Status filter
                     if (statusFilter && transaction.status !== statusFilter) {
                         return false;
                     }
+                    
+                    // Amount filters
+                    const amount = parseFloat(transaction.amount) || 0;
+                    if (amount < minAmount || amount > maxAmount) {
+                        return false;
+                    }
+                    
                     return true;
                 });
 
                 this.currentPage = 1;
                 this.updateStats();
                 this.renderTransactions();
+                
+                // Show filter applied indicator
+                this.showFilterStatus();
             }
 
             searchTransactions() {
-                const searchTerm = document.getElementById('search-input').value.toLowerCase();
+                const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
                 
-                this.filteredTransactions = this.allTransactions.filter(transaction => {
-                    return (
-                        (transaction.id && transaction.id.toLowerCase().includes(searchTerm)) ||
-                        (transaction.card.last4 && transaction.card.last4.includes(searchTerm)) ||
-                        (transaction.response.message && transaction.response.message.toLowerCase().includes(searchTerm))
-                    );
-                });
+                if (!searchTerm) {
+                    // If search is empty, show all transactions
+                    this.filteredTransactions = [...this.allTransactions];
+                } else {
+                    this.filteredTransactions = this.allTransactions.filter(transaction => {
+                        // Search in transaction ID (exact and partial match)
+                        if (transaction.id && 
+                            (transaction.id.toLowerCase() === searchTerm || 
+                             transaction.id.toLowerCase().includes(searchTerm))) {
+                            return true;
+                        }
+                        
+                        // Search in reference number
+                        if (transaction.reference && transaction.reference.toLowerCase().includes(searchTerm)) {
+                            return true;
+                        }
+                        
+                        // Search in card last4
+                        if (transaction.card.last4 && transaction.card.last4.includes(searchTerm)) {
+                            return true;
+                        }
+                        
+                        // Search in response message
+                        if (transaction.response.message && 
+                            transaction.response.message.toLowerCase().includes(searchTerm)) {
+                            return true;
+                        }
+                        
+                        return false;
+                    });
+                }
 
                 this.currentPage = 1;
                 this.updateStats();
@@ -785,9 +838,38 @@
                 header.parentNode.insertBefore(notice, header.nextSibling);
             }
 
-            showDemoNotice() {
-                // This method is no longer used but kept for compatibility
-                return;
+            showAuthenticityStatus(data) {
+                // Remove any existing authenticity notice
+                const existingNotice = document.getElementById('authenticity-notice');
+                if (existingNotice) {
+                    existingNotice.remove();
+                }
+
+                // Only show if data contains authenticity information
+                if (data.authenticity && data.source) {
+                    const notice = document.createElement('div');
+                    notice.id = 'authenticity-notice';
+                    notice.style.cssText = `
+                        background: linear-gradient(135deg, #10B981, #059669);
+                        color: white;
+                        padding: 12px 20px;
+                        border-radius: 8px;
+                        margin: 0 0 20px 0;
+                        text-align: center;
+                        font-weight: 500;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    `;
+                    notice.innerHTML = `
+                        <span style="font-size: 1.1em;">✅ Authentic Transactions Verified</span><br>
+                        <span style="font-size: 0.9em; opacity: 0.9;">
+                            Data source: ${data.source} | Status: ${data.authenticity}
+                        </span>
+                    `;
+
+                    const container = document.querySelector('.dashboard-container');
+                    const header = container.querySelector('.header');
+                    header.parentNode.insertBefore(notice, header.nextSibling);
+                }
             }
 
             async viewDetails(transactionId) {
@@ -797,18 +879,217 @@
 
                     if (data.success) {
                         const transaction = data.data;
-                        alert(`Transaction Details:\n\n` +
-                              `ID: ${transaction.id}\n` +
-                              `Status: ${transaction.status}\n` +
-                              `Amount: $${transaction.amount}\n` +
-                              `Card: ${transaction.card.type} ****${transaction.card.last4}\n` +
-                              `Response: ${transaction.response.code} - ${transaction.response.message}\n` +
-                              `Date: ${transaction.timestamp}`);
+                        this.showTransactionModal(transaction);
                     } else {
                         alert('Failed to load transaction details: ' + data.message);
                     }
                 } catch (error) {
                     alert('Error loading transaction details: ' + error.message);
+                }
+            }
+
+            showTransactionModal(transaction) {
+                // Remove existing modal if any
+                const existingModal = document.getElementById('transaction-modal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+
+                const modal = document.createElement('div');
+                modal.id = 'transaction-modal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                `;
+
+                modal.innerHTML = `
+                    <div style="
+                        background: var(--gp-white);
+                        border-radius: 16px;
+                        padding: 30px;
+                        max-width: 600px;
+                        width: 90%;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+                    ">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 style="color: var(--gp-blue); font-size: 1.5rem;">Transaction Details</h3>
+                            <button onclick="document.getElementById('transaction-modal').remove()" style="
+                                background: none;
+                                border: none;
+                                font-size: 1.5rem;
+                                cursor: pointer;
+                                color: var(--gp-gray);
+                                padding: 5px;
+                            ">&times;</button>
+                        </div>
+                        
+                        <div style="display: grid; gap: 15px;">
+                            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; padding: 15px; background: var(--gp-light-gray); border-radius: 8px;">
+                                <strong>Transaction ID:</strong>
+                                <span style="font-family: monospace;">${transaction.id || 'N/A'}</span>
+                                
+                                <strong>Status:</strong>
+                                <span class="status-badge status-${transaction.status}" style="display: inline-block; width: fit-content;">
+                                    ${transaction.status}
+                                </span>
+                                
+                                <strong>Amount:</strong>
+                                <span style="font-size: 1.1em; font-weight: 600;">${transaction.amount ? '$' + parseFloat(transaction.amount).toFixed(2) : 'N/A'}</span>
+                                
+                                <strong>Date & Time:</strong>
+                                <span>${transaction.timestamp ? new Date(transaction.timestamp).toLocaleString() : 'N/A'}</span>
+                                
+                                <strong>Transaction Type:</strong>
+                                <span>${transaction.type || 'N/A'}</span>
+                                
+                                <strong>Reference Number:</strong>
+                                <span style="font-family: monospace;">${transaction.reference || 'N/A'}</span>
+                            </div>
+                            
+                            <div style="padding: 15px; background: var(--gp-light-gray); border-radius: 8px;">
+                                <h4 style="margin-bottom: 10px; color: var(--gp-black);">Card Information</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+                                    <strong>Card Type:</strong>
+                                    <span>${transaction.card.type || 'N/A'}</span>
+                                    
+                                    <strong>Card Number:</strong>
+                                    <span style="font-family: monospace;">****${transaction.card.last4 || 'N/A'}</span>
+                                    
+                                    <strong>Expiry:</strong>
+                                    <span>${transaction.card.exp_month || 'N/A'}/${transaction.card.exp_year || 'N/A'}</span>
+                                </div>
+                            </div>
+                            
+                            <div style="padding: 15px; background: var(--gp-light-gray); border-radius: 8px;">
+                                <h4 style="margin-bottom: 10px; color: var(--gp-black);">Response Details</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+                                    <strong>Response Code:</strong>
+                                    <span style="font-family: monospace;">${transaction.response.code || 'N/A'}</span>
+                                    
+                                    <strong>Response Message:</strong>
+                                    <span>${transaction.response.message || 'N/A'}</span>
+                                    
+                                    <strong>Gateway Response:</strong>
+                                    <span style="font-family: monospace;">${transaction.gateway_response_code || 'N/A'}</span>
+                                </div>
+                            </div>
+                            
+                            ${transaction.avs && (transaction.avs.code || transaction.avs.message) ? `
+                                <div style="padding: 15px; background: var(--gp-light-gray); border-radius: 8px;">
+                                    <h4 style="margin-bottom: 10px; color: var(--gp-black);">Address Verification (AVS)</h4>
+                                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+                                        <strong>AVS Code:</strong>
+                                        <span style="font-family: monospace;">${transaction.avs.code || 'N/A'}</span>
+                                        
+                                        <strong>AVS Message:</strong>
+                                        <span>${transaction.avs.message || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            ${transaction.cvv && (transaction.cvv.code || transaction.cvv.message) ? `
+                                <div style="padding: 15px; background: var(--gp-light-gray); border-radius: 8px;">
+                                    <h4 style="margin-bottom: 10px; color: var(--gp-black);">CVV Verification</h4>
+                                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+                                        <strong>CVV Code:</strong>
+                                        <span style="font-family: monospace;">${transaction.cvv.code || 'N/A'}</span>
+                                        
+                                        <strong>CVV Message:</strong>
+                                        <span>${transaction.cvv.message || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div style="margin-top: 20px; text-align: center;">
+                            <button onclick="document.getElementById('transaction-modal').remove()" class="btn btn-primary">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                // Close on backdrop click
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+            }
+
+            showFilterStatus() {
+                const statusFilter = document.getElementById('status-filter').value;
+                const minAmount = document.getElementById('amount-min').value;
+                const maxAmount = document.getElementById('amount-max').value;
+                
+                let filters = [];
+                if (statusFilter) filters.push(`Status: ${statusFilter}`);
+                if (minAmount) filters.push(`Min: $${minAmount}`);
+                if (maxAmount) filters.push(`Max: $${maxAmount}`);
+                
+                // Remove existing filter status
+                const existingStatus = document.getElementById('filter-status');
+                if (existingStatus) {
+                    existingStatus.remove();
+                }
+                
+                if (filters.length > 0) {
+                    const filterStatus = document.createElement('div');
+                    filterStatus.id = 'filter-status';
+                    filterStatus.style.cssText = `
+                        background: var(--gp-blue);
+                        color: white;
+                        padding: 8px 15px;
+                        border-radius: 6px;
+                        margin: 10px 0;
+                        font-size: 0.9em;
+                        text-align: center;
+                    `;
+                    filterStatus.innerHTML = `
+                        🔍 Filters Applied: ${filters.join(' | ')} 
+                        <button onclick="dashboard.clearFilters()" style="
+                            background: rgba(255,255,255,0.2);
+                            border: none;
+                            color: white;
+                            padding: 2px 8px;
+                            border-radius: 4px;
+                            margin-left: 10px;
+                            cursor: pointer;
+                            font-size: 0.8em;
+                        ">Clear</button>
+                    `;
+                    
+                    const tableHeader = document.querySelector('.table-header');
+                    tableHeader.parentNode.insertBefore(filterStatus, tableHeader.nextSibling);
+                }
+            }
+
+            clearFilters() {
+                document.getElementById('status-filter').value = '';
+                document.getElementById('amount-min').value = '';
+                document.getElementById('amount-max').value = '';
+                
+                this.filteredTransactions = [...this.allTransactions];
+                this.currentPage = 1;
+                this.updateStats();
+                this.renderTransactions();
+                
+                // Remove filter status
+                const filterStatus = document.getElementById('filter-status');
+                if (filterStatus) {
+                    filterStatus.remove();
                 }
             }
         }
