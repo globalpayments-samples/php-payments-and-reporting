@@ -442,14 +442,6 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="amount-min">Min Amount</label>
-                    <input type="number" id="amount-min" placeholder="0.00" step="0.01" min="0">
-                </div>
-                <div class="filter-group">
-                    <label for="amount-max">Max Amount</label>
-                    <input type="number" id="amount-max" placeholder="1000.00" step="0.01" min="0">
-                </div>
-                <div class="filter-group">
                     <button class="btn btn-primary" onclick="applyFilters()">
                         Apply Filters
                     </button>
@@ -469,10 +461,6 @@
             <div class="stat-card">
                 <h3 id="declined-transactions">-</h3>
                 <p>Declined</p>
-            </div>
-            <div class="stat-card">
-                <h3 id="total-amount">-</h3>
-                <p>Total Amount</p>
             </div>
         </div>
 
@@ -623,7 +611,6 @@
                 document.getElementById('total-transactions').textContent = transactions.length;
                 document.getElementById('approved-transactions').textContent = approved;
                 document.getElementById('declined-transactions').textContent = declined;
-                document.getElementById('total-amount').textContent = '$' + totalAmount.toFixed(2);
             }
 
             renderTransactions() {
@@ -741,18 +728,10 @@
 
             applyFilters() {
                 const statusFilter = document.getElementById('status-filter').value;
-                const minAmount = parseFloat(document.getElementById('amount-min').value) || 0;
-                const maxAmount = parseFloat(document.getElementById('amount-max').value) || Infinity;
                 
                 this.filteredTransactions = this.allTransactions.filter(transaction => {
                     // Status filter
                     if (statusFilter && transaction.status !== statusFilter) {
-                        return false;
-                    }
-                    
-                    // Amount filters
-                    const amount = parseFloat(transaction.amount) || 0;
-                    if (amount < minAmount || amount > maxAmount) {
                         return false;
                     }
                     
@@ -860,10 +839,7 @@
                         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                     `;
                     notice.innerHTML = `
-                        <span style="font-size: 1.1em;">✅ Authentic Transactions Verified</span><br>
-                        <span style="font-size: 0.9em; opacity: 0.9;">
-                            Data source: ${data.source} | Status: ${data.authenticity}
-                        </span>
+                        <span style="font-size: 1.1em;">✅ Authentic Transactions Verified</span>
                     `;
 
                     const container = document.querySelector('.dashboard-container');
@@ -1031,13 +1007,9 @@
 
             showFilterStatus() {
                 const statusFilter = document.getElementById('status-filter').value;
-                const minAmount = document.getElementById('amount-min').value;
-                const maxAmount = document.getElementById('amount-max').value;
                 
                 let filters = [];
                 if (statusFilter) filters.push(`Status: ${statusFilter}`);
-                if (minAmount) filters.push(`Min: $${minAmount}`);
-                if (maxAmount) filters.push(`Max: $${maxAmount}`);
                 
                 // Remove existing filter status
                 const existingStatus = document.getElementById('filter-status');
@@ -1078,8 +1050,6 @@
 
             clearFilters() {
                 document.getElementById('status-filter').value = '';
-                document.getElementById('amount-min').value = '';
-                document.getElementById('amount-max').value = '';
                 
                 this.filteredTransactions = [...this.allTransactions];
                 this.currentPage = 1;
