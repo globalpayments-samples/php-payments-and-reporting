@@ -162,8 +162,6 @@
                         this.updateStats();
                         this.renderTransactions();
                         
-                        // Show authenticity status
-                        this.showAuthenticityStatus(data.data);
                         
                         // Remove any existing notices
                         const existingNotice = document.getElementById('demo-notice');
@@ -418,36 +416,6 @@
                 header.parentNode.insertBefore(notice, header.nextSibling);
             }
 
-            showAuthenticityStatus(data) {
-                // Remove any existing authenticity notice
-                const existingNotice = document.getElementById('authenticity-notice');
-                if (existingNotice) {
-                    existingNotice.remove();
-                }
-
-                // Only show if data contains authenticity information
-                if (data.authenticity && data.source) {
-                    const notice = document.createElement('div');
-                    notice.id = 'authenticity-notice';
-                    notice.style.cssText = `
-                        background: linear-gradient(135deg, #10B981, #059669);
-                        color: white;
-                        padding: 12px 20px;
-                        border-radius: 8px;
-                        margin: 0 0 20px 0;
-                        text-align: center;
-                        font-weight: 500;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                    `;
-                    notice.innerHTML = `
-                        <span style="font-size: 1.1em;">✅ Authentic Transactions Verified</span>
-                    `;
-
-                    const container = document.querySelector('.dashboard-container');
-                    const header = container.querySelector('.header');
-                    header.parentNode.insertBefore(notice, header.nextSibling);
-                }
-            }
 
             async viewDetails(transactionId) {
                 try {
