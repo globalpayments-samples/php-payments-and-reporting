@@ -75,13 +75,13 @@ class TransactionReporter
             $startDate = new \DateTime('3 days ago');
             $endDate = new \DateTime('now');
             
-            // Format dates for API using UTC timezone format required by Global Payments
-            $startDateStr = gmdate('Y-m-d\TH:i:s.00\Z', $startDate->getTimestamp());
-            $endDateStr = gmdate('Y-m-d\TH:i:s.00\Z', $endDate->getTimestamp());
+            // Format dates as strings - SDK has a bug with DateTime objects
+            $startDateStr = $startDate->format('Y-m-d\TH:i:s.000\Z');
+            $endDateStr = $endDate->format('Y-m-d\TH:i:s.999\Z');
 
             $response = $reportingService->findTransactions()
-                ->withStartDate($startDate)
-                ->withEndDate($endDate)
+                ->withStartDate($startDateStr)
+                ->withEndDate($endDateStr)
                 ->execute();
 
             $transactions = [];
@@ -158,15 +158,15 @@ class TransactionReporter
         try {
             $reportingService = new ReportingService();
             
-            // Format dates for API using UTC timezone format required by Global Payments
+            // Format dates as strings - SDK has a bug with DateTime objects
             $startDateObj = new \DateTime($startDate);
             $endDateObj = new \DateTime($endDate);
-            $startDateStr = gmdate('Y-m-d\TH:i:s.00\Z', $startDateObj->getTimestamp());
-            $endDateStr = gmdate('Y-m-d\TH:i:s.00\Z', $endDateObj->getTimestamp());
+            $startDateStr = $startDateObj->format('Y-m-d\TH:i:s.000\Z');
+            $endDateStr = $endDateObj->format('Y-m-d\TH:i:s.999\Z');
 
             $response = $reportingService->findTransactions()
-                ->withStartDate($startDateObj)
-                ->withEndDate($endDateObj)
+                ->withStartDate($startDateStr)
+                ->withEndDate($endDateStr)
                 ->execute();
 
             $transactions = [];
@@ -290,13 +290,27 @@ class TransactionReporter
         $amount = isset($transaction->amount) && $transaction->amount > 0 ? 
                   $transaction->amount : 'VERIFY';
         
-        // Try to get a meaningful timestamp - use current time if none available
+        // Get the actual transaction timestamp from Global Payments API responseDate field
         $timestamp = null;
-        if ($transaction->transactionDate && $transaction->transactionDate instanceof \DateTime) {
+        
+        // Priority order for timestamp fields from Global Payments API
+        if (isset($transaction->responseDate) && !empty($transaction->responseDate)) {
+            // responseDate is in ISO format like "2025-07-23T12:12:55.52Z"
+            try {
+                $dateTime = new \DateTime($transaction->responseDate);
+                $timestamp = $dateTime->format('Y-m-d H:i:s');
+            } catch (\Exception $e) {
+                error_log('Error parsing responseDate: ' . $e->getMessage());
+            }
+        } elseif ($transaction->transactionDate && $transaction->transactionDate instanceof \DateTime) {
             $timestamp = $transaction->transactionDate->format('Y-m-d H:i:s');
-        } elseif ($displayId) {
-            // For recent transactions without timestamp, use current time as approximation
-            $timestamp = date('Y-m-d H:i:s');
+        } elseif (isset($transaction->transactionLocalDate) && !empty($transaction->transactionLocalDate)) {
+            try {
+                $dateTime = new \DateTime($transaction->transactionLocalDate);
+                $timestamp = $dateTime->format('Y-m-d H:i:s');
+            } catch (\Exception $e) {
+                error_log('Error parsing transactionLocalDate: ' . $e->getMessage());
+            }
         }
         
         return [
@@ -404,7 +418,43 @@ class TransactionReporter
             }
         }
         
-        // Accept all transactions for now - we've verified the date filtering works
+        // Enhanced authenticity checks for Global Payments API data
+        
+        // Check for required Global Payments specific fields
+        if (!isset($transaction->responseDate) || empty($transaction->responseDate)) {
+            error_log('Suspicious transaction: Missing responseDate field - ' . ($transaction->transactionId ?? 'unknown'));
+            return false;
+        }
+        
+        // Check for Global Payments specific service names (expanded list)
+        $validServices = [
+            'CreditSale', 'CreditAuth', 'CreditCapture', 'CreditVoid', 'CreditAccountVerify',
+            'CreditCPCEdit', 'CheckSale', 'CheckVoid', 'CheckQuery', 'RecurringBilling', 
+            'RecurringBillingAuth', 'Tokenize', 'DebitSale', 'DebitReturn'
+        ];
+        if (!isset($transaction->serviceName) || !in_array($transaction->serviceName, $validServices)) {
+            error_log('Suspicious transaction: Invalid serviceName - ' . ($transaction->serviceName ?? 'unknown'));
+            return false;
+        }
+        
+        // Check for Global Payments username pattern (should not be generic)
+        if (!isset($transaction->username) || empty($transaction->username)) {
+            error_log('Suspicious transaction: Missing username field');
+            return false;
+        }
+        
+        // Verify responseDate format matches Global Payments ISO format
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$/', $transaction->responseDate)) {
+            error_log('Suspicious transaction: Invalid responseDate format - ' . $transaction->responseDate);
+            return false;
+        }
+        
+        // Check for realistic transaction ID pattern (Global Payments uses numeric IDs)
+        if (!isset($transaction->transactionId) || !is_numeric($transaction->transactionId)) {
+            error_log('Suspicious transaction: Invalid transactionId format');
+            return false;
+        }
+        
         return true;
     }
 

@@ -23,6 +23,12 @@
 
         <div class="filters">
             <h3>Filter Transactions</h3>
+            <div class="quick-dates">
+                <button class="btn btn-outline" onclick="dashboard.setDateRange('today')">Today</button>
+                <button class="btn btn-outline" onclick="dashboard.setDateRange('week')">Last 7 Days</button>
+                <button class="btn btn-outline" onclick="dashboard.setDateRange('month')">Last 30 Days</button>
+                <button class="btn btn-outline" onclick="dashboard.clearDateRange()">All Time</button>
+            </div>
             <div class="filter-row">
                 <div class="filter-group">
                     <label for="start-date">Start Date</label>
@@ -63,12 +69,23 @@
                 <h3 id="declined-transactions">-</h3>
                 <p>Declined</p>
             </div>
+            <div class="stat-card success-rate">
+                <h3 id="success-rate">-</h3>
+                <p>Success Rate</p>
+            </div>
         </div>
 
         <div class="transactions-table">
             <div class="table-header">
                 <h3>Recent Transactions</h3>
                 <div class="table-controls">
+                    <div class="export-section">
+                        <button class="btn btn-export" onclick="dashboard.exportTransactions()" title="Export filtered transactions to CSV">
+                            <span class="export-icon">📊</span>
+                            <span class="export-text">Export CSV</span>
+                            <span class="export-count" id="export-count">(0)</span>
+                        </button>
+                    </div>
                     <input type="text" class="search-input" placeholder="Search transactions..." 
                            id="search-input" onkeyup="searchTransactions()">
                 </div>
@@ -160,6 +177,9 @@
                         this.renderTransactions();
                         
                         
+                        // Add data source authenticity indicator
+                        this.showDataSourceIndicator(data.data.source, data.data.authenticity);
+                        
                         // Remove any existing notices
                         const existingNotice = document.getElementById('demo-notice');
                         if (existingNotice) {
@@ -202,11 +222,18 @@
                 const transactions = this.filteredTransactions;
                 const approved = transactions.filter(t => t.status === 'approved').length;
                 const declined = transactions.filter(t => t.status === 'declined').length;
-                const totalAmount = transactions.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+                const successRate = transactions.length > 0 ? Math.round((approved / transactions.length) * 100) : 0;
 
                 document.getElementById('total-transactions').textContent = transactions.length;
                 document.getElementById('approved-transactions').textContent = approved;
                 document.getElementById('declined-transactions').textContent = declined;
+                document.getElementById('success-rate').textContent = successRate + '%';
+                
+                // Update export count
+                const exportCount = document.getElementById('export-count');
+                if (exportCount) {
+                    exportCount.textContent = `(${transactions.length})`;
+                }
             }
 
             renderTransactions() {
@@ -237,7 +264,10 @@
                             <strong>${transaction.id || 'N/A'}</strong>
                         </td>
                         <td>
-                            ${transaction.timestamp ? new Date(transaction.timestamp).toLocaleString() : 'N/A'}
+                            ${transaction.timestamp ? 
+                                `<span title="${transaction.timestamp}" class="timestamp">${dashboard.formatExactTimestamp(transaction.timestamp)}</span>` : 
+                                'N/A'
+                            }
                         </td>
                         <td>
                             <span class="status-badge status-${transaction.status}">
@@ -245,7 +275,7 @@
                             </span>
                         </td>
                         <td>
-                            ${transaction.amount ? '$' + parseFloat(transaction.amount).toFixed(2) : 'N/A'}
+                            ${transaction.amount === 'VERIFY' ? '<span class="verify-badge">VERIFY</span>' : (transaction.amount ? '$' + parseFloat(transaction.amount).toFixed(2) : 'N/A')}
                         </td>
                         <td>
                             <div class="card-info">
@@ -489,7 +519,7 @@
                                 <span style="font-size: 1.1em; font-weight: 600;">${transaction.amount ? '$' + parseFloat(transaction.amount).toFixed(2) : 'N/A'}</span>
                                 
                                 <strong>Date & Time:</strong>
-                                <span>${transaction.timestamp ? new Date(transaction.timestamp).toLocaleString() : 'N/A'}</span>
+                                <span>${transaction.timestamp ? this.formatExactTimestamp(transaction.timestamp) : 'N/A'}</span>
                                 
                                 <strong>Transaction Type:</strong>
                                 <span>${transaction.type || 'N/A'}</span>
@@ -627,6 +657,254 @@
                 if (filterStatus) {
                     filterStatus.remove();
                 }
+            }
+
+            setDateRange(range) {
+                const today = new Date();
+                const startDate = new Date();
+                
+                switch(range) {
+                    case 'today':
+                        startDate.setHours(0, 0, 0, 0);
+                        break;
+                    case 'week':
+                        startDate.setDate(today.getDate() - 7);
+                        break;
+                    case 'month':
+                        startDate.setDate(today.getDate() - 30);
+                        break;
+                }
+                
+                document.getElementById('start-date').value = startDate.toISOString().split('T')[0];
+                document.getElementById('end-date').value = today.toISOString().split('T')[0];
+                this.loadTransactions();
+            }
+
+            clearDateRange() {
+                document.getElementById('start-date').value = '';
+                document.getElementById('end-date').value = '';
+                this.loadTransactions();
+            }
+
+            formatExactTimestamp(timestamp) {
+                try {
+                    const date = new Date(timestamp);
+                    
+                    // Check if date is valid
+                    if (isNaN(date.getTime())) {
+                        return 'Invalid Date';
+                    }
+                    
+                    // Format as: Jul 23, 2025 • 1:45:18 PM
+                    const options = {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true
+                    };
+                    
+                    const formatted = date.toLocaleString('en-US', options);
+                    return formatted.replace(' at', ' •');
+                } catch (error) {
+                    console.error('Error formatting timestamp:', error);
+                    return 'Invalid Date';
+                }
+            }
+
+            exportTransactions() {
+                if (this.filteredTransactions.length === 0) {
+                    this.showExportMessage('No transactions to export', 'warning');
+                    return;
+                }
+
+                try {
+                    // Show loading state
+                    this.showExportMessage('Preparing CSV export...', 'info');
+                    
+                    const csvData = this.convertToCSV(this.filteredTransactions);
+                    const blob = new Blob([csvData], { 
+                        type: 'text/csv;charset=utf-8;' 
+                    });
+                    
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    
+                    // Generate filename with timestamp and count
+                    const timestamp = new Date().toISOString().split('T')[0];
+                    const count = this.filteredTransactions.length;
+                    a.download = `global_payments_transactions_${timestamp}_${count}_records.csv`;
+                    
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    // Show success message
+                    this.showExportMessage(`Successfully exported ${count} transactions`, 'success');
+                    
+                } catch (error) {
+                    console.error('Export error:', error);
+                    this.showExportMessage('Failed to export transactions. Please try again.', 'error');
+                }
+            }
+
+            convertToCSV(transactions) {
+                // Comprehensive headers for readable CSV
+                const headers = [
+                    'Transaction ID',
+                    'Date & Time', 
+                    'Status',
+                    'Amount (USD)',
+                    'Card Type',
+                    'Card Last 4 Digits',
+                    'Response Code',
+                    'Response Message',
+                    'Reference Number',
+                    'Gateway Response Code',
+                    'CVV Code',
+                    'AVS Code'
+                ];
+                
+                const rows = transactions.map(t => {
+                    // Format amount properly
+                    let amount = '';
+                    if (t.amount === 'VERIFY') {
+                        amount = 'VERIFICATION';
+                    } else if (t.amount && !isNaN(parseFloat(t.amount))) {
+                        amount = '$' + parseFloat(t.amount).toFixed(2);
+                    } else {
+                        amount = t.amount || 'N/A';
+                    }
+                    
+                    // Format timestamp for readability
+                    let formattedDate = '';
+                    if (t.timestamp) {
+                        try {
+                            const date = new Date(t.timestamp);
+                            formattedDate = date.toLocaleString('en-US', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                                hour12: true
+                            });
+                        } catch (e) {
+                            formattedDate = t.timestamp;
+                        }
+                    }
+                    
+                    return [
+                        t.id || 'N/A',
+                        formattedDate || 'N/A',
+                        (t.status || 'Unknown').toUpperCase(),
+                        amount,
+                        t.card.type || 'N/A',
+                        t.card.last4 ? '****' + t.card.last4 : 'N/A',
+                        t.response.code || 'N/A',
+                        t.response.message || 'N/A',
+                        t.reference || 'N/A',
+                        t.gateway_response_code || 'N/A',
+                        t.cvv.code || 'N/A',
+                        t.avs.code || 'N/A'
+                    ].map(field => {
+                        // Properly escape CSV fields
+                        const stringField = String(field).replace(/"/g, '""');
+                        return `"${stringField}"`;
+                    });
+                });
+                
+                // Add UTF-8 BOM for proper Excel compatibility
+                const BOM = '\uFEFF';
+                return BOM + [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+            }
+
+            showDataSourceIndicator(source, authenticity) {
+                // Remove existing indicator
+                const existingIndicator = document.getElementById('data-source-indicator');
+                if (existingIndicator) {
+                    existingIndicator.remove();
+                }
+
+                if (!source) return;
+
+                const indicator = document.createElement('div');
+                indicator.id = 'data-source-indicator';
+                indicator.style.cssText = `
+                    background: linear-gradient(135deg, #10B981, #059669);
+                    color: white;
+                    padding: 8px 15px;
+                    border-radius: 6px;
+                    margin: 0 0 20px 0;
+                    font-size: 0.85em;
+                    text-align: center;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                `;
+                
+                const sourceText = source.replace(/_/g, ' ').toUpperCase();
+                const authenticityIcon = authenticity === 'verified' ? '🔒' : '⚠️';
+                
+                indicator.innerHTML = `
+                    ${authenticityIcon} <strong>Data Source:</strong> ${sourceText} 
+                    <span style="opacity: 0.9;">• Authenticity: ${authenticity || 'Unknown'}</span>
+                `;
+
+                const container = document.querySelector('.dashboard-container');
+                const statsGrid = container.querySelector('.stats-grid');
+                statsGrid.parentNode.insertBefore(indicator, statsGrid);
+            }
+
+            showExportMessage(message, type = 'info') {
+                // Remove existing message
+                const existingMessage = document.getElementById('export-message');
+                if (existingMessage) {
+                    existingMessage.remove();
+                }
+
+                const messageEl = document.createElement('div');
+                messageEl.id = 'export-message';
+                
+                const colors = {
+                    success: { bg: '#10B981', border: '#059669' },
+                    error: { bg: '#EF4444', border: '#DC2626' },
+                    warning: { bg: '#F59E0B', border: '#D97706' },
+                    info: { bg: '#262AFF', border: '#1B1EC6' }
+                };
+                
+                const color = colors[type] || colors.info;
+                
+                messageEl.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: ${color.bg};
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    border-left: 4px solid ${color.border};
+                    font-size: 0.9rem;
+                    font-weight: 500;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    z-index: 1000;
+                    max-width: 300px;
+                    animation: slideIn 0.3s ease;
+                `;
+                
+                messageEl.textContent = message;
+                document.body.appendChild(messageEl);
+                
+                // Auto remove after delay
+                setTimeout(() => {
+                    if (messageEl.parentNode) {
+                        messageEl.style.animation = 'slideOut 0.3s ease';
+                        setTimeout(() => messageEl.remove(), 300);
+                    }
+                }, type === 'info' ? 1500 : 3000);
             }
         }
 
