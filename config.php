@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Configuration Endpoint for Card Authentication
+ * Configuration Endpoint for Card Verification
  *
  * This script provides configuration information for the client-side SDK,
  * including the public API key needed for secure card tokenization.
