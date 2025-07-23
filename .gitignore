@@ -13,10 +13,10 @@ composer.lock
 # IDE and editor files
 .vscode/
 .idea/
-.claude/
 *.swp
 *.swo
 *~
+.claude
 .project
 .buildpath
 .settings/
@@ -250,3 +250,4 @@ runtime/
 # Build artifacts
 build/
 dist/
+
