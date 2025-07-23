@@ -177,9 +177,6 @@
                         this.renderTransactions();
                         
                         
-                        // Add data source authenticity indicator
-                        this.showDataSourceIndicator(data.data.source, data.data.authenticity);
-                        
                         // Remove any existing notices
                         const existingNotice = document.getElementById('demo-notice');
                         if (existingNotice) {
@@ -824,40 +821,6 @@
                 return BOM + [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
             }
 
-            showDataSourceIndicator(source, authenticity) {
-                // Remove existing indicator
-                const existingIndicator = document.getElementById('data-source-indicator');
-                if (existingIndicator) {
-                    existingIndicator.remove();
-                }
-
-                if (!source) return;
-
-                const indicator = document.createElement('div');
-                indicator.id = 'data-source-indicator';
-                indicator.style.cssText = `
-                    background: linear-gradient(135deg, #10B981, #059669);
-                    color: white;
-                    padding: 8px 15px;
-                    border-radius: 6px;
-                    margin: 0 0 20px 0;
-                    font-size: 0.85em;
-                    text-align: center;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                `;
-                
-                const sourceText = source.replace(/_/g, ' ').toUpperCase();
-                const authenticityIcon = authenticity === 'verified' ? '🔒' : '⚠️';
-                
-                indicator.innerHTML = `
-                    ${authenticityIcon} <strong>Data Source:</strong> ${sourceText} 
-                    <span style="opacity: 0.9;">• Authenticity: ${authenticity || 'Unknown'}</span>
-                `;
-
-                const container = document.querySelector('.dashboard-container');
-                const statsGrid = container.querySelector('.stats-grid');
-                statsGrid.parentNode.insertBefore(indicator, statsGrid);
-            }
 
             showExportMessage(message, type = 'info') {
                 // Remove existing message

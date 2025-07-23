@@ -100,8 +100,10 @@ class TransactionReporter
                     return $idB - $idA; // Descending order (newest first)
                 });
                 
-                // Limit to most recent 20 transactions to keep UI responsive
-                $transactions = array_slice($transactions, 0, 20);
+                // Apply user-specified limit with performance cap
+                $actualLimit = min($limit, 100); // Cap at 100 for performance
+                $totalResults = count($transactions);
+                $transactions = array_slice($transactions, 0, $actualLimit);
             }
 
             return [
@@ -110,8 +112,8 @@ class TransactionReporter
                     'transactions' => $transactions,
                     'pagination' => [
                         'page' => $page,
-                        'pageSize' => $limit,
-                        'totalCount' => count($transactions)
+                        'pageSize' => $actualLimit ?? $limit,
+                        'totalCount' => $totalResults ?? count($transactions)
                     ],
                     'source' => 'global_payments_sandbox_api',
                     'authenticity' => 'verified'
@@ -185,14 +187,20 @@ class TransactionReporter
                     return $idB - $idA; // Descending order (newest first)
                 });
                 
-                // Limit to most recent 20 transactions to keep UI responsive
-                $transactions = array_slice($transactions, 0, 20);
+                // Apply user-specified limit with performance cap
+                $actualLimit = min($limit, 100); // Cap at 100 for performance
+                $totalResults = count($transactions);
+                $transactions = array_slice($transactions, 0, $actualLimit);
             }
 
             return [
                 'success' => true,
                 'data' => [
                     'transactions' => $transactions,
+                    'pagination' => [
+                        'totalCount' => $totalResults ?? count($transactions),
+                        'pageSize' => $actualLimit ?? $limit
+                    ],
                     'dateRange' => [
                         'startDate' => $startDate,
                         'endDate' => $endDate
@@ -203,15 +211,18 @@ class TransactionReporter
                 'message' => 'Authenticated sandbox transactions retrieved successfully'
             ];
         } catch (ApiException $e) {
+            $this->logError('API Exception in getTransactionsByDateRange', $e);
             return [
                 'success' => false,
                 'message' => 'Failed to retrieve transactions: ' . $e->getMessage(),
                 'error' => [
                     'code' => 'REPORTING_API_ERROR',
-                    'details' => $e->getMessage()
+                    'details' => $e->getMessage(),
+                    'retry' => true
                 ]
             ];
         } catch (\Exception $e) {
+            $this->logError('General Exception in getTransactionsByDateRange', $e);
             return [
                 'success' => false,
                 'message' => 'Failed to retrieve transactions: ' . $e->getMessage(),
@@ -449,10 +460,13 @@ class TransactionReporter
             return false;
         }
         
-        // Check for realistic transaction ID pattern (Global Payments uses numeric IDs)
-        if (!isset($transaction->transactionId) || !is_numeric($transaction->transactionId)) {
-            error_log('Suspicious transaction: Invalid transactionId format');
-            return false;
+        // Check for realistic transaction ID pattern (Global Payments uses numeric or alphanumeric IDs)
+        if (isset($transaction->transactionId) && !empty($transaction->transactionId)) {
+            // Allow numeric or reasonable alphanumeric transaction IDs
+            if (!preg_match('/^[a-zA-Z0-9\-_]{5,}$/', $transaction->transactionId)) {
+                error_log('Suspicious transaction: Invalid transactionId format - ' . $transaction->transactionId);
+                return false;
+            }
         }
         
         return true;
@@ -480,49 +494,6 @@ class TransactionReporter
         
         // Also log to system error log as fallback
         error_log('TransactionReporter Error: ' . $logMessage);
-    }
-
-    /**
-     * Enhanced transaction filtering with authenticity verification
-     *
-     * @param array $transactions Raw transaction array
-     * @param array $filters Filter criteria
-     * @return array Filtered and validated transactions
-     */
-    public function filterAuthenticTransactions(array $transactions, array $filters = []): array
-    {
-        $filtered = [];
-        
-        foreach ($transactions as $transaction) {
-            // First, validate authenticity
-            if (!$this->validateTransactionAuthenticity($transaction)) {
-                continue;
-            }
-            
-            // Apply additional filters
-            if (isset($filters['status']) && $filters['status']) {
-                $status = $this->getTransactionStatus($transaction);
-                if ($status !== $filters['status']) {
-                    continue;
-                }
-            }
-            
-            if (isset($filters['amount_min']) && $filters['amount_min']) {
-                if (!isset($transaction->amount) || $transaction->amount < $filters['amount_min']) {
-                    continue;
-                }
-            }
-            
-            if (isset($filters['amount_max']) && $filters['amount_max']) {
-                if (!isset($transaction->amount) || $transaction->amount > $filters['amount_max']) {
-                    continue;
-                }
-            }
-            
-            $filtered[] = $transaction;
-        }
-        
-        return $filtered;
     }
 
 }
