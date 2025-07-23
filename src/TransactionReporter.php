@@ -80,8 +80,8 @@ class TransactionReporter
             $endDateStr = gmdate('Y-m-d\TH:i:s.00\Z', $endDate->getTimestamp());
 
             $response = $reportingService->findTransactions()
-                ->withStartDate($startDateStr)
-                ->withEndDate($endDateStr)
+                ->withStartDate($startDate)
+                ->withEndDate($endDate)
                 ->execute();
 
             $transactions = [];
@@ -165,8 +165,8 @@ class TransactionReporter
             $endDateStr = gmdate('Y-m-d\TH:i:s.00\Z', $endDateObj->getTimestamp());
 
             $response = $reportingService->findTransactions()
-                ->withStartDate($startDateStr)
-                ->withEndDate($endDateStr)
+                ->withStartDate($startDateObj)
+                ->withEndDate($endDateObj)
                 ->execute();
 
             $transactions = [];
