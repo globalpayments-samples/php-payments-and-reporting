@@ -333,6 +333,7 @@ class TransactionReporter
         ];
     }
 
+
     /**
      * Determine transaction status from response data
      *

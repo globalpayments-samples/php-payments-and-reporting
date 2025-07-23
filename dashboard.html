@@ -123,10 +123,7 @@
             }
 
             setupEventListeners() {
-                // Auto-refresh every 30 seconds
-                setInterval(() => {
-                    this.loadTransactions();
-                }, 30000);
+                // Manual refresh only - no automatic refresh
             }
 
             async loadTransactions() {
