@@ -496,4 +496,143 @@ class TransactionReporter
         error_log('TransactionReporter Error: ' . $logMessage);
     }
 
+    /**
+     * Record transaction data locally for HPP transactions
+     *
+     * @param array $transactionData Transaction data to record
+     * @return void
+     * @throws \Exception If recording fails
+     */
+    public function recordTransaction(array $transactionData): void
+    {
+        $logDir = __DIR__ . '/../logs';
+        if (!is_dir($logDir)) {
+            mkdir($logDir, 0755, true);
+        }
+
+        // Store in daily transaction log
+        $logFile = $logDir . '/transactions-' . date('Y-m-d') . '.json';
+        $transactions = [];
+        
+        if (file_exists($logFile)) {
+            $content = file_get_contents($logFile);
+            $transactions = json_decode($content, true) ?: [];
+        }
+
+        // Add timestamp if not present
+        if (!isset($transactionData['timestamp'])) {
+            $transactionData['timestamp'] = date('c');
+        }
+
+        // Ensure required fields are present
+        $transactionData = array_merge([
+            'id' => 'Unknown',
+            'reference' => '',
+            'status' => 'unknown',
+            'amount' => '0.00',
+            'currency' => 'USD',
+            'type' => 'verification',
+            'card' => [
+                'type' => 'Unknown',
+                'last4' => '0000',
+                'exp_month' => '',
+                'exp_year' => ''
+            ],
+            'response' => [
+                'code' => 'Unknown',
+                'message' => 'Transaction processed'
+            ],
+            'gateway_response_code' => '',
+            'avs' => [
+                'code' => '',
+                'message' => ''
+            ],
+            'cvv' => [
+                'code' => '',
+                'message' => ''
+            ]
+        ], $transactionData);
+
+        $transactions[] = $transactionData;
+        
+        // Keep only the most recent transactions (last 1000 per day)
+        if (count($transactions) > 1000) {
+            $transactions = array_slice($transactions, -1000);
+        }
+
+        file_put_contents($logFile, json_encode($transactions, JSON_PRETTY_PRINT));
+
+        // Also maintain a master transaction log
+        $masterLogFile = $logDir . '/all-transactions.json';
+        $allTransactions = [];
+        
+        if (file_exists($masterLogFile)) {
+            $content = file_get_contents($masterLogFile);
+            $allTransactions = json_decode($content, true) ?: [];
+        }
+
+        $allTransactions[] = $transactionData;
+        
+        // Keep only the most recent 5000 transactions in master log
+        if (count($allTransactions) > 5000) {
+            $allTransactions = array_slice($allTransactions, -5000);
+        }
+
+        file_put_contents($masterLogFile, json_encode($allTransactions, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Get local transaction data for dashboard
+     *
+     * @param string|null $startDate Start date filter
+     * @param string|null $endDate End date filter  
+     * @param int $limit Maximum number of transactions to return
+     * @return array Local transaction data
+     */
+    public function getLocalTransactions(?string $startDate = null, ?string $endDate = null, int $limit = 100): array
+    {
+        $logDir = __DIR__ . '/../logs';
+        $masterLogFile = $logDir . '/all-transactions.json';
+        
+        if (!file_exists($masterLogFile)) {
+            return [];
+        }
+
+        $content = file_get_contents($masterLogFile);
+        $transactions = json_decode($content, true) ?: [];
+
+        // Apply date filters if provided
+        if ($startDate || $endDate) {
+            $transactions = array_filter($transactions, function($transaction) use ($startDate, $endDate) {
+                $transactionDate = $transaction['timestamp'] ?? '';
+                if (!$transactionDate) return false;
+
+                $txnTime = strtotime($transactionDate);
+                
+                if ($startDate && $txnTime < strtotime($startDate)) {
+                    return false;
+                }
+                
+                if ($endDate && $txnTime > strtotime($endDate . ' 23:59:59')) {
+                    return false;
+                }
+                
+                return true;
+            });
+        }
+
+        // Sort by timestamp descending (newest first)
+        usort($transactions, function($a, $b) {
+            $timeA = strtotime($a['timestamp'] ?? '');
+            $timeB = strtotime($b['timestamp'] ?? '');
+            return $timeB - $timeA;
+        });
+
+        // Apply limit
+        if ($limit > 0) {
+            $transactions = array_slice($transactions, 0, $limit);
+        }
+
+        return $transactions;
+    }
 }

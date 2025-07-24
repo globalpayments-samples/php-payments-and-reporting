@@ -118,17 +118,87 @@ function handleRequest(TransactionReporter $reporter, array $params): array
             return $reporter->getTransactionDetails($params['transaction_id']);
         }
         
-        // Handle date range query
+        // Handle date range query - merge API and local data
         if (isset($params['start_date']) && isset($params['end_date'])) {
-            return $reporter->getTransactionsByDateRange(
+            $apiResult = $reporter->getTransactionsByDateRange(
                 $params['start_date'],
                 $params['end_date'],
                 $params['limit']
             );
+            $localTransactions = $reporter->getLocalTransactions(
+                $params['start_date'],
+                $params['end_date'],
+                $params['limit']
+            );
+
+            // Merge and sort transactions
+            $allTransactions = [];
+            
+            if ($apiResult['success'] && isset($apiResult['data']['transactions'])) {
+                $allTransactions = array_merge($allTransactions, $apiResult['data']['transactions']);
+            }
+            
+            $allTransactions = array_merge($allTransactions, $localTransactions);
+
+            // Sort by timestamp descending (newest first)
+            usort($allTransactions, function($a, $b) {
+                $timeA = strtotime($a['timestamp'] ?? '');
+                $timeB = strtotime($b['timestamp'] ?? '');
+                return $timeB - $timeA;
+            });
+
+            // Apply limit to merged results
+            if (count($allTransactions) > $params['limit']) {
+                $allTransactions = array_slice($allTransactions, 0, $params['limit']);
+            }
+
+            return [
+                'success' => true,
+                'data' => [
+                    'transactions' => $allTransactions,
+                    'total_count' => count($allTransactions),
+                    'api_transactions' => $apiResult['success'] ? count($apiResult['data']['transactions'] ?? []) : 0,
+                    'local_transactions' => count($localTransactions)
+                ],
+                'message' => 'Transactions retrieved successfully'
+            ];
         }
         
-        // Handle recent transactions (default)
-        return $reporter->getRecentTransactions($params['limit'], $params['page']);
+        // Handle recent transactions (default) - merge API and local data
+        $apiResult = $reporter->getRecentTransactions($params['limit'], $params['page']);
+        $localTransactions = $reporter->getLocalTransactions(null, null, $params['limit']);
+
+        // Merge and sort transactions
+        $allTransactions = [];
+        
+        if ($apiResult['success'] && isset($apiResult['data']['transactions'])) {
+            $allTransactions = array_merge($allTransactions, $apiResult['data']['transactions']);
+        }
+        
+        $allTransactions = array_merge($allTransactions, $localTransactions);
+
+        // Sort by timestamp descending (newest first)
+        usort($allTransactions, function($a, $b) {
+            $timeA = strtotime($a['timestamp'] ?? '');
+            $timeB = strtotime($b['timestamp'] ?? '');
+            return $timeB - $timeA;
+        });
+
+        // Apply limit to merged results
+        if (count($allTransactions) > $params['limit']) {
+            $allTransactions = array_slice($allTransactions, 0, $params['limit']);
+        }
+
+        return [
+            'success' => true,
+            'data' => [
+                'transactions' => $allTransactions,
+                'total_count' => count($allTransactions),
+                'api_transactions' => $apiResult['success'] ? count($apiResult['data']['transactions'] ?? []) : 0,
+                'local_transactions' => count($localTransactions)
+            ],
+            'message' => 'Transactions retrieved successfully'
+        ];
         
     } catch (Exception $e) {
         return [

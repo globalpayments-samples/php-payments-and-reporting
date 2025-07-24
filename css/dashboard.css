@@ -398,6 +398,42 @@ th {
     font-weight: 600;
 }
 
+/* Transaction type badges */
+.type-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.type-payment {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+}
+
+.type-verification {
+    background: linear-gradient(135deg, #4285f4, #34a853);
+    color: white;
+}
+
+.type-unknown {
+    background: linear-gradient(135deg, #6c757d, #545b62);
+    color: white;
+}
+
+/* Amount display styles */
+.amount-display {
+    font-weight: 600;
+    color: #28a745;
+    font-family: monospace;
+}
+
+.amount-na {
+    color: #6c757d;
+    font-style: italic;
+}
+
 /* Smooth transitions */
 .stat-card {
     transition: transform 0.2s ease, box-shadow 0.2s ease;

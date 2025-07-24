@@ -96,6 +96,7 @@
                     <thead>
                         <tr>
                             <th>Transaction ID</th>
+                            <th>Type</th>
                             <th>Date & Time</th>
                             <th>Status</th>
                             <th>Amount</th>
@@ -233,6 +234,30 @@
                 }
             }
 
+            getTransactionTypeBadge(transaction) {
+                const type = transaction.type || 'verification';
+                
+                if (type === 'payment') {
+                    return '<span class="type-badge type-payment">💳 Payment</span>';
+                } else if (type === 'verification') {
+                    return '<span class="type-badge type-verification">🔐 Auth</span>';
+                } else {
+                    return '<span class="type-badge type-unknown">❓ Unknown</span>';
+                }
+            }
+
+            getAmountDisplay(transaction) {
+                if (transaction.amount === 'VERIFY' || transaction.type === 'verification') {
+                    return '<span class="verify-badge">VERIFY</span>';
+                } else if (transaction.amount && transaction.amount !== '0.00') {
+                    const amount = parseFloat(transaction.amount);
+                    const currency = transaction.currency || 'USD';
+                    return `<span class="amount-display">$${amount.toFixed(2)} ${currency}</span>`;
+                } else {
+                    return '<span class="amount-na">N/A</span>';
+                }
+            }
+
             renderTransactions() {
                 const tbody = document.getElementById('transactions-body');
                 
@@ -261,6 +286,9 @@
                             <strong>${transaction.id || 'N/A'}</strong>
                         </td>
                         <td>
+                            ${this.getTransactionTypeBadge(transaction)}
+                        </td>
+                        <td>
                             ${transaction.timestamp ? 
                                 `<span title="${transaction.timestamp}" class="timestamp">${dashboard.formatExactTimestamp(transaction.timestamp)}</span>` : 
                                 'N/A'
@@ -272,7 +300,7 @@
                             </span>
                         </td>
                         <td>
-                            ${transaction.amount === 'VERIFY' ? '<span class="verify-badge">VERIFY</span>' : (transaction.amount ? '$' + parseFloat(transaction.amount).toFixed(2) : 'N/A')}
+                            ${this.getAmountDisplay(transaction)}
                         </td>
                         <td>
                             <div class="card-info">
