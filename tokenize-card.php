@@ -7,7 +7,7 @@ declare(strict_types=1);
  *
  * This script handles server-side card tokenization for secure storage
  * and future verification. Useful for subscription setups and recurring
- * authentication scenarios.
+ * verification scenarios.
  *
  * PHP version 8.0 or higher
  *

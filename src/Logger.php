@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Logger Utility for Card Authentication
+ * Logger Utility for Card Verification
  *
  * This class provides structured logging for security events,
  * API calls, and system activities. Supports multiple log levels
