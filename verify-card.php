@@ -3,15 +3,15 @@
 declare(strict_types=1);
 
 /**
- * Card Authentication/Verification Script
+ * Card Verification Script
  *
  * This script demonstrates card verification using the Global Payments SDK.
- * It validates cards without processing charges, perfect for authentication
+ * It validates cards without processing charges, perfect for verification
  * scenarios, subscription setups, and card validation workflows.
  *
  * PHP version 8.0 or higher
  *
- * @category  Authentication
+ * @category  Verification
  * @package   GlobalPayments_Examples
  * @author    Global Payments
  * @license   MIT License
@@ -334,7 +334,7 @@ try {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => 'Authentication processing failed',
+        'message' => 'Card verification processing failed',
         'error' => [
             'code' => 'API_ERROR',
             'details' => $e->getMessage()

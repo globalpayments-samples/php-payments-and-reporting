@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 /**
- * Card Authentication Integration Test
+ * Card Verification Integration Test
  *
- * This script demonstrates and tests the complete card authentication
+ * This script demonstrates and tests the complete card verification
  * workflow including tokenization, verification, and error handling.
  * Useful for integration testing and API validation.
  *
@@ -32,7 +32,7 @@ use GlobalPayments\Examples\ErrorHandler;
 /**
  * Test configuration and setup
  */
-class AuthenticationTester
+class VerificationTester
 {
     private Logger $logger;
     private ErrorHandler $errorHandler;
@@ -63,11 +63,11 @@ class AuthenticationTester
     }
 
     /**
-     * Run all authentication tests
+     * Run all verification tests
      */
     public function runTests(): void
     {
-        echo "🔐 Starting Card Authentication Integration Tests\n";
+        echo "🔐 Starting Card Verification Integration Tests\n";
         echo str_repeat('=', 60) . "\n\n";
 
         $this->testBasicVerification();
@@ -441,7 +441,7 @@ class AuthenticationTester
 
         // Overall result
         if ($passedTests === $totalTests) {
-            echo "🎉 All tests passed! Authentication system is working correctly.\n";
+            echo "🎉 All tests passed! Verification system is working correctly.\n";
         } elseif ($passedTests > $failedTests) {
             echo "⚠️  Most tests passed, but some issues were found.\n";
         } else {
@@ -453,7 +453,7 @@ class AuthenticationTester
 // Run tests if called directly
 if (php_sapi_name() === 'cli') {
     try {
-        $tester = new AuthenticationTester();
+        $tester = new VerificationTester();
         $tester->runTests();
     } catch (Exception $e) {
         echo "❌ Test setup failed: " . $e->getMessage() . "\n";
@@ -462,5 +462,5 @@ if (php_sapi_name() === 'cli') {
     }
 } else {
     echo "This script must be run from the command line.\n";
-    echo "Usage: php test-authentication.php\n";
+    echo "Usage: php test-verification.php\n";
 }

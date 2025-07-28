@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 /**
- * Error Handler Utility for Card Authentication
+ * Error Handler Utility for Card Verification
  *
  * This class provides centralized error handling, formatting,
- * and response generation for the card authentication system.
+ * and response generation for the card verification system.
  * Includes security-focused error sanitization and logging.
  *
  * PHP version 8.0 or higher
