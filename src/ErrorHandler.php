@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * Error Handler Utility for Card Verification
  *
@@ -16,6 +14,8 @@ declare(strict_types=1);
  * @author    Global Payments
  * @license   MIT License
  */
+
+declare(strict_types=1);
 
 namespace GlobalPayments\Examples;
 

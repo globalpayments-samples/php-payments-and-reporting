@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Payments HPP Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .hpp-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .hpp-header {
+            background: linear-gradient(90deg, #4285f4 0%, #34a853 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .hpp-header h2 {
+            margin: 0 0 10px 0;
+            font-size: 1.5em;
+        }
+        
+        .hpp-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+        
+        .hpp-form {
+            padding: 30px;
+        }
+        
+        .sandbox-notice {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        label {
+            display: block;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #4285f4;
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+        }
+        
+        .pay-button {
+            background: linear-gradient(90deg, #4285f4 0%, #34a853 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .pay-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(66, 133, 244, 0.3);
+        }
+        
+        .security-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+            text-align: center;
+        }
+        
+        .security-icons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="hpp-container">
+        <div class="hpp-header">
+            <h2>🔐 Global Payments</h2>
+            <p>Secure Payment Processing</p>
+        </div>
+        
+        <div class="hpp-form">
+            <div class="sandbox-notice">
+                🏠 Sandbox Mode: Use test card numbers only
+            </div>
+            
+            <form id="payment-form">
+                <div class="form-group">
+                    <label for="card-number">Card Number</label>
+                    <input type="text" id="card-number" placeholder="4111 1111 1111 1111" maxlength="19" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="expiry">Expiration</label>
+                        <input type="text" id="expiry" placeholder="MM/YYYY" maxlength="7" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cvv">CVV</label>
+                        <input type="text" id="cvv" placeholder="123" maxlength="4" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="cardholder">Cardholder Name</label>
+                    <input type="text" id="cardholder" placeholder="John Doe" required>
+                </div>
+                
+                <button type="submit" class="pay-button">
+                    💳 Complete Payment
+                </button>
+            </form>
+            
+            <div class="security-info">
+                <p>🔒 Your payment information is encrypted and secure</p>
+                <div class="security-icons">
+                    <span>🛡️ SSL Encrypted</span>
+                    <span>✅ PCI Compliant</span>
+                    <span>🏦 Bank Level Security</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Format card number input
+        document.getElementById('card-number').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+            if (formattedValue.length > 19) formattedValue = formattedValue.substr(0, 19);
+            e.target.value = formattedValue;
+        });
+        
+        // Format expiry input
+        document.getElementById('expiry').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2, 6);
+            }
+            e.target.value = value;
+        });
+        
+        // Format CVV input
+        document.getElementById('cvv').addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
+        });
+        
+        // Handle form submission
+        document.getElementById('payment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Simulate payment processing
+            const button = e.target.querySelector('.pay-button');
+            const originalText = button.innerHTML;
+            
+            button.disabled = true;
+            button.innerHTML = '⏳ Processing...';
+            
+            setTimeout(() => {
+                alert('✅ Demo Payment Successful!\n\nThis is a demonstration of an authentic HPP iframe.\nIn production, this would process a real payment.');
+                
+                // Reset form
+                button.disabled = false;
+                button.innerHTML = originalText;
+                
+                // Simulate redirect back to parent
+                if (window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'hpp_result',
+                        success: true,
+                        transaction_id: 'DEMO_' + Date.now(),
+                        amount: '10.00',
+                        currency: 'USD'
+                    }, '*');
+                }
+            }, 2000);
+        });
+        
+        // Auto-focus first input
+        document.getElementById('card-number').focus();
+    </script>
+</body>
+</html>

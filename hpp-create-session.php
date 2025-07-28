@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * Global Payments Hosted Payment Page (HPP) Session Creation
  *
@@ -15,6 +13,10 @@ declare(strict_types=1);
  * @author    Global Payments Integration
  * @license   MIT License
  */
+
+declare(strict_types=1);
+
+namespace GlobalPayments\Examples;
 
 require_once __DIR__ . '/vendor/autoload.php';
 
@@ -30,7 +32,7 @@ use Throwable;
 final class HppSessionCreator
 {
     private const VALID_CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD'];
-    
+
     private bool $isConfigured = false;
 
     public function __construct()
@@ -44,13 +46,13 @@ final class HppSessionCreator
         // Disable error display for production security
         ini_set('display_errors', '0');
         ini_set('log_errors', '1');
-        
+
         // Set secure headers
         header('Content-Type: application/json; charset=utf-8');
         header('X-Content-Type-Options: nosniff');
         header('X-Frame-Options: DENY');
         header('X-XSS-Protection: 1; mode=block');
-        
+
         // CORS headers (restrict in production)
         header('Access-Control-Allow-Origin: *'); // TODO: Restrict to specific domains in production
         header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -81,13 +83,13 @@ final class HppSessionCreator
             $dotenv->load();
 
             $secretApiKey = $_ENV['SECRET_API_KEY'] ?? throw new ApiException('SECRET_API_KEY not configured');
-            
+
             $config = new PorticoConfig();
             $config->secretApiKey = $secretApiKey;
             $config->developerId = $_ENV['DEVELOPER_ID'] ?? '000000';
             $config->versionNumber = $_ENV['VERSION_NUMBER'] ?? '0000';
             $config->serviceUrl = $_ENV['SERVICE_URL'] ?? 'https://cert.api2.heartlandportico.com';
-            
+
             ServicesContainer::configureService($config);
             $this->isConfigured = true;
         } catch (Throwable $e) {
@@ -105,11 +107,25 @@ final class HppSessionCreator
     {
         $errors = [];
 
-        // Validate amount
-        if (!isset($data['amount']) || !is_numeric($data['amount']) || (float)$data['amount'] <= 0) {
-            $errors[] = 'Valid transaction amount greater than 0 is required';
-        } elseif ((float)$data['amount'] > 999999.99) {
-            $errors[] = 'Transaction amount cannot exceed 999,999.99';
+        // Validate mode
+        $mode = $data['mode'] ?? 'payment';
+        if (!in_array($mode, ['verification', 'payment'], true)) {
+            $errors[] = 'Invalid mode. Supported: verification, payment';
+        }
+
+        // For payment mode, amount is required and must be > 0
+        // For verification mode, amount can be 0
+        if ($mode === 'payment') {
+            if (!isset($data['amount']) || !is_numeric($data['amount']) || (float)$data['amount'] <= 0) {
+                $errors[] = 'Valid transaction amount greater than 0 is required for payments';
+            } elseif ((float)$data['amount'] > 999999.99) {
+                $errors[] = 'Transaction amount cannot exceed 999,999.99';
+            }
+        } else {
+            // For verification, amount can be 0 or small amount
+            if (isset($data['amount']) && is_numeric($data['amount']) && (float)$data['amount'] > 1.00) {
+                $errors[] = 'Verification amount should be 0 or a small amount (max $1.00)';
+            }
         }
 
         // Validate currency
@@ -117,9 +133,6 @@ final class HppSessionCreator
         if (!in_array($currency, self::VALID_CURRENCIES, true)) {
             $errors[] = sprintf('Invalid currency. Supported: %s', implode(', ', self::VALID_CURRENCIES));
         }
-
-        // Reference/Order ID is generated automatically server-side
-        // No validation needed as it's not provided by the client
 
         return $errors;
     }
@@ -135,7 +148,7 @@ final class HppSessionCreator
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $scriptPath = dirname($_SERVER['SCRIPT_NAME'] ?? '');
-        
+
         return $protocol . $host . $scriptPath;
     }
 
@@ -150,9 +163,9 @@ final class HppSessionCreator
         $appId = $_ENV['GP_APP_ID'] ?? throw new ApiException('GP_APP_ID not configured');
         $appKey = $_ENV['GP_APP_KEY'] ?? throw new ApiException('GP_APP_KEY not configured');
         $baseUrl = $_ENV['GP_BASE_URL'] ?? 'https://apis.sandbox.globalpay.com';
-        
+
         $credentials = base64_encode($appId . ':' . $appKey);
-        
+
         $curl = curl_init();
         curl_setopt_array($curl, [
             CURLOPT_URL => $baseUrl . '/ucp/accesstoken',
@@ -161,10 +174,12 @@ final class HppSessionCreator
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
                 'Authorization: Basic ' . $credentials,
-                'Accept: application/json'
+                'Accept: application/json',
+                'X-GP-Version: 2021-03-22'
             ],
             CURLOPT_POSTFIELDS => json_encode([
                 'app_id' => $appId,
+                'secret' => $appKey,
                 'nonce' => uniqid(),
                 'grant_type' => 'client_credentials'
             ], JSON_THROW_ON_ERROR),
@@ -186,7 +201,7 @@ final class HppSessionCreator
         }
 
         $tokenData = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
-        
+
         if (!isset($tokenData['token'])) {
             throw new ApiException('No token received from API');
         }
@@ -205,20 +220,24 @@ final class HppSessionCreator
     {
         $accessToken = $this->generateAccessToken();
         $baseUrl = $this->getBaseUrl();
-        
-        // Generate unique order ID following Global Payments requirements
-        // Format: ORDER-{timestamp}-{random} (max 50 chars, alphanumeric)
-        $reference = 'ORDER-' . time() . '-' . strtoupper(substr(uniqid(), -8));
-        
-        $amount = (float)$data['amount'] * 100; // Convert to cents
-        $currency = $data['currency'];
-        
+        $mode = $data['mode'] ?? 'payment';
+
+        // Generate unique reference based on mode
+        $prefix = $mode === 'verification' ? 'VERIFY' : 'ORDER';
+        $reference = $prefix . '-' . time() . '-' . strtoupper(substr(uniqid(), -8));
+
+        // For verification, use 0 or small amount
+        $amount = $mode === 'verification' ? 0 : (float)$data['amount'] * 100; // Convert to cents
+        $currency = $data['currency'] ?? 'USD';
+
         // Prepare HPP request payload
         $payload = [
             'account_name' => $_ENV['GP_ACCOUNT_NAME'] ?? 'transaction_processing',
             'type' => 'HOSTED_PAYMENT_PAGE',
             'reference' => $reference,
-            'description' => "Payment for reference: {$reference}",
+            'description' => $mode === 'verification' 
+                ? "Card verification for reference: {$reference}"
+                : "Payment for reference: {$reference}",
             'order' => [
                 'amount' => $amount,
                 'currency' => $currency,
@@ -239,8 +258,19 @@ final class HppSessionCreator
             ],
             'usage_mode' => 'SINGLE',
             'allowed_payment_methods' => ['CARD'],
-            'capture_mode' => 'AUTO'
+            'capture_mode' => $mode === 'verification' ? 'AUTO' : 'AUTO' // For verification, we might want to authorize only
         ];
+
+        // Add verification-specific settings
+        if ($mode === 'verification') {
+            $payload['verification_type'] = $data['verification_type'] ?? 'basic';
+            if ($data['verification_type'] === 'avs' || $data['verification_type'] === 'full') {
+                $payload['address_verification'] = true;
+            }
+            if ($data['verification_type'] === 'cvv' || $data['verification_type'] === 'full') {
+                $payload['cvv_verification'] = true;
+            }
+        }
 
         // Add billing address if provided
         if (!empty($data['billing_address'])) {
@@ -256,7 +286,7 @@ final class HppSessionCreator
 
         // Make API request to create HPP session
         $gpBaseUrl = $_ENV['GP_BASE_URL'] ?? 'https://apis.sandbox.globalpay.com';
-        
+
         $curl = curl_init();
         curl_setopt_array($curl, [
             CURLOPT_URL => $gpBaseUrl . '/ucp/links',
@@ -284,12 +314,13 @@ final class HppSessionCreator
 
         if ($httpCode !== 201 && $httpCode !== 200) {
             $errorResponse = json_decode($response, true);
+            error_log("HPP Debug: API Error Response: " . $response);
             $errorMessage = $errorResponse['error_description'] ?? "HTTP {$httpCode}";
             throw new ApiException("HPP creation failed: {$errorMessage}");
         }
 
         $hppData = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
-        
+
         if (!isset($hppData['url'])) {
             throw new ApiException('No HPP URL received from Global Payments API');
         }
@@ -299,8 +330,10 @@ final class HppSessionCreator
             'hpp_url' => $hppData['url'],
             'iframe_url' => $hppData['url'], // Same URL can be used in iframe
             'reference' => $reference,
-            'amount' => $data['amount'],
+            'amount' => $data['amount'] ?? 0,
             'currency' => $currency,
+            'mode' => $mode,
+            'verification_type' => $data['verification_type'] ?? null,
             'created_at' => date('c'),
             'status' => 'created',
             'expires_at' => date('c', time() + 1800)
@@ -322,14 +355,14 @@ final class HppSessionCreator
 
         $sessionFile = $logDir . '/hpp-sessions.json';
         $sessions = [];
-        
+
         if (file_exists($sessionFile)) {
             $content = file_get_contents($sessionFile);
             $sessions = $content ? json_decode($content, true) : [];
         }
 
         $sessions[] = $sessionData;
-        
+
         // Keep only last 1000 sessions
         if (count($sessions) > 1000) {
             $sessions = array_slice($sessions, -1000);
@@ -343,9 +376,9 @@ final class HppSessionCreator
      *
      * @param array<string, mixed> $data Response data
      * @param int $statusCode HTTP status code
-     * @return never
+     * @return void
      */
-    private function sendJsonResponse(array $data, int $statusCode = 200): never
+    private function sendJsonResponse(array $data, int $statusCode = 200): void
     {
         http_response_code($statusCode);
         echo json_encode($data, JSON_THROW_ON_ERROR);
@@ -355,9 +388,9 @@ final class HppSessionCreator
     /**
      * Process HPP session creation request
      *
-     * @return never
+     * @return void
      */
-    public function processRequest(): never
+    public function processRequest(): void
     {
         try {
             // Only accept POST requests
@@ -375,13 +408,19 @@ final class HppSessionCreator
             // Get and decode request data
             $input = file_get_contents('php://input');
             if ($input === false || $input === '') {
+                error_log("HPP Debug: Empty request body received");
                 throw new ApiException('Empty request body');
             }
 
+            error_log("HPP Debug: Raw request data: " . $input);
             $data = json_decode($input, true, 512, JSON_THROW_ON_ERROR);
-            
+            error_log("HPP Debug: Parsed request data: " . json_encode($data));
+
             // Validate request
             $errors = $this->validateHppRequest($data);
+            if (!empty($errors)) {
+                error_log("HPP Debug: Validation errors: " . json_encode($errors));
+            }
             if (!empty($errors)) {
                 $this->sendJsonResponse([
                     'success' => false,
@@ -402,10 +441,9 @@ final class HppSessionCreator
                 'message' => 'HPP session created successfully',
                 'data' => $sessionResult
             ]);
-
         } catch (ApiException $e) {
             error_log("HPP session creation API error: {$e->getMessage()}");
-            
+
             $this->sendJsonResponse([
                 'success' => false,
                 'message' => 'HPP session creation failed',
@@ -414,10 +452,9 @@ final class HppSessionCreator
                     'details' => $e->getMessage()
                 ]
             ], 400);
-
         } catch (Throwable $e) {
             error_log("HPP session creation error: {$e->getMessage()}");
-            
+
             $this->sendJsonResponse([
                 'success' => false,
                 'message' => 'Internal server error',

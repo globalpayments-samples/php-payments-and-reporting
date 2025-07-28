@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Card Verification & Payment</title>
+    <title>Card Authentication & Verification</title>
     <style>
         * {
             box-sizing: border-box;
@@ -202,13 +202,327 @@
             display: block;
         }
 
-        #credit-card {
+        #credit-card, #payment-credit-card, #verification-card-form, #payment-card-form {
             margin: 20px 0;
-            padding: 20px;
-            border: 2px dashed #ddd;
+            padding: 0;
+            border: none;
             border-radius: 8px;
+            background: transparent;
+            min-height: 200px;
+            position: relative;
+        }
+
+        /* Fix payment form container height issue */
+        #payment-globalpayments-form {
+            min-height: 400px !important;
+            height: auto !important;
+        }
+
+        /* Ensure payment form elements have proper dimensions */
+        #payment-globalpayments-form .credit-card-card-number,
+        #payment-globalpayments-form .credit-card-card-expiration,
+        #payment-globalpayments-form .credit-card-card-cvv,
+        #payment-globalpayments-form .credit-card-card-holder-name {
+            margin-bottom: 15px !important;
+            min-height: 50px !important;
+        }
+
+        #payment-globalpayments-form label {
+            display: block !important;
+            margin-bottom: 5px !important;
+            font-weight: 500 !important;
+            color: #333 !important;
+        }
+
+        #payment-globalpayments-form .credit-card-card-number-target,
+        #payment-globalpayments-form .credit-card-card-expiration-target,
+        #payment-globalpayments-form .credit-card-card-cvv-target,
+        #payment-globalpayments-form .credit-card-card-holder-name-target {
+            min-height: 40px !important;
+            border: 1px solid #ddd !important;
+            border-radius: 6px !important;
+            padding: 10px !important;
+            background: white !important;
+        }
+
+        #payment-globalpayments-form .credit-card-submit {
+            margin-top: 20px !important;
+            min-height: 50px !important;
+        }
+
+        #payment-globalpayments-form .credit-card-submit-target {
+            min-height: 45px !important;
+            background: #4285f4 !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 6px !important;
+            padding: 12px 20px !important;
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            width: 100% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        /* Apply same fixes to verification form for consistency */
+        #verification-globalpayments-form {
+            min-height: 400px !important;
+            height: auto !important;
+        }
+
+        #verification-globalpayments-form .credit-card-card-number,
+        #verification-globalpayments-form .credit-card-card-expiration,
+        #verification-globalpayments-form .credit-card-card-cvv,
+        #verification-globalpayments-form .credit-card-card-holder-name {
+            margin-bottom: 15px !important;
+            min-height: 50px !important;
+        }
+
+        #verification-globalpayments-form .credit-card-card-number-target,
+        #verification-globalpayments-form .credit-card-card-expiration-target,
+        #verification-globalpayments-form .credit-card-card-cvv-target,
+        #verification-globalpayments-form .credit-card-card-holder-name-target {
+            min-height: 40px !important;
+            border: 1px solid #ddd !important;
+            border-radius: 6px !important;
+            padding: 10px !important;
+            background: white !important;
+        }
+
+        #verification-globalpayments-form .credit-card-submit-target {
+            min-height: 45px !important;
+            background: #4caf50 !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 6px !important;
+            padding: 12px 20px !important;
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            width: 100% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        /* Style the Global Payments form container */
+        #verification-card-form, #payment-card-form {
             background: white;
-            min-height: 120px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Custom styles for Global Payments elements */
+        .gp-form-container {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
+        }
+        
+        /* Style the sandbox warning */
+        .gp-sandbox-warning, [style*="background-color: rgb(139, 0, 0)"] {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%) !important;
+            color: white !important;
+            border-radius: 8px !important;
+            padding: 12px 16px !important;
+            margin-bottom: 20px !important;
+            font-weight: 500 !important;
+            text-align: center !important;
+            border: none !important;
+        }
+        
+        /* Style form sections */
+        .gp-section-header {
+            background: #f8f9fa;
+            padding: 12px 16px;
+            margin: -25px -25px 20px -25px;
+            border-radius: 12px 12px 0 0;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* Improve input field styling */
+        .gp-field-container input, .gp-field-container select {
+            border: 1px solid #ddd !important;
+            border-radius: 6px !important;
+            padding: 12px !important;
+            font-size: 16px !important;
+            transition: border-color 0.3s ease !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        
+        .gp-field-container input:focus, .gp-field-container select:focus {
+            outline: none !important;
+            border-color: #4285f4 !important;
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1) !important;
+        }
+        
+        /* Style labels */
+        .gp-field-container label {
+            font-weight: 500 !important;
+            color: #333 !important;
+            margin-bottom: 6px !important;
+            display: block !important;
+        }
+        
+        /* Style the submit button */
+        .gp-submit-button, [type="submit"] {
+            background: linear-gradient(90deg, #4285f4 0%, #34a853 100%) !important;
+            color: white !important;
+            border: none !important;
+            padding: 15px 30px !important;
+            border-radius: 8px !important;
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+            width: 100% !important;
+            margin-top: 20px !important;
+        }
+        
+        .gp-submit-button:hover, [type="submit"]:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 5px 15px rgba(66, 133, 244, 0.3) !important;
+        }
+
+        .hpp-iframe {
+            width: 100%;
+            height: 400px;
+            border: none;
+            border-radius: 8px;
+        }
+
+        .hpp-loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .hpp-button {
+            background: linear-gradient(90deg, #4285f4 0%, #34a853 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .hpp-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(66, 133, 244, 0.3);
+        }
+
+        .hpp-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Card Form Styling */
+        .card-form-container {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        .sandbox-warning {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            text-align: center;
+            border: none;
+        }
+        
+        .card-form {
+            margin: 0;
+        }
+        
+        .card-form .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .card-form .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .card-form .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        
+        .card-form label {
+            display: block;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        
+        .card-form input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        
+        .card-form input:focus {
+            outline: none;
+            border-color: #4285f4;
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+        }
+        
+        .card-form input::placeholder {
+            color: #999;
+        }
+        
+        .submit-button {
+            background: linear-gradient(90deg, #4285f4 0%, #34a853 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+            font-family: inherit;
+        }
+        
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(66, 133, 244, 0.3);
+        }
+        
+        .submit-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .payment-button {
@@ -261,6 +575,24 @@
             color: #c62828;
         }
 
+        .result-success {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+        }
+
+        .result-error {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            color: #c62828;
+        }
+
+        .result-warning {
+            background: #fff8e1;
+            border: 1px solid #F59E0B;
+            color: #92400E;
+        }
+
         .result-header {
             display: flex;
             align-items: center;
@@ -279,60 +611,6 @@
 
         .result-message {
             margin-bottom: 10px;
-        }
-
-        .hpp-container {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .hpp-header {
-            background: #f8f9fa;
-            padding: 15px;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .hpp-header h3 {
-            margin: 0;
-            color: #333;
-        }
-
-        .hpp-header p {
-            margin: 5px 0 0 0;
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .close-button {
-            background: #f44336;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .close-button:hover {
-            background: #d32f2f;
-        }
-
-        .hpp-iframe-wrapper {
-            position: relative;
-            background: white;
-        }
-
-        .hpp-footer {
-            background: #f8f9fa;
-            padding: 10px 15px;
-            border-top: 1px solid #ddd;
-            text-align: center;
-            color: #666;
-            font-size: 0.9em;
         }
 
         .loading {
@@ -378,16 +656,6 @@
             color: #424242;
         }
 
-        .country-select option {
-            padding: 5px;
-        }
-
-        .address-field.country-updated {
-            border-color: #4285f4;
-            background-color: #f0f8ff;
-            transition: all 0.3s ease;
-        }
-
         @media (max-width: 768px) {
             .form-row {
                 flex-direction: column;
@@ -404,12 +672,6 @@
             
             .form-container {
                 padding: 20px;
-            }
-
-            .hpp-header {
-                flex-direction: column;
-                gap: 10px;
-                text-align: center;
             }
         }
     </style>
@@ -438,7 +700,7 @@
                     <input type="radio" id="payment-mode" name="operation_mode" value="payment">
                     <label for="payment-mode">
                         <strong>💳 Real Payment Testing</strong>
-                        <small>Process actual sandbox transactions</small>
+                        <small>Process actual Heartland transactions</small>
                     </label>
                 </div>
             </div>
@@ -456,9 +718,9 @@
             <div class="info-panel" id="payment-info-panel" style="display: none;">
                 <h4>💳 Real Payment Processing</h4>
                 <ul>
-                    <li><strong>Secure:</strong> PCI-compliant hosted payment page</li>
+                    <li><strong>Secure:</strong> PCI-compliant Heartland tokenization</li>
                     <li><strong>Real Charges:</strong> Actual transaction processing</li>
-                    <li><strong>Test Cards:</strong> Use Global Payments test cards</li>
+                    <li><strong>Test Cards:</strong> Use Heartland test cards</li>
                     <li><strong>Dashboard:</strong> View real transaction results</li>
                 </ul>
             </div>
@@ -547,8 +809,8 @@
                 </div>
             </form>
 
-            <!-- Payment Form for HPP Integration -->
-            <div id="payment-form" style="display: none;">
+            <!-- Payment Form for Heartland Integration -->
+            <form id="payment-form" style="display: none;">
                 <div class="form-section">
                     <h3>💳 Payment Details</h3>
                     <div class="form-row">
@@ -560,17 +822,18 @@
                             <label for="payment-currency">Currency</label>
                             <select id="payment-currency" name="payment-currency">
                                 <option value="USD" selected>USD - US Dollar</option>
-                                <option value="EUR">EUR - Euro</option>
-                                <option value="GBP">GBP - British Pound</option>
-                                <option value="CAD">CAD - Canadian Dollar</option>
-                                <option value="AUD">AUD - Australian Dollar</option>
                             </select>
                         </div>
                     </div>
                 </div>
 
                 <div class="form-section">
-                    <h3>👤 Customer Information</h3>
+                    <h3>💳 Card Information</h3>
+                    <div id="payment-credit-card"></div>
+                </div>
+
+                <div class="form-section">
+                    <h3>👤 Customer Information (Optional)</h3>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="payment-customer-first-name">First Name</label>
@@ -595,265 +858,32 @@
 
                 <div class="form-section">
                     <h3>📍 Billing Address (Optional)</h3>
-                    
-                    <!-- Country Selection - First Priority -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="payment-billing-country">Country</label>
-                            <select id="payment-billing-country" name="payment-billing-country" class="country-select">
-                                <option value="">Select Country</option>
-                                
-                                <!-- Major English-speaking Countries -->
-                                <option value="US" selected>🇺🇸 United States</option>
-                                <option value="CA">🇨🇦 Canada</option>
-                                <option value="GB">🇬🇧 United Kingdom</option>
-                                <option value="AU">🇦🇺 Australia</option>
-                                <option value="IE">🇮🇪 Ireland</option>
-                                <option value="NZ">🇳🇿 New Zealand</option>
-                                <option value="ZA">🇿🇦 South Africa</option>
-                                
-                                <!-- Major European Countries -->
-                                <option value="DE">🇩🇪 Germany</option>
-                                <option value="FR">🇫🇷 France</option>
-                                <option value="IT">🇮🇹 Italy</option>
-                                <option value="ES">🇪🇸 Spain</option>
-                                <option value="NL">🇳🇱 Netherlands</option>
-                                <option value="CH">🇨🇭 Switzerland</option>
-                                <option value="AT">🇦🇹 Austria</option>
-                                <option value="BE">🇧🇪 Belgium</option>
-                                <option value="SE">🇸🇪 Sweden</option>
-                                <option value="NO">🇳🇴 Norway</option>
-                                <option value="DK">🇩🇰 Denmark</option>
-                                <option value="FI">🇫🇮 Finland</option>
-                                <option value="PL">🇵🇱 Poland</option>
-                                <option value="PT">🇵🇹 Portugal</option>
-                                <option value="GR">🇬🇷 Greece</option>
-                                <option value="CZ">🇨🇿 Czech Republic</option>
-                                <option value="HU">🇭🇺 Hungary</option>
-                                <option value="RO">🇷🇴 Romania</option>
-                                <option value="BG">🇧🇬 Bulgaria</option>
-                                <option value="HR">🇭🇷 Croatia</option>
-                                <option value="SI">🇸🇮 Slovenia</option>
-                                <option value="SK">🇸🇰 Slovakia</option>
-                                <option value="EE">🇪🇪 Estonia</option>
-                                <option value="LV">🇱🇻 Latvia</option>
-                                <option value="LT">🇱🇹 Lithuania</option>
-                                <option value="CY">🇨🇾 Cyprus</option>
-                                <option value="MT">🇲🇹 Malta</option>
-                                <option value="LU">🇱🇺 Luxembourg</option>
-                                <option value="IS">🇮🇸 Iceland</option>
-                                <option value="LI">🇱🇮 Liechtenstein</option>
-                                <option value="MC">🇲🇨 Monaco</option>
-                                <option value="AD">🇦🇩 Andorra</option>
-                                <option value="SM">🇸🇲 San Marino</option>
-                                <option value="VA">🇻🇦 Vatican City</option>
-                                
-                                <!-- Asia-Pacific -->
-                                <option value="JP">🇯🇵 Japan</option>
-                                <option value="CN">🇨🇳 China</option>
-                                <option value="KR">🇰🇷 South Korea</option>
-                                <option value="IN">🇮🇳 India</option>
-                                <option value="SG">🇸🇬 Singapore</option>
-                                <option value="HK">🇭🇰 Hong Kong</option>
-                                <option value="TW">🇹🇼 Taiwan</option>
-                                <option value="MY">🇲🇾 Malaysia</option>
-                                <option value="TH">🇹🇭 Thailand</option>
-                                <option value="ID">🇮🇩 Indonesia</option>
-                                <option value="PH">🇵🇭 Philippines</option>
-                                <option value="VN">🇻🇳 Vietnam</option>
-                                <option value="PK">🇵🇰 Pakistan</option>
-                                <option value="BD">🇧🇩 Bangladesh</option>
-                                <option value="LK">🇱🇰 Sri Lanka</option>
-                                <option value="NP">🇳🇵 Nepal</option>
-                                <option value="MM">🇲🇲 Myanmar</option>
-                                <option value="KH">🇰🇭 Cambodia</option>
-                                <option value="LA">🇱🇦 Laos</option>
-                                <option value="BN">🇧🇳 Brunei</option>
-                                <option value="MN">🇲🇳 Mongolia</option>
-                                
-                                <!-- Americas -->
-                                <option value="MX">🇲🇽 Mexico</option>
-                                <option value="BR">🇧🇷 Brazil</option>
-                                <option value="AR">🇦🇷 Argentina</option>
-                                <option value="CL">🇨🇱 Chile</option>
-                                <option value="CO">🇨🇴 Colombia</option>
-                                <option value="PE">🇵🇪 Peru</option>
-                                <option value="VE">🇻🇪 Venezuela</option>
-                                <option value="EC">🇪🇨 Ecuador</option>
-                                <option value="BO">🇧🇴 Bolivia</option>
-                                <option value="PY">🇵🇾 Paraguay</option>
-                                <option value="UY">🇺🇾 Uruguay</option>
-                                <option value="GY">🇬🇾 Guyana</option>
-                                <option value="SR">🇸🇷 Suriname</option>
-                                <option value="GT">🇬🇹 Guatemala</option>
-                                <option value="HN">🇭🇳 Honduras</option>
-                                <option value="SV">🇸🇻 El Salvador</option>
-                                <option value="NI">🇳🇮 Nicaragua</option>
-                                <option value="CR">🇨🇷 Costa Rica</option>
-                                <option value="PA">🇵🇦 Panama</option>
-                                <option value="BZ">🇧🇿 Belize</option>
-                                <option value="JM">🇯🇲 Jamaica</option>
-                                <option value="CU">🇨🇺 Cuba</option>
-                                <option value="DO">🇩🇴 Dominican Republic</option>
-                                <option value="HT">🇭🇹 Haiti</option>
-                                <option value="TT">🇹🇹 Trinidad and Tobago</option>
-                                <option value="BB">🇧🇧 Barbados</option>
-                                <option value="BS">🇧🇸 Bahamas</option>
-                                
-                                <!-- Middle East -->
-                                <option value="AE">🇦🇪 United Arab Emirates</option>
-                                <option value="SA">🇸🇦 Saudi Arabia</option>
-                                <option value="IL">🇮🇱 Israel</option>
-                                <option value="TR">🇹🇷 Turkey</option>
-                                <option value="IR">🇮🇷 Iran</option>
-                                <option value="IQ">🇮🇶 Iraq</option>
-                                <option value="JO">🇯🇴 Jordan</option>
-                                <option value="LB">🇱🇧 Lebanon</option>
-                                <option value="SY">🇸🇾 Syria</option>
-                                <option value="YE">🇾🇪 Yemen</option>
-                                <option value="OM">🇴🇲 Oman</option>
-                                <option value="QA">🇶🇦 Qatar</option>
-                                <option value="BH">🇧🇭 Bahrain</option>
-                                <option value="KW">🇰🇼 Kuwait</option>
-                                <option value="PS">🇵🇸 Palestine</option>
-                                <option value="AF">🇦🇫 Afghanistan</option>
-                                
-                                <!-- Africa -->
-                                <option value="NG">🇳🇬 Nigeria</option>
-                                <option value="EG">🇪🇬 Egypt</option>
-                                <option value="ET">🇪🇹 Ethiopia</option>
-                                <option value="KE">🇰🇪 Kenya</option>
-                                <option value="UG">🇺🇬 Uganda</option>
-                                <option value="TZ">🇹🇿 Tanzania</option>
-                                <option value="GH">🇬🇭 Ghana</option>
-                                <option value="MZ">🇲🇿 Mozambique</option>
-                                <option value="MG">🇲🇬 Madagascar</option>
-                                <option value="AO">🇦🇴 Angola</option>
-                                <option value="CM">🇨🇲 Cameroon</option>
-                                <option value="CI">🇨🇮 Ivory Coast</option>
-                                <option value="NE">🇳🇪 Niger</option>
-                                <option value="BF">🇧🇫 Burkina Faso</option>
-                                <option value="ML">🇲🇱 Mali</option>
-                                <option value="MW">🇲🇼 Malawi</option>
-                                <option value="ZM">🇿🇲 Zambia</option>
-                                <option value="SN">🇸🇳 Senegal</option>
-                                <option value="SO">🇸🇴 Somalia</option>
-                                <option value="TD">🇹🇩 Chad</option>
-                                <option value="ZW">🇿🇼 Zimbabwe</option>
-                                <option value="BW">🇧🇼 Botswana</option>
-                                <option value="NA">🇳🇦 Namibia</option>
-                                <option value="LS">🇱🇸 Lesotho</option>
-                                <option value="SZ">🇸🇿 Eswatini</option>
-                                <option value="GA">🇬🇦 Gabon</option>
-                                <option value="GQ">🇬🇶 Equatorial Guinea</option>
-                                <option value="CG">🇨🇬 Republic of the Congo</option>
-                                <option value="CD">🇨🇩 Democratic Republic of the Congo</option>
-                                <option value="CF">🇨🇫 Central African Republic</option>
-                                <option value="ST">🇸🇹 São Tomé and Príncipe</option>
-                                <option value="DJ">🇩🇯 Djibouti</option>
-                                <option value="ER">🇪🇷 Eritrea</option>
-                                <option value="GM">🇬🇲 Gambia</option>
-                                <option value="GN">🇬🇳 Guinea</option>
-                                <option value="GW">🇬🇼 Guinea-Bissau</option>
-                                <option value="LR">🇱🇷 Liberia</option>
-                                <option value="SL">🇸🇱 Sierra Leone</option>
-                                <option value="TG">🇹🇬 Togo</option>
-                                <option value="BJ">🇧🇯 Benin</option>
-                                <option value="RW">🇷🇼 Rwanda</option>
-                                <option value="BI">🇧🇮 Burundi</option>
-                                <option value="KM">🇰🇲 Comoros</option>
-                                <option value="MU">🇲🇺 Mauritius</option>
-                                <option value="SC">🇸🇨 Seychelles</option>
-                                <option value="CV">🇨🇻 Cape Verde</option>
-                                <option value="MR">🇲🇷 Mauritania</option>
-                                <option value="MA">🇲🇦 Morocco</option>
-                                <option value="DZ">🇩🇿 Algeria</option>
-                                <option value="TN">🇹🇳 Tunisia</option>
-                                <option value="LY">🇱🇾 Libya</option>
-                                <option value="SD">🇸🇩 Sudan</option>
-                                <option value="SS">🇸🇸 South Sudan</option>
-                                
-                                <!-- Eastern Europe & Russia -->
-                                <option value="RU">🇷🇺 Russia</option>
-                                <option value="UA">🇺🇦 Ukraine</option>
-                                <option value="BY">🇧🇾 Belarus</option>
-                                <option value="MD">🇲🇩 Moldova</option>
-                                <option value="GE">🇬🇪 Georgia</option>
-                                <option value="AM">🇦🇲 Armenia</option>
-                                <option value="AZ">🇦🇿 Azerbaijan</option>
-                                <option value="KZ">🇰🇿 Kazakhstan</option>
-                                <option value="KG">🇰🇬 Kyrgyzstan</option>
-                                <option value="TJ">🇹🇯 Tajikistan</option>
-                                <option value="TM">🇹🇲 Turkmenistan</option>
-                                <option value="UZ">🇺🇿 Uzbekistan</option>
-                                <option value="RS">🇷🇸 Serbia</option>
-                                <option value="ME">🇲🇪 Montenegro</option>
-                                <option value="BA">🇧🇦 Bosnia and Herzegovina</option>
-                                <option value="MK">🇲🇰 North Macedonia</option>
-                                <option value="AL">🇦🇱 Albania</option>
-                                <option value="XK">🇽🇰 Kosovo</option>
-                                
-                                <!-- Oceania -->
-                                <option value="FJ">🇫🇯 Fiji</option>
-                                <option value="PG">🇵🇬 Papua New Guinea</option>
-                                <option value="SB">🇸🇧 Solomon Islands</option>
-                                <option value="VU">🇻🇺 Vanuatu</option>
-                                <option value="NC">🇳🇨 New Caledonia</option>
-                                <option value="PF">🇵🇫 French Polynesia</option>
-                                <option value="WS">🇼🇸 Samoa</option>
-                                <option value="TO">🇹🇴 Tonga</option>
-                                <option value="KI">🇰🇮 Kiribati</option>
-                                <option value="TV">🇹🇻 Tuvalu</option>
-                                <option value="NR">🇳🇷 Nauru</option>
-                                <option value="PW">🇵🇼 Palau</option>
-                                <option value="MH">🇲🇭 Marshall Islands</option>
-                                <option value="FM">🇫🇲 Micronesia</option>
-                            </select>
+                            <label for="payment-billing-street">Street Address</label>
+                            <input type="text" id="payment-billing-street" name="payment-billing-street" placeholder="123 Main St">
                         </div>
                     </div>
-
-                    <!-- Street Address -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="payment-billing-street" id="street-label">Street Address</label>
-                            <input type="text" id="payment-billing-street" name="payment-billing-street" 
-                                   placeholder="123 Main St" class="address-field">
-                        </div>
-                    </div>
-
-                    <!-- City, State/Province, Postal Code Row -->
-                    <div class="form-row address-row">
-                        <div class="form-group">
-                            <label for="payment-billing-city" id="city-label">City</label>
-                            <input type="text" id="payment-billing-city" name="payment-billing-city" 
-                                   placeholder="New York" class="address-field">
+                            <label for="payment-billing-city">City</label>
+                            <input type="text" id="payment-billing-city" name="payment-billing-city" placeholder="New York">
                         </div>
                         <div class="form-group">
-                            <label for="payment-billing-state" id="state-label">State</label>
-                            <input type="text" id="payment-billing-state" name="payment-billing-state" 
-                                   placeholder="NY" maxlength="10" class="address-field">
+                            <label for="payment-billing-state">State</label>
+                            <input type="text" id="payment-billing-state" name="payment-billing-state" placeholder="NY" maxlength="2">
                         </div>
                         <div class="form-group">
-                            <label for="payment-billing-postal" id="postal-label">ZIP Code</label>
-                            <input type="text" id="payment-billing-postal" name="payment-billing-postal" 
-                                   placeholder="12345" class="address-field">
+                            <label for="payment-billing-postal">ZIP Code</label>
+                            <input type="text" id="payment-billing-postal" name="payment-billing-postal" placeholder="12345">
                         </div>
                     </div>
                 </div>
-
-                <div class="form-section">
-                    <button type="button" id="start-payment-btn" class="payment-button">
-                        🚀 Start Secure Payment
-                    </button>
-                    <p class="payment-note">
-                        Global Payments secure payment form will open in this page
-                    </p>
-                </div>
-            </div>
+            </form>
 
             <div class="loading" id="loading">
                 <div class="spinner"></div>
-                <p>Verifying card...</p>
+                <p>Processing...</p>
             </div>
 
             <div class="result-container" id="result-container">
@@ -866,7 +896,8 @@
     <script>
         class CardAuthenticator {
             constructor() {
-                this.cardForm = null;
+                this.verificationForm = null;
+                this.paymentForm = null;
                 this.isInitialized = false;
                 this.init();
             }
@@ -918,26 +949,257 @@
                     publicApiKey: config.data.publicApiKey
                 });
 
-                this.initializeCardForm();
+                this.initializeForms();
             }
 
-            initializeCardForm() {
-                this.cardForm = GlobalPayments.creditCard.form('#verification-form', { 
-                    style: "gp-default" 
-                });
-
-                this.cardForm.on('token-success', (resp) => {
-                    this.handleTokenSuccess(resp);
-                });
-
-                this.cardForm.on('token-error', (error) => {
-                    this.showError('Card tokenization failed: ' + error.message);
-                    this.hideLoading();
-                });
-
+            initializeForms() {
+                // Initialize verification form only when in verification mode
+                this.initializeVerificationForm();
                 this.isInitialized = true;
             }
 
+            initializeVerificationForm() {
+                const container = document.getElementById('credit-card');
+                
+                // Use GlobalPayments SDK with proper verification setup
+                container.innerHTML = `
+                    <div class="verification-info" style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4caf50;">
+                        <h4 style="color: #2e7d32; margin-bottom: 10px;">🔐 Secure Card Verification</h4>
+                        <p style="margin: 0; color: #424242;">Secure verification using GlobalPayments tokenization. No charges will be made to your card.</p>
+                    </div>
+                    <div class="verification-hpp-container" style="background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 25px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                        <div class="sandbox-warning" style="background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); color: white; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-weight: 500; text-align: center;">
+                            🏠 Sandbox Mode: Use test card numbers only
+                        </div>
+                        <div id="verification-globalpayments-form"></div>
+                    </div>
+                `;
+
+                // Initialize GlobalPayments SDK for verification
+                this.setupVerificationGlobalPayments();
+            }
+
+            setupVerificationGlobalPayments() {
+                try {
+                    // Initialize GlobalPayments SDK for verification (no charge)
+                    this.verificationForm = GlobalPayments.creditCard.form('#verification-globalpayments-form', { 
+                        style: "gp-default",
+                        amount: '0.00' // No charge for verification
+                    });
+
+                    this.verificationForm.on('token-success', (resp) => {
+                        this.handleVerificationTokenSuccess(resp);
+                    });
+
+                    this.verificationForm.on('token-error', (error) => {
+                        this.showError('Card tokenization failed: ' + error.message);
+                        this.hideLoading();
+                    });
+
+                    this.verificationForm.ready(() => {
+                        console.log('✅ Verification GlobalPayments form ready');
+                    });
+                } catch (error) {
+                    console.error('Verification form setup failed:', error);
+                    this.showError('Failed to initialize verification form: ' + error.message);
+                }
+            }
+
+
+
+
+            initializePaymentForm() {
+                // For real payments, use GlobalPayments SDK just like verification but with actual charge
+                this.setupPaymentGlobalPayments();
+            }
+
+            setupPaymentGlobalPayments() {
+                const container = document.getElementById('payment-credit-card');
+                container.innerHTML = `
+                    <div class="payment-info" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #2196f3;">
+                        <h4 style="color: #1976d2; margin-bottom: 10px;">💳 Real Payment Processing</h4>
+                        <p style="margin: 0; color: #424242;">Secure payment processing using GlobalPayments tokenization. Real charges will be made to your card.</p>
+                    </div>
+                    <div class="payment-hpp-container" style="background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 25px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                        <div class="sandbox-warning" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-weight: 500; text-align: center;">
+                            💰 Live Payment Mode: Real charges will be processed
+                        </div>
+                        <div id="payment-amount-display" style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; font-weight: bold;">
+                            Please enter payment amount above
+                        </div>
+                        <div id="payment-globalpayments-form"></div>
+                    </div>
+                `;
+
+                // Initialize the payment form immediately (like verification form)
+                this.initializePaymentGlobalPaymentsFormBase();
+                
+                // Set up payment form that updates amount when entered
+                this.setupPaymentAmountListener();
+            }
+            
+            initializePaymentGlobalPaymentsFormBase() {
+                try {
+                    console.log('🚀 Initializing GlobalPayments payment form');
+                    
+                    // Initialize GlobalPayments SDK for payment with initial amount
+                    this.paymentForm = GlobalPayments.creditCard.form('#payment-globalpayments-form', { 
+                        style: "gp-default",
+                        amount: '0.01' // Minimal amount to initialize form
+                    });
+                    
+                    this.paymentForm.on('token-success', (resp) => {
+                        console.log('✅ Payment token success:', resp);
+                        // Get current amount from the display
+                        const currentAmount = this.getCurrentPaymentAmount();
+                        this.handlePaymentTokenSuccess(resp, currentAmount);
+                    });
+                    
+                    this.paymentForm.on('token-error', (error) => {
+                        console.error('❌ Payment token error:', error);
+                        this.showError('Payment tokenization failed: ' + error.message);
+                        this.hideLoading();
+                    });
+                    
+                    this.paymentForm.ready(() => {
+                        console.log('✅ Payment GlobalPayments form ready');
+                    });
+                    
+                } catch (error) {
+                    console.error('❌ Base payment form setup failed:', error);
+                    this.showError('Failed to initialize payment form: ' + error.message);
+                }
+            }
+            
+            getCurrentPaymentAmount() {
+                const amountField = document.getElementById('payment-amount');
+                return parseFloat(amountField?.value || '0');
+            }
+            
+            setupPaymentAmountListener() {
+                const amountField = document.getElementById('payment-amount');
+                const amountDisplay = document.getElementById('payment-amount-display');
+                const formContainer = document.getElementById('payment-globalpayments-form');
+                
+                if (!amountField || !amountDisplay || !formContainer) {
+                    console.error('❌ Payment form elements not found');
+                    return;
+                }
+                
+                let debounceTimer;
+                
+                // Listen for amount changes (form is already initialized)
+                amountField.addEventListener('input', () => {
+                    clearTimeout(debounceTimer);
+                    
+                    const amount = parseFloat(amountField.value);
+                    
+                    if (!amount || amount <= 0) {
+                        // Just update display
+                        amountDisplay.innerHTML = 'Please enter payment amount above';
+                        amountDisplay.style.color = '#666';
+                        return;
+                    }
+                    
+                    // Update display - form is already interactive
+                    amountDisplay.innerHTML = `Payment Amount: $${amount.toFixed(2)} USD`;
+                    amountDisplay.style.color = '#1976d2';
+                    
+                });
+            }
+            
+            async handlePaymentTokenSuccess(tokenResponse, amount) {
+                try {
+                    this.showLoading('Processing payment...');
+                    
+                    const requestData = {
+                        payment_token: tokenResponse.paymentReference,
+                        amount: amount,
+                        currency: document.getElementById('payment-currency').value || 'USD',
+                        mode: 'payment'
+                    };
+                    
+                    // Add customer information if provided
+                    const firstName = document.getElementById('payment-customer-first-name')?.value;
+                    const lastName = document.getElementById('payment-customer-last-name')?.value;
+                    const email = document.getElementById('payment-customer-email')?.value;
+                    const phone = document.getElementById('payment-customer-phone')?.value;
+                    
+                    if (firstName || lastName || email || phone) {
+                        requestData.customer = {
+                            first_name: firstName || '',
+                            last_name: lastName || '',
+                            email: email || '',
+                            phone: phone || ''
+                        };
+                    }
+                    
+                    // Add billing address if provided
+                    const street = document.getElementById('payment-billing-street')?.value;
+                    const city = document.getElementById('payment-billing-city')?.value;
+                    const state = document.getElementById('payment-billing-state')?.value;
+                    const postal = document.getElementById('payment-billing-postal')?.value;
+                    const country = document.getElementById('payment-billing-country')?.value;
+                    
+                    if (street || city || state || postal) {
+                        requestData.billing_address = {
+                            street: street || '',
+                            city: city || '',
+                            state: state || '',
+                            postal_code: postal || '',
+                            country: country || 'US'
+                        };
+                    }
+                    
+                    console.log('Processing payment with data:', requestData);
+                    
+                    // Process payment through heartland-process-payment.php
+                    const response = await fetch('/heartland-process-payment.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestData)
+                    });
+                    
+                    const result = await response.json();
+                    console.log('Payment result:', result);
+                    
+                    if (result.success) {
+                        this.showPaymentSuccess(result);
+                    } else {
+                        this.showError('Payment failed: ' + (result.message || 'Unknown error'));
+                    }
+                    
+                } catch (error) {
+                    this.showError('Network error: ' + error.message);
+                } finally {
+                    this.hideLoading();
+                }
+            }
+            
+            showPaymentSuccess(responseData) {
+                const container = document.getElementById('result-container');
+                const content = document.getElementById('result-content');
+                
+                content.innerHTML = `
+                    <h3>✅ Payment Successful</h3>
+                    <p>Your payment has been processed successfully!</p>
+                    <div style="margin-top: 15px; font-size: 0.9em;">
+                        <strong>Transaction Details:</strong><br>
+                        Transaction ID: ${responseData.transaction_id || 'N/A'}<br>
+                        Amount: $${responseData.amount || 'N/A'} ${responseData.currency || 'USD'}<br>
+                        Status: ${responseData.response_message || 'Approved'}<br>
+                        Payment Method: ${responseData.card_type || 'N/A'} ending in ${responseData.last_four || 'N/A'}<br>
+                        Authorization Code: ${responseData.auth_code || 'N/A'}
+                    </div>
+                `;
+                
+                container.className = 'result-container result-success';
+                container.style.display = 'block';
+                
+                // Scroll to results
+                container.scrollIntoView({ behavior: 'smooth' });
+            }
+            
             setupEventListeners() {
                 // Operation mode change
                 document.querySelectorAll('input[name="operation_mode"]').forEach(radio => {
@@ -952,27 +1214,6 @@
                         this.updateFormVisibility();
                     });
                 });
-
-                // Payment button click
-                const paymentBtn = document.getElementById('start-payment-btn');
-                if (paymentBtn) {
-                    paymentBtn.addEventListener('click', () => {
-                        this.initiatePayment();
-                    });
-                }
-
-                // Country selection change
-                const countrySelect = document.getElementById('payment-billing-country');
-                if (countrySelect) {
-                    countrySelect.addEventListener('change', (e) => {
-                        this.updateAddressFields(e.target.value);
-                    });
-                    // Initialize with default country
-                    this.updateAddressFields(countrySelect.value);
-                }
-
-                // Form submission is handled by the GlobalPayments SDK automatically
-                // The token-success event will be triggered when the form is submitted
             }
 
             updateOperationMode() {
@@ -989,6 +1230,11 @@
                     paymentInfoPanel.style.display = 'none';
                     verificationForm.style.display = 'block';
                     paymentForm.style.display = 'none';
+                    
+                    // Initialize verification form when switching to auth mode
+                    if (this.isInitialized) {
+                        this.initializeVerificationForm();
+                    }
                 } else {
                     // Show payment UI
                     authInfoPanel.style.display = 'none';
@@ -996,9 +1242,11 @@
                     verificationForm.style.display = 'none';
                     paymentForm.style.display = 'block';
                     
-                    // Order ID will be automatically generated server-side
+                    // Initialize payment form when switching to payment mode
+                    if (this.isInitialized) {
+                        this.initializePaymentForm();
+                    }
                 }
-
                 // Hide results when switching modes
                 resultContainer.style.display = 'none';
             }
@@ -1018,83 +1266,19 @@
                     billingSection.style.display = (verificationType === 'avs' || verificationType === 'full') ? 'block' : 'none';
                     customerSection.style.display = (verificationType === 'full') ? 'block' : 'none';
                 }
-            }
 
-            async initiatePayment() {
-                try {
-                    this.showLoading('Creating secure payment session...');
-
-                    // Collect payment data (Order ID generated automatically server-side)
-                    const paymentData = {
-                        amount: document.getElementById('payment-amount').value,
-                        currency: document.getElementById('payment-currency').value
-                    };
-
-                    // Validate required fields
-                    if (!paymentData.amount) {
-                        throw new Error('Amount is required');
+                // Reinitialize verification form when type changes
+                if (this.isInitialized) {
+                    const operationMode = document.querySelector('input[name="operation_mode"]:checked').value;
+                    if (operationMode === 'authentication') {
+                        this.initializeVerificationForm();
                     }
-
-                    // Add customer data if provided
-                    const firstName = document.getElementById('payment-customer-first-name').value;
-                    const lastName = document.getElementById('payment-customer-last-name').value;
-                    const email = document.getElementById('payment-customer-email').value;
-                    const phone = document.getElementById('payment-customer-phone').value;
-
-                    if (firstName || lastName || email || phone) {
-                        paymentData.customer = {
-                            first_name: firstName,
-                            last_name: lastName,
-                            email: email,
-                            phone: phone
-                        };
-                    }
-
-                    // Add billing address if provided
-                    const street = document.getElementById('payment-billing-street').value;
-                    const city = document.getElementById('payment-billing-city').value;
-                    const state = document.getElementById('payment-billing-state').value;
-                    const postal = document.getElementById('payment-billing-postal').value;
-                    const country = document.getElementById('payment-billing-country').value;
-
-                    if (street || city || state || postal || country) {
-                        paymentData.billing_address = {
-                            street: street,
-                            city: city,
-                            state: state,
-                            postal_code: postal,
-                            country: country
-                        };
-                    }
-
-                    // Create HPP session
-                    const response = await fetch('/hpp-create-session.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(paymentData)
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        // Show HPP iframe instead of redirecting
-                        this.showHppIframe(result.data.iframe_url, paymentData);
-                    } else {
-                        throw new Error(result.message || 'Failed to create payment session');
-                    }
-
-                } catch (error) {
-                    this.showError('Payment initiation failed: ' + error.message);
-                } finally {
-                    this.hideLoading();
                 }
             }
 
-            async handleTokenSuccess(tokenResponse) {
+            async handleVerificationTokenSuccess(tokenResponse) {
                 try {
-                    this.showLoading(); // Show loading when we start processing
+                    this.showLoading('Verifying card...');
                     
                     const verificationType = document.querySelector('input[name="verification_type"]:checked').value;
                     
@@ -1102,42 +1286,44 @@
                         payment_token: tokenResponse.paymentReference,
                         verification_type: verificationType
                     };
-
+                    
                     // Add billing address if needed
                     if (verificationType === 'avs' || verificationType === 'full') {
                         requestData.billing_address = {
                             street: document.getElementById('street').value,
                             city: document.getElementById('city').value,
                             state: document.getElementById('state').value,
-                            postal_code: document.getElementById('postal_code').value
+                            postal_code: document.getElementById('postal_code').value,
+                            country: 'US'
                         };
                     }
-
-                    // Add customer info if needed
+                    
+                    // Add customer info if doing full verification
                     if (verificationType === 'full') {
                         requestData.customer = {
-                            id: document.getElementById('customer_id').value,
+                            customer_id: document.getElementById('customer_id').value,
                             email: document.getElementById('email').value,
                             phone: document.getElementById('phone').value
                         };
                     }
-
+                    
+                    console.log('Verification request data:', requestData);
+                    
                     const response = await fetch('/verify-card.php', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(requestData)
                     });
-
+                    
                     const result = await response.json();
+                    console.log('Verification result:', result);
                     
                     if (result.success) {
-                        this.showSuccess(result);
+                        this.showVerificationSuccess(result);
                     } else {
-                        this.showError(result.message, result);
+                        this.showError('Verification failed: ' + (result.message || 'Unknown error'));
                     }
-
+                    
                 } catch (error) {
                     this.showError('Network error: ' + error.message);
                 } finally {
@@ -1145,508 +1331,58 @@
                 }
             }
 
-            showLoading(message = 'Verifying card...') {
+            showVerificationSuccess(responseData) {
+                const container = document.getElementById('result-container');
+                const content = document.getElementById('result-content');
+                
+                content.innerHTML = `
+                    <h3>✅ Card Verification Successful</h3>
+                    <p>Your card has been verified successfully!</p>
+                    <div style="margin-top: 15px; font-size: 0.9em;">
+                        <strong>Verification Details:</strong><br>
+                        Card Type: ${responseData.card_type || 'N/A'}<br>
+                        Last Four: ${responseData.last_four || 'N/A'}<br>
+                        Status: ${responseData.response_message || 'Verified'}<br>
+                        Verification ID: ${responseData.transaction_id || 'N/A'}
+                    </div>
+                `;
+                
+                container.className = 'result-container result-success';
+                container.style.display = 'block';
+                
+                // Scroll to results
+                container.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            showLoading(message = 'Processing...') {
                 const loading = document.getElementById('loading');
                 const loadingText = loading.querySelector('p');
-                loadingText.textContent = message;
-                loading.style.display = 'block';
+                if (loadingText) loadingText.textContent = message;
+                loading.style.display = 'flex';
             }
 
             hideLoading() {
                 document.getElementById('loading').style.display = 'none';
             }
 
-            showSuccess(result) {
-                const container = document.getElementById('result-container');
-                const content = document.getElementById('result-content');
-                
-                let detailsHtml = '';
-                if (result.verification_result) {
-                    const vr = result.verification_result;
-                    detailsHtml = `
-                        <div style="margin-top: 15px; font-size: 0.9em;">
-                            <strong>Verification Details:</strong><br>
-                            Transaction ID: ${vr.transaction_id}<br>
-                            Response: ${vr.response_code} - ${vr.response_message}
-                            ${vr.avs_response_code ? `<br>AVS: ${vr.avs_response_code} - ${vr.avs_response_message}` : ''}
-                            ${vr.cvn_response_code ? `<br>CVV: ${vr.cvn_response_code} - ${vr.cvn_response_message}` : ''}
-                            ${vr.card_type ? `<br>Card Type: ${vr.card_type}` : ''}
-                        </div>
-                    `;
-                }
-
-                content.innerHTML = `
-                    <h3>✅ ${result.message}</h3>
-                    <p>Card verification completed successfully!</p>
-                    ${detailsHtml}
-                `;
-                
-                container.className = 'result-container result-success';
-                container.style.display = 'block';
-            }
-
-            showError(message, result = null) {
-                const container = document.getElementById('result-container');
-                const content = document.getElementById('result-content');
-                
-                let detailsHtml = '';
-                if (result && result.verification_result) {
-                    const vr = result.verification_result;
-                    detailsHtml = `
-                        <div style="margin-top: 15px; font-size: 0.9em;">
-                            <strong>Response Details:</strong><br>
-                            ${vr.response_code ? `Code: ${vr.response_code}<br>` : ''}
-                            ${vr.response_message ? `Message: ${vr.response_message}<br>` : ''}
-                            ${vr.transaction_id ? `Transaction ID: ${vr.transaction_id}` : ''}
-                        </div>
-                    `;
-                }
-
-                content.innerHTML = `
-                    <div class="result error">
-                        <div class="result-header">
-                            <span class="result-icon">❌</span>
-                            <span class="result-title">Verification Failed</span>
-                        </div>
-                        <div class="result-message">${message}</div>
-                        ${detailsHtml}
-                    </div>
-                `;
-                
-                container.style.display = 'block';
-            }
-
-            showHppIframe(iframeUrl, paymentData) {
-                // Hide payment form and show iframe container
-                const paymentForm = document.getElementById('payment-form');
-                const container = document.getElementById('result-container');
-                const content = document.getElementById('result-content');
-                
-                paymentForm.style.display = 'none';
-                
-                content.innerHTML = `
-                    <div class="hpp-container">
-                        <div class="hpp-header">
-                            <h3>🔒 Secure Payment</h3>
-                            <p>Complete your payment of $${paymentData.amount} ${paymentData.currency}</p>
-                            <button type="button" id="close-hpp" class="close-button">✕ Close</button>
-                        </div>
-                        <div class="hpp-iframe-wrapper">
-                            <iframe 
-                                id="hpp-iframe" 
-                                src="${iframeUrl}" 
-                                width="100%" 
-                                height="600"
-                                frameborder="0"
-                                scrolling="auto"
-                                sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation"
-                                title="Global Payments Hosted Payment Page">
-                            </iframe>
-                        </div>
-                        <div class="hpp-footer">
-                            <p>🔒 Your payment is processed securely by Global Payments</p>
-                        </div>
-                    </div>
-                `;
-                
-                container.style.display = 'block';
-                
-                // Add close button functionality
-                document.getElementById('close-hpp').addEventListener('click', () => {
-                    this.closeHppIframe();
-                });
-                
-                // Listen for messages from the iframe (payment completion)
-                this.setupIframeListeners();
-            }
-
-            closeHppIframe() {
-                const paymentForm = document.getElementById('payment-form');
-                const container = document.getElementById('result-container');
-                
-                container.style.display = 'none';
-                paymentForm.style.display = 'block';
-            }
-
-            setupIframeListeners() {
-                // Listen for postMessage events from the HPP iframe
-                window.addEventListener('message', (event) => {
-                    // Verify origin for security (adjust based on your Global Payments environment)
-                    const allowedOrigins = [
-                        'https://apis.sandbox.globalpay.com',
-                        'https://hpp.sandbox.globalpay.com',
-                        'https://apis.globalpay.com',
-                        'https://hpp.globalpay.com'
-                    ];
-                    
-                    if (!allowedOrigins.includes(event.origin)) {
-                        return;
-                    }
-                    
-                    // Handle payment completion messages
-                    if (event.data && event.data.type === 'payment_complete') {
-                        this.handlePaymentComplete(event.data);
-                    }
-                }, { once: true });
-            }
-
-            handlePaymentComplete(paymentResult) {
-                // Close the iframe
-                this.closeHppIframe();
-                
-                // Show payment result
-                if (paymentResult.status === 'success' || paymentResult.status === 'approved') {
-                    this.showPaymentSuccess(paymentResult);
-                } else {
-                    this.showPaymentError(paymentResult);
-                }
-            }
-
-            showPaymentSuccess(result) {
+            showError(message) {
                 const container = document.getElementById('result-container');
                 const content = document.getElementById('result-content');
                 
                 content.innerHTML = `
-                    <div class="result success">
-                        <div class="result-header">
-                            <span class="result-icon">✅</span>
-                            <span class="result-title">Payment Successful</span>
-                        </div>
-                        <div class="result-message">Your payment has been processed successfully!</div>
-                        <div style="margin-top: 15px; font-size: 0.9em;">
-                            <strong>Payment Details:</strong><br>
-                            ${result.transaction_id ? `Transaction ID: ${result.transaction_id}<br>` : ''}
-                            ${result.amount ? `Amount: $${result.amount} ${result.currency || 'USD'}<br>` : ''}
-                            ${result.reference ? `Reference: ${result.reference}<br>` : ''}
-                            ${result.payment_method ? `Payment Method: ${result.payment_method}` : ''}
-                        </div>
-                    </div>
+                    <h3>❌ Error</h3>
+                    <p>${message}</p>
                 `;
                 
+                container.className = 'result-container result-error';
                 container.style.display = 'block';
-            }
-
-            showPaymentError(result) {
-                const container = document.getElementById('result-container');
-                const content = document.getElementById('result-content');
                 
-                content.innerHTML = `
-                    <div class="result error">
-                        <div class="result-header">
-                            <span class="result-icon">❌</span>
-                            <span class="result-title">Payment Failed</span>
-                        </div>
-                        <div class="result-message">${result.message || 'Payment could not be processed'}</div>
-                        <div style="margin-top: 15px; font-size: 0.9em;">
-                            <strong>Error Details:</strong><br>
-                            ${result.error_code ? `Code: ${result.error_code}<br>` : ''}
-                            ${result.transaction_id ? `Transaction ID: ${result.transaction_id}` : ''}
-                        </div>
-                    </div>
-                `;
-                
-                container.style.display = 'block';
+                // Scroll to results
+                container.scrollIntoView({ behavior: 'smooth' });
             }
 
             hideResult() {
                 document.getElementById('result-container').style.display = 'none';
-            }
-
-            /**
-             * Update address field labels and placeholders based on selected country
-             * @param {string} countryCode - The selected country code (e.g., 'US', 'GB', 'CA')
-             */
-            updateAddressFields(countryCode) {
-                const streetLabel = document.getElementById('street-label');
-                const cityLabel = document.getElementById('city-label');
-                const stateLabel = document.getElementById('state-label');
-                const postalLabel = document.getElementById('postal-label');
-                
-                const streetField = document.getElementById('payment-billing-street');
-                const cityField = document.getElementById('payment-billing-city');
-                const stateField = document.getElementById('payment-billing-state');
-                const postalField = document.getElementById('payment-billing-postal');
-
-                // Country-specific address format configurations
-                const addressFormats = {
-                    'US': {
-                        street: { label: 'Street Address', placeholder: '123 Main St' },
-                        city: { label: 'City', placeholder: 'New York' },
-                        state: { label: 'State', placeholder: 'NY' },
-                        postal: { label: 'ZIP Code', placeholder: '12345' }
-                    },
-                    'CA': {
-                        street: { label: 'Street Address', placeholder: '123 Main St' },
-                        city: { label: 'City', placeholder: 'Toronto' },
-                        state: { label: 'Province', placeholder: 'ON' },
-                        postal: { label: 'Postal Code', placeholder: 'K1A 0A6' }
-                    },
-                    'GB': {
-                        street: { label: 'Address Line 1', placeholder: '123 High Street' },
-                        city: { label: 'Town/City', placeholder: 'London' },
-                        state: { label: 'County', placeholder: 'Greater London' },
-                        postal: { label: 'Postcode', placeholder: 'SW1A 1AA' }
-                    },
-                    'IE': {
-                        street: { label: 'Address Line 1', placeholder: '123 Grafton Street' },
-                        city: { label: 'Town/City', placeholder: 'Dublin' },
-                        state: { label: 'County', placeholder: 'Dublin' },
-                        postal: { label: 'Eircode', placeholder: 'D02 XY45' }
-                    },
-                    'AU': {
-                        street: { label: 'Street Address', placeholder: '123 Collins Street' },
-                        city: { label: 'Suburb', placeholder: 'Melbourne' },
-                        state: { label: 'State', placeholder: 'VIC' },
-                        postal: { label: 'Postcode', placeholder: '3000' }
-                    },
-                    'NZ': {
-                        street: { label: 'Street Address', placeholder: '123 Queen Street' },
-                        city: { label: 'Suburb', placeholder: 'Auckland' },
-                        state: { label: 'Region', placeholder: 'Auckland' },
-                        postal: { label: 'Postcode', placeholder: '1010' }
-                    },
-                    'ZA': {
-                        street: { label: 'Street Address', placeholder: '123 Long Street' },
-                        city: { label: 'City', placeholder: 'Cape Town' },
-                        state: { label: 'Province', placeholder: 'Western Cape' },
-                        postal: { label: 'Postal Code', placeholder: '8001' }
-                    },
-                    'DE': {
-                        street: { label: 'Straße und Hausnummer', placeholder: 'Musterstraße 123' },
-                        city: { label: 'Stadt', placeholder: 'Berlin' },
-                        state: { label: 'Bundesland', placeholder: 'Berlin' },
-                        postal: { label: 'Postleitzahl', placeholder: '10115' }
-                    },
-                    'FR': {
-                        street: { label: 'Adresse', placeholder: '123 Rue de la Paix' },
-                        city: { label: 'Ville', placeholder: 'Paris' },
-                        state: { label: 'Région', placeholder: 'Île-de-France' },
-                        postal: { label: 'Code postal', placeholder: '75001' }
-                    },
-                    'IT': {
-                        street: { label: 'Indirizzo', placeholder: 'Via Roma 123' },
-                        city: { label: 'Città', placeholder: 'Roma' },
-                        state: { label: 'Provincia', placeholder: 'RM' },
-                        postal: { label: 'CAP', placeholder: '00100' }
-                    },
-                    'ES': {
-                        street: { label: 'Dirección', placeholder: 'Calle Mayor 123' },
-                        city: { label: 'Ciudad', placeholder: 'Madrid' },
-                        state: { label: 'Provincia', placeholder: 'Madrid' },
-                        postal: { label: 'Código postal', placeholder: '28001' }
-                    },
-                    'NL': {
-                        street: { label: 'Adres', placeholder: 'Hoofdstraat 123' },
-                        city: { label: 'Plaats', placeholder: 'Amsterdam' },
-                        state: { label: 'Provincie', placeholder: 'Noord-Holland' },
-                        postal: { label: 'Postcode', placeholder: '1012 AB' }
-                    },
-                    'CH': {
-                        street: { label: 'Adresse', placeholder: 'Bahnhofstrasse 123' },
-                        city: { label: 'Stadt', placeholder: 'Zürich' },
-                        state: { label: 'Kanton', placeholder: 'ZH' },
-                        postal: { label: 'PLZ', placeholder: '8001' }
-                    },
-                    'AT': {
-                        street: { label: 'Adresse', placeholder: 'Ringstraße 123' },
-                        city: { label: 'Stadt', placeholder: 'Wien' },
-                        state: { label: 'Bundesland', placeholder: 'Wien' },
-                        postal: { label: 'PLZ', placeholder: '1010' }
-                    },
-                    'BE': {
-                        street: { label: 'Adresse/Adres', placeholder: 'Rue de la Loi 123' },
-                        city: { label: 'Ville/Stad', placeholder: 'Brussels' },
-                        state: { label: 'Province/Provincie', placeholder: 'Brussels' },
-                        postal: { label: 'Code postal', placeholder: '1000' }
-                    },
-                    'SE': {
-                        street: { label: 'Gatuadress', placeholder: 'Drottninggatan 123' },
-                        city: { label: 'Stad', placeholder: 'Stockholm' },
-                        state: { label: 'Län', placeholder: 'Stockholm' },
-                        postal: { label: 'Postnummer', placeholder: '11151' }
-                    },
-                    'NO': {
-                        street: { label: 'Gateadresse', placeholder: 'Karl Johans gate 123' },
-                        city: { label: 'Poststed', placeholder: 'Oslo' },
-                        state: { label: 'Fylke', placeholder: 'Oslo' },
-                        postal: { label: 'Postnummer', placeholder: '0154' }
-                    },
-                    'DK': {
-                        street: { label: 'Adresse', placeholder: 'Strøget 123' },
-                        city: { label: 'By', placeholder: 'København' },
-                        state: { label: 'Region', placeholder: 'Hovedstaden' },
-                        postal: { label: 'Postnummer', placeholder: '1000' }
-                    },
-                    'FI': {
-                        street: { label: 'Katuosoite', placeholder: 'Mannerheimintie 123' },
-                        city: { label: 'Kaupunki', placeholder: 'Helsinki' },
-                        state: { label: 'Maakunta', placeholder: 'Uusimaa' },
-                        postal: { label: 'Postinumero', placeholder: '00100' }
-                    },
-                    'JP': {
-                        street: { label: '住所', placeholder: '東京都渋谷区1-2-3' },
-                        city: { label: '市区町村', placeholder: '渋谷区' },
-                        state: { label: '都道府県', placeholder: '東京都' },
-                        postal: { label: '郵便番号', placeholder: '150-0001' }
-                    },
-                    'CN': {
-                        street: { label: '街道地址', placeholder: '南京路123号' },
-                        city: { label: '城市', placeholder: '上海' },
-                        state: { label: '省/直辖市', placeholder: '上海市' },
-                        postal: { label: '邮政编码', placeholder: '200001' }
-                    },
-                    'KR': {
-                        street: { label: '도로명주소', placeholder: '강남대로 123' },
-                        city: { label: '시/군/구', placeholder: '서울시 강남구' },
-                        state: { label: '시/도', placeholder: '서울특별시' },
-                        postal: { label: '우편번호', placeholder: '06292' }
-                    },
-                    'IN': {
-                        street: { label: 'Address Line 1', placeholder: '123 MG Road' },
-                        city: { label: 'City', placeholder: 'Mumbai' },
-                        state: { label: 'State', placeholder: 'Maharashtra' },
-                        postal: { label: 'PIN Code', placeholder: '400001' }
-                    },
-                    'SG': {
-                        street: { label: 'Block/Street', placeholder: '123 Orchard Road' },
-                        city: { label: 'City', placeholder: 'Singapore' },
-                        state: { label: 'District', placeholder: 'Central' },
-                        postal: { label: 'Postal Code', placeholder: '238874' }
-                    },
-                    'HK': {
-                        street: { label: 'Address Line 1', placeholder: '123 Nathan Road' },
-                        city: { label: 'District', placeholder: 'Tsim Sha Tsui' },
-                        state: { label: 'Region', placeholder: 'Kowloon' },
-                        postal: { label: 'Postal Code', placeholder: '' }
-                    },
-                    'TW': {
-                        street: { label: '地址', placeholder: '中山路123號' },
-                        city: { label: '市/縣', placeholder: '台北市' },
-                        state: { label: '縣市', placeholder: '台北市' },
-                        postal: { label: '郵遞區號', placeholder: '100' }
-                    },
-                    'BR': {
-                        street: { label: 'Endereço', placeholder: 'Rua das Flores, 123' },
-                        city: { label: 'Cidade', placeholder: 'São Paulo' },
-                        state: { label: 'Estado', placeholder: 'SP' },
-                        postal: { label: 'CEP', placeholder: '01234-567' }
-                    },
-                    'MX': {
-                        street: { label: 'Dirección', placeholder: 'Calle Principal 123' },
-                        city: { label: 'Ciudad', placeholder: 'Ciudad de México' },
-                        state: { label: 'Estado', placeholder: 'CDMX' },
-                        postal: { label: 'Código postal', placeholder: '06000' }
-                    },
-                    'AR': {
-                        street: { label: 'Dirección', placeholder: 'Av. Corrientes 123' },
-                        city: { label: 'Ciudad', placeholder: 'Buenos Aires' },
-                        state: { label: 'Provincia', placeholder: 'CABA' },
-                        postal: { label: 'Código postal', placeholder: 'C1043' }
-                    },
-                    'CL': {
-                        street: { label: 'Dirección', placeholder: 'Av. Providencia 123' },
-                        city: { label: 'Ciudad', placeholder: 'Santiago' },
-                        state: { label: 'Región', placeholder: 'Metropolitana' },
-                        postal: { label: 'Código postal', placeholder: '7500000' }
-                    },
-                    'CO': {
-                        street: { label: 'Dirección', placeholder: 'Carrera 7 # 123-45' },
-                        city: { label: 'Ciudad', placeholder: 'Bogotá' },
-                        state: { label: 'Departamento', placeholder: 'Cundinamarca' },
-                        postal: { label: 'Código postal', placeholder: '110111' }
-                    },
-                    'PE': {
-                        street: { label: 'Dirección', placeholder: 'Av. Arequipa 123' },
-                        city: { label: 'Ciudad', placeholder: 'Lima' },
-                        state: { label: 'Región', placeholder: 'Lima' },
-                        postal: { label: 'Código postal', placeholder: '15001' }
-                    },
-                    'RU': {
-                        street: { label: 'Адрес', placeholder: 'ул. Тверская, 123' },
-                        city: { label: 'Город', placeholder: 'Москва' },
-                        state: { label: 'Регион', placeholder: 'Москва' },
-                        postal: { label: 'Почтовый индекс', placeholder: '125009' }
-                    },
-                    'TR': {
-                        street: { label: 'Adres', placeholder: 'İstiklal Caddesi 123' },
-                        city: { label: 'Şehir', placeholder: 'İstanbul' },
-                        state: { label: 'İl', placeholder: 'İstanbul' },
-                        postal: { label: 'Posta Kodu', placeholder: '34000' }
-                    },
-                    'PL': {
-                        street: { label: 'Adres', placeholder: 'ul. Marszałkowska 123' },
-                        city: { label: 'Miasto', placeholder: 'Warszawa' },
-                        state: { label: 'Województwo', placeholder: 'Mazowieckie' },
-                        postal: { label: 'Kod pocztowy', placeholder: '00-001' }
-                    },
-                    'CZ': {
-                        street: { label: 'Adresa', placeholder: 'Václavské náměstí 123' },
-                        city: { label: 'Město', placeholder: 'Praha' },
-                        state: { label: 'Kraj', placeholder: 'Praha' },
-                        postal: { label: 'PSČ', placeholder: '110 00' }
-                    },
-                    'HU': {
-                        street: { label: 'Cím', placeholder: 'Váci utca 123' },
-                        city: { label: 'Város', placeholder: 'Budapest' },
-                        state: { label: 'Megye', placeholder: 'Budapest' },
-                        postal: { label: 'Irányítószám', placeholder: '1052' }
-                    },
-                    'PT': {
-                        street: { label: 'Morada', placeholder: 'Rua Augusta 123' },
-                        city: { label: 'Cidade', placeholder: 'Lisboa' },
-                        state: { label: 'Distrito', placeholder: 'Lisboa' },
-                        postal: { label: 'Código postal', placeholder: '1100-048' }
-                    },
-                    'GR': {
-                        street: { label: 'Διεύθυνση', placeholder: 'Ερμού 123' },
-                        city: { label: 'Πόλη', placeholder: 'Αθήνα' },
-                        state: { label: 'Περιφέρεια', placeholder: 'Αττική' },
-                        postal: { label: 'Ταχυδρομικός κώδικας', placeholder: '10563' }
-                    }
-                };
-
-                // Default format (fallback)
-                const defaultFormat = {
-                    street: { label: 'Street Address', placeholder: '123 Main St' },
-                    city: { label: 'City', placeholder: 'City' },
-                    state: { label: 'State/Province', placeholder: 'State' },
-                    postal: { label: 'Postal Code', placeholder: '12345' }
-                };
-
-                // Get format for selected country or use default
-                const format = addressFormats[countryCode] || defaultFormat;
-
-                // Update labels and placeholders with smooth transition
-                if (streetLabel && streetField) {
-                    streetLabel.textContent = format.street.label;
-                    streetField.placeholder = format.street.placeholder;
-                }
-                
-                if (cityLabel && cityField) {
-                    cityLabel.textContent = format.city.label;
-                    cityField.placeholder = format.city.placeholder;
-                }
-                
-                if (stateLabel && stateField) {
-                    stateLabel.textContent = format.state.label;
-                    stateField.placeholder = format.state.placeholder;
-                }
-                
-                if (postalLabel && postalField) {
-                    postalLabel.textContent = format.postal.label;
-                    postalField.placeholder = format.postal.placeholder;
-                }
-
-                // Add visual feedback for country change
-                const addressFields = [streetField, cityField, stateField, postalField];
-                addressFields.forEach(field => {
-                    if (field) {
-                        field.classList.add('country-updated');
-                        setTimeout(() => field.classList.remove('country-updated'), 300);
-                    }
-                });
-
-                console.log(`📍 Address format updated for country: ${countryCode}`);
             }
         }
 

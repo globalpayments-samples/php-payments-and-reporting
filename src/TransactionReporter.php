@@ -74,7 +74,7 @@ class TransactionReporter
             // Default to last 3 days to balance freshness with finding transactions
             $startDate = new \DateTime('3 days ago');
             $endDate = new \DateTime('now');
-            
+
             // Format dates as strings - SDK has a bug with DateTime objects
             $startDateStr = $startDate->format('Y-m-d\TH:i:s.000\Z');
             $endDateStr = $endDate->format('Y-m-d\TH:i:s.999\Z');
@@ -92,14 +92,14 @@ class TransactionReporter
                         $transactions[] = $this->formatTransactionForDashboard($transaction);
                     }
                 }
-                
+
                 // Sort transactions by ID (newer IDs are typically higher numbers) - descending
-                usort($transactions, function($a, $b) {
+                usort($transactions, function ($a, $b) {
                     $idA = is_numeric($a['id']) ? (int)$a['id'] : 0;
                     $idB = is_numeric($b['id']) ? (int)$b['id'] : 0;
                     return $idB - $idA; // Descending order (newest first)
                 });
-                
+
                 // Apply user-specified limit with performance cap
                 $actualLimit = min($limit, 100); // Cap at 100 for performance
                 $totalResults = count($transactions);
@@ -159,7 +159,7 @@ class TransactionReporter
 
         try {
             $reportingService = new ReportingService();
-            
+
             // Format dates as strings - SDK has a bug with DateTime objects
             $startDateObj = new \DateTime($startDate);
             $endDateObj = new \DateTime($endDate);
@@ -179,14 +179,14 @@ class TransactionReporter
                         $transactions[] = $this->formatTransactionForDashboard($transaction);
                     }
                 }
-                
+
                 // Apply same sorting and limiting as getRecentTransactions
-                usort($transactions, function($a, $b) {
+                usort($transactions, function ($a, $b) {
                     $idA = is_numeric($a['id']) ? (int)$a['id'] : 0;
                     $idB = is_numeric($b['id']) ? (int)$b['id'] : 0;
                     return $idB - $idA; // Descending order (newest first)
                 });
-                
+
                 // Apply user-specified limit with performance cap
                 $actualLimit = min($limit, 100); // Cap at 100 for performance
                 $totalResults = count($transactions);
@@ -296,14 +296,14 @@ class TransactionReporter
     {
         // Use transaction ID if available, otherwise use reference number as fallback
         $displayId = $transaction->transactionId ?? $transaction->referenceNumber ?? null;
-        
+
         // Determine amount - for card verification, show as verification instead of $0
-        $amount = isset($transaction->amount) && $transaction->amount > 0 ? 
+        $amount = isset($transaction->amount) && $transaction->amount > 0 ?
                   $transaction->amount : 'VERIFY';
-        
+
         // Get the actual transaction timestamp from Global Payments API responseDate field
         $timestamp = null;
-        
+
         // Priority order for timestamp fields from Global Payments API
         if (isset($transaction->responseDate) && !empty($transaction->responseDate)) {
             // responseDate is in ISO format like "2025-07-23T12:12:55.52Z"
@@ -323,7 +323,7 @@ class TransactionReporter
                 error_log('Error parsing transactionLocalDate: ' . $e->getMessage());
             }
         }
-        
+
         return [
             'id' => $displayId,
             'amount' => $amount,
@@ -334,7 +334,7 @@ class TransactionReporter
             'card' => [
                 'type' => $transaction->cardType ?? null,
                 'last4' => $transaction->maskedCardNumber ?
-                    substr($transaction->maskedCardNumber, -4) : 
+                    substr($transaction->maskedCardNumber, -4) :
                     (isset($transaction->cardNumber) ? substr($transaction->cardNumber, -4) : null),
                 'exp_month' => $transaction->cardExpMonth ?? null,
                 'exp_year' => $transaction->cardExpYear ?? null
@@ -385,21 +385,22 @@ class TransactionReporter
                 if ($gatewayCode === '00') {
                     return 'approved';
                 }
-                
+
                 // For card verification transactions, check AVS/CVV results
-                if ($transaction->transactionType === 'VERIFY' || 
-                    (!$transaction->amount || $transaction->amount == 0)) {
-                    
+                if (
+                    $transaction->transactionType === 'VERIFY' ||
+                    (!$transaction->amount || $transaction->amount == 0)
+                ) {
                     // Check if verification was successful based on AVS/CVV
                     $avsCode = $transaction->avsResponseCode ?? null;
                     $cvvCode = $transaction->cvnResponseCode ?? null;
-                    
+
                     // If we have positive CVV match, consider it approved verification
                     if ($cvvCode === 'M' || $avsCode === '0') {
                         return 'approved';
                     }
                 }
-                
+
                 return $responseCode ? 'declined' : 'unknown';
         }
     }
@@ -415,11 +416,11 @@ class TransactionReporter
         // Global Payments sometimes returns data with missing transactionId but valid referenceNumber
         $hasValidId = (isset($transaction->transactionId) && !empty($transaction->transactionId)) ||
                      (isset($transaction->referenceNumber) && !empty($transaction->referenceNumber));
-        
+
         if (!$hasValidId) {
             return false;
         }
-        
+
         // Check for obvious mock data patterns first
         $identifier = $transaction->transactionId ?? $transaction->referenceNumber ?? '';
         $mockIndicators = ['MOCK', 'TEST', 'DEMO', 'SAMPLE', '0000000000', '1111111111'];
@@ -428,38 +429,38 @@ class TransactionReporter
                 return false;
             }
         }
-        
+
         // Enhanced authenticity checks for Global Payments API data
-        
+
         // Check for required Global Payments specific fields
         if (!isset($transaction->responseDate) || empty($transaction->responseDate)) {
             error_log('Suspicious transaction: Missing responseDate field - ' . ($transaction->transactionId ?? 'unknown'));
             return false;
         }
-        
+
         // Check for Global Payments specific service names (expanded list)
         $validServices = [
             'CreditSale', 'CreditAuth', 'CreditCapture', 'CreditVoid', 'CreditAccountVerify',
-            'CreditCPCEdit', 'CheckSale', 'CheckVoid', 'CheckQuery', 'RecurringBilling', 
+            'CreditCPCEdit', 'CheckSale', 'CheckVoid', 'CheckQuery', 'RecurringBilling',
             'RecurringBillingAuth', 'Tokenize', 'DebitSale', 'DebitReturn'
         ];
         if (!isset($transaction->serviceName) || !in_array($transaction->serviceName, $validServices)) {
             error_log('Suspicious transaction: Invalid serviceName - ' . ($transaction->serviceName ?? 'unknown'));
             return false;
         }
-        
+
         // Check for Global Payments username pattern (should not be generic)
         if (!isset($transaction->username) || empty($transaction->username)) {
             error_log('Suspicious transaction: Missing username field');
             return false;
         }
-        
+
         // Verify responseDate format matches Global Payments ISO format
         if (!preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$/', $transaction->responseDate)) {
             error_log('Suspicious transaction: Invalid responseDate format - ' . $transaction->responseDate);
             return false;
         }
-        
+
         // Check for realistic transaction ID pattern (Global Payments uses numeric or alphanumeric IDs)
         if (isset($transaction->transactionId) && !empty($transaction->transactionId)) {
             // Allow numeric or reasonable alphanumeric transaction IDs
@@ -468,7 +469,7 @@ class TransactionReporter
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -489,9 +490,9 @@ class TransactionReporter
             $exception->getFile(),
             $exception->getLine()
         );
-        
+
         error_log($logMessage, 3, __DIR__ . '/../logs/transaction-errors.log');
-        
+
         // Also log to system error log as fallback
         error_log('TransactionReporter Error: ' . $logMessage);
     }
@@ -513,7 +514,7 @@ class TransactionReporter
         // Store in daily transaction log
         $logFile = $logDir . '/transactions-' . date('Y-m-d') . '.json';
         $transactions = [];
-        
+
         if (file_exists($logFile)) {
             $content = file_get_contents($logFile);
             $transactions = json_decode($content, true) ?: [];
@@ -554,7 +555,7 @@ class TransactionReporter
         ], $transactionData);
 
         $transactions[] = $transactionData;
-        
+
         // Keep only the most recent transactions (last 1000 per day)
         if (count($transactions) > 1000) {
             $transactions = array_slice($transactions, -1000);
@@ -565,14 +566,14 @@ class TransactionReporter
         // Also maintain a master transaction log
         $masterLogFile = $logDir . '/all-transactions.json';
         $allTransactions = [];
-        
+
         if (file_exists($masterLogFile)) {
             $content = file_get_contents($masterLogFile);
             $allTransactions = json_decode($content, true) ?: [];
         }
 
         $allTransactions[] = $transactionData;
-        
+
         // Keep only the most recent 5000 transactions in master log
         if (count($allTransactions) > 5000) {
             $allTransactions = array_slice($allTransactions, -5000);
@@ -585,7 +586,7 @@ class TransactionReporter
      * Get local transaction data for dashboard
      *
      * @param string|null $startDate Start date filter
-     * @param string|null $endDate End date filter  
+     * @param string|null $endDate End date filter
      * @param int $limit Maximum number of transactions to return
      * @return array Local transaction data
      */
@@ -593,7 +594,7 @@ class TransactionReporter
     {
         $logDir = __DIR__ . '/../logs';
         $masterLogFile = $logDir . '/all-transactions.json';
-        
+
         if (!file_exists($masterLogFile)) {
             return [];
         }
@@ -603,26 +604,28 @@ class TransactionReporter
 
         // Apply date filters if provided
         if ($startDate || $endDate) {
-            $transactions = array_filter($transactions, function($transaction) use ($startDate, $endDate) {
+            $transactions = array_filter($transactions, function ($transaction) use ($startDate, $endDate) {
                 $transactionDate = $transaction['timestamp'] ?? '';
-                if (!$transactionDate) return false;
+                if (!$transactionDate) {
+                    return false;
+                }
 
                 $txnTime = strtotime($transactionDate);
-                
+
                 if ($startDate && $txnTime < strtotime($startDate)) {
                     return false;
                 }
-                
+
                 if ($endDate && $txnTime > strtotime($endDate . ' 23:59:59')) {
                     return false;
                 }
-                
+
                 return true;
             });
         }
 
         // Sort by timestamp descending (newest first)
-        usort($transactions, function($a, $b) {
+        usort($transactions, function ($a, $b) {
             $timeA = strtotime($a['timestamp'] ?? '');
             $timeB = strtotime($b['timestamp'] ?? '');
             return $timeB - $timeA;
