@@ -110,8 +110,9 @@ final class HeartlandPaymentProcessor
     {
         $errors = [];
 
-        // Validate token
-        if (empty($data['token_value'])) {
+        // Validate token - accept both payment_token and token_value for compatibility
+        $tokenValue = $data['token_value'] ?? $data['payment_token'] ?? null;
+        if (empty($tokenValue)) {
             $errors[] = 'Payment token is required';
         }
 
@@ -144,7 +145,7 @@ final class HeartlandPaymentProcessor
 
         $amount = (float)$data['amount'];
         $currency = $data['currency'] ?? 'USD';
-        $tokenValue = $data['token_value'];
+        $tokenValue = $data['token_value'] ?? $data['payment_token'];
 
         // Create card data from token
         $card = new CreditCardData();
@@ -175,9 +176,14 @@ final class HeartlandPaymentProcessor
             // Add customer information if provided
             if (!empty($data['customer'])) {
                 $customer = $data['customer'];
-                $response = $response
-                    ->withCustomerId($customer['id'] ?? 'CUST_' . uniqid())
-                    ->withDescription("Payment for {$customer['first_name']} {$customer['last_name']}");
+                $customerId = $customer['customer_id'] ?? $customer['id'] ?? 'CUST_' . uniqid();
+                $description = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? ''));
+                
+                if (!empty($description)) {
+                    $response = $response
+                        ->withCustomerId($customerId)
+                        ->withDescription("Payment for $description");
+                }
             }
 
             $result = $response->execute();
