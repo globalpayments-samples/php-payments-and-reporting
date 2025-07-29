@@ -238,7 +238,7 @@
                 if (type === 'payment') {
                     return '<span class="type-badge type-payment">💳 Payment</span>';
                 } else if (type === 'verification') {
-                    return '<span class="type-badge type-verification">🔐 Auth</span>';
+                    return '<span class="type-badge type-verification">🔐 Verify</span>';
                 } else {
                     return '<span class="type-badge type-unknown">❓ Unknown</span>';
                 }
@@ -307,12 +307,15 @@
                             </div>
                         </td>
                         <td>
-                            <small>
-                                ${transaction.response.code || 'N/A'}<br>
-                                <span style="color: var(--gp-gray); font-size: 0.8em;">
-                                    ${(transaction.response.message || 'N/A').substring(0, 30)}${(transaction.response.message || '').length > 30 ? '...' : ''}
+                            <div class="response-info">
+                                <strong style="font-family: monospace; color: var(--gp-blue);">
+                                    ${transaction.response.code || 'N/A'}
+                                </strong>
+                                <br>
+                                <span style="color: var(--gp-gray); font-size: 0.85em;">
+                                    ${(transaction.response.message || 'N/A').substring(0, 35)}${(transaction.response.message || '').length > 35 ? '...' : ''}
                                 </span>
-                            </small>
+                            </div>
                         </td>
                         <td>
                             <button class="btn btn-secondary" onclick="dashboard.viewDetails('${transaction.id}')">
@@ -539,16 +542,22 @@
                                 </span>
                                 
                                 <strong>Amount:</strong>
-                                <span style="font-size: 1.1em; font-weight: 600;">${transaction.amount ? '$' + parseFloat(transaction.amount).toFixed(2) : 'N/A'}</span>
+                                <span style="font-size: 1.1em; font-weight: 600;">${transaction.amount === 'VERIFY' ? 'VERIFICATION' : (transaction.amount ? '$' + parseFloat(transaction.amount).toFixed(2) : 'N/A')}</span>
+                                
+                                <strong>Currency:</strong>
+                                <span>${transaction.currency || 'USD'}</span>
                                 
                                 <strong>Date & Time:</strong>
                                 <span>${transaction.timestamp ? this.formatExactTimestamp(transaction.timestamp) : 'N/A'}</span>
                                 
                                 <strong>Transaction Type:</strong>
-                                <span>${transaction.type || 'N/A'}</span>
+                                <span style="text-transform: capitalize; font-weight: 600;">${transaction.type || 'N/A'}</span>
                                 
                                 <strong>Reference Number:</strong>
                                 <span style="font-family: monospace;">${transaction.reference || 'N/A'}</span>
+                                
+                                <strong>Batch ID:</strong>
+                                <span style="font-family: monospace;">${transaction.batch_id || 'N/A'}</span>
                             </div>
                             
                             <div style="padding: 15px; background: var(--gp-light-gray); border-radius: 8px;">
@@ -569,13 +578,16 @@
                                 <h4 style="margin-bottom: 10px; color: var(--gp-black);">Response Details</h4>
                                 <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
                                     <strong>Response Code:</strong>
-                                    <span style="font-family: monospace;">${transaction.response.code || 'N/A'}</span>
+                                    <span style="font-family: monospace; background: var(--gp-white); padding: 2px 6px; border-radius: 4px;">${transaction.response.code || 'N/A'}</span>
                                     
                                     <strong>Response Message:</strong>
                                     <span>${transaction.response.message || 'N/A'}</span>
                                     
-                                    <strong>Gateway Response:</strong>
-                                    <span style="font-family: monospace;">${transaction.gateway_response_code || 'N/A'}</span>
+                                    <strong>Gateway Response Code:</strong>
+                                    <span style="font-family: monospace; background: var(--gp-white); padding: 2px 6px; border-radius: 4px;">${transaction.gateway_response_code || 'N/A'}</span>
+                                    
+                                    <strong>Gateway Response Message:</strong>
+                                    <span>${transaction.gateway_response_message || 'N/A'}</span>
                                 </div>
                             </div>
                             
@@ -780,14 +792,18 @@
                 const headers = [
                     'Transaction ID',
                     'Date & Time', 
+                    'Transaction Type',
                     'Status',
                     'Amount (USD)',
+                    'Currency',
                     'Card Type',
                     'Card Last 4 Digits',
                     'Response Code',
                     'Response Message',
                     'Reference Number',
                     'Gateway Response Code',
+                    'Gateway Response Message',
+                    'Batch ID',
                     'CVV Code',
                     'AVS Code'
                 ];
@@ -825,14 +841,18 @@
                     return [
                         t.id || 'N/A',
                         formattedDate || 'N/A',
+                        (t.type || 'verification').toUpperCase(),
                         (t.status || 'Unknown').toUpperCase(),
                         amount,
+                        t.currency || 'USD',
                         t.card.type || 'N/A',
                         t.card.last4 ? '****' + t.card.last4 : 'N/A',
                         t.response.code || 'N/A',
                         t.response.message || 'N/A',
                         t.reference || 'N/A',
                         t.gateway_response_code || 'N/A',
+                        t.gateway_response_message || 'N/A',
+                        t.batch_id || 'N/A',
                         t.cvv.code || 'N/A',
                         t.avs.code || 'N/A'
                     ].map(field => {

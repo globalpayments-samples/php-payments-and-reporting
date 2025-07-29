@@ -75,7 +75,7 @@ class TransactionReporter
             $startDate = new \DateTime('3 days ago');
             $endDate = new \DateTime('now');
 
-            // Format dates as strings - SDK has a bug with DateTime objects
+            // Format dates as strings - SDK has internal issues with DateTime objects
             $startDateStr = $startDate->format('Y-m-d\TH:i:s.000\Z');
             $endDateStr = $endDate->format('Y-m-d\TH:i:s.999\Z');
 
@@ -160,7 +160,7 @@ class TransactionReporter
         try {
             $reportingService = new ReportingService();
 
-            // Format dates as strings - SDK has a bug with DateTime objects
+            // Format dates as strings - SDK has internal issues with DateTime objects
             $startDateObj = new \DateTime($startDate);
             $endDateObj = new \DateTime($endDate);
             $startDateStr = $startDateObj->format('Y-m-d\TH:i:s.000\Z');
@@ -309,12 +309,21 @@ class TransactionReporter
             // responseDate is in ISO format like "2025-07-23T12:12:55.52Z"
             try {
                 $dateTime = new \DateTime($transaction->responseDate);
+                // Preserve exact timestamp with seconds precision for accuracy
                 $timestamp = $dateTime->format('Y-m-d H:i:s');
             } catch (\Exception $e) {
                 error_log('Error parsing responseDate: ' . $e->getMessage());
             }
-        } elseif ($transaction->transactionDate && $transaction->transactionDate instanceof \DateTime) {
+        } elseif (isset($transaction->transactionDate) && $transaction->transactionDate instanceof \DateTime) {
             $timestamp = $transaction->transactionDate->format('Y-m-d H:i:s');
+        } elseif (isset($transaction->transactionDate) && !empty($transaction->transactionDate)) {
+            // Handle case where transactionDate is a string
+            try {
+                $dateTime = new \DateTime($transaction->transactionDate);
+                $timestamp = $dateTime->format('Y-m-d H:i:s');
+            } catch (\Exception $e) {
+                error_log('Error parsing transactionDate string: ' . $e->getMessage());
+            }
         } elseif (isset($transaction->transactionLocalDate) && !empty($transaction->transactionLocalDate)) {
             try {
                 $dateTime = new \DateTime($transaction->transactionLocalDate);
@@ -329,7 +338,7 @@ class TransactionReporter
             'amount' => $amount,
             'currency' => $transaction->currency ?? 'USD',
             'status' => $this->getTransactionStatus($transaction),
-            'type' => $transaction->transactionType ?? 'VERIFY',
+            'type' => $this->getTransactionType($transaction, $amount),
             'timestamp' => $timestamp,
             'card' => [
                 'type' => $transaction->cardType ?? null,
@@ -340,8 +349,8 @@ class TransactionReporter
                 'exp_year' => $transaction->cardExpYear ?? null
             ],
             'response' => [
-                'code' => $transaction->responseCode ?? null,
-                'message' => $transaction->responseMessage ?? null
+                'code' => $this->getResponseCode($transaction),
+                'message' => $this->getResponseMessage($transaction)
             ],
             'avs' => [
                 'code' => $transaction->avsResponseCode ?? null,
@@ -358,6 +367,78 @@ class TransactionReporter
         ];
     }
 
+
+    /**
+     * Determine transaction type based on API data and amount
+     *
+     * @param object $transaction Transaction data
+     * @param mixed $amount Transaction amount
+     * @return string Transaction type
+     */
+    private function getTransactionType($transaction, $amount): string
+    {
+        // Check if it's a verification transaction (amount is 0 or VERIFY)
+        if ($amount === 'VERIFY' || ($amount === 0 || $amount === '0' || $amount === '0.00')) {
+            return 'verification';
+        }
+
+        // Check Global Payments service names to determine type
+        $serviceName = $transaction->serviceName ?? '';
+
+        // Map Global Payments service names to our transaction types
+        switch ($serviceName) {
+            case 'CreditSale':
+            case 'CreditAuth':
+            case 'CreditCapture':
+                return 'payment';
+            case 'CreditAccountVerify':
+            case 'Tokenize':
+                return 'verification';
+            case 'CreditVoid':
+                return 'void';
+            case 'CreditReturn':
+            case 'DebitReturn':
+                return 'refund';
+            case 'DebitSale':
+                return 'payment';
+            default:
+                // Fallback: if amount > 0, it's likely a payment
+                if (is_numeric($amount) && (float)$amount > 0) {
+                    return 'payment';
+                }
+                return 'verification';
+        }
+    }
+
+    /**
+     * Get response code with fallbacks
+     *
+     * @param object $transaction Transaction data
+     * @return string|null Response code
+     */
+    private function getResponseCode($transaction): ?string
+    {
+        // Try multiple possible response code fields
+        return $transaction->responseCode ?? 
+               $transaction->gatewayResponseCode ?? 
+               $transaction->authCode ?? 
+               ($transaction->transactionStatus === 'A' ? '00' : null);
+    }
+
+    /**
+     * Get response message with fallbacks
+     *
+     * @param object $transaction Transaction data
+     * @return string|null Response message
+     */
+    private function getResponseMessage($transaction): ?string
+    {
+        // Try multiple possible response message fields
+        return $transaction->responseMessage ?? 
+               $transaction->gatewayResponseMessage ?? 
+               ($transaction->transactionStatus === 'A' ? 'Approved' : 
+                ($transaction->transactionStatus === 'D' ? 'Declined' : null));
+    }
 
     /**
      * Determine transaction status from response data
@@ -388,8 +469,8 @@ class TransactionReporter
 
                 // For card verification transactions, check AVS/CVV results
                 if (
-                    $transaction->transactionType === 'VERIFY' ||
-                    (!$transaction->amount || $transaction->amount == 0)
+                    (isset($transaction->transactionType) && $transaction->transactionType === 'VERIFY') ||
+                    (!isset($transaction->amount) || !$transaction->amount || $transaction->amount == 0)
                 ) {
                     // Check if verification was successful based on AVS/CVV
                     $avsCode = $transaction->avsResponseCode ?? null;
@@ -434,7 +515,10 @@ class TransactionReporter
 
         // Check for required Global Payments specific fields
         if (!isset($transaction->responseDate) || empty($transaction->responseDate)) {
-            error_log('Suspicious transaction: Missing responseDate field - ' . ($transaction->transactionId ?? 'unknown'));
+            error_log(
+                'Suspicious transaction: Missing responseDate field - ' .
+                ($transaction->transactionId ?? 'unknown')
+            );
             return false;
         }
 
