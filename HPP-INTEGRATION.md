@@ -67,29 +67,6 @@ POST /hpp-webhook.php
 - **Unified Transaction List**: Merged display of all transaction types
 - **Enhanced Details Modal**: Payment-specific information display
 
-## Testing with Global Payments Test Cards
-
-### Successful Transaction Test Cards
-```
-Visa: 4263970000005262
-Mastercard: 5425230000004415  
-American Express: 374101000000608
-Discover: 6011000000000087
-```
-
-### Declined Transaction Test Cards
-```
-Declined by Bank: 4000120000001154 (Visa)
-Referral Required: 4000130000001724 (Visa)
-Lost/Stolen Card: 4000160000004147 (Visa)
-```
-
-### Test Scenarios
-1. **Successful Payment**: Use approved test cards with any CVV and future expiry
-2. **Declined Payment**: Use declined test cards to test error handling
-3. **Cancelled Payment**: Click cancel on HPP to test cancellation flow
-4. **Webhook Testing**: Verify real-time transaction updates
-
 ## Configuration
 
 ### Environment Variables
