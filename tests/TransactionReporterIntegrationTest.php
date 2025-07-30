@@ -39,10 +39,10 @@ class TransactionReporterIntegrationTest extends TestCase
 
     public function testRecordAndRetrieveLocalTransactions(): void
     {
-        // Record multiple test transactions
+        // Record multiple test transactions with numeric IDs (like real Portico transactions)
         $transactions = [
             [
-                'id' => 'INTEGRATION_001',
+                'id' => '1001',
                 'amount' => '10.00',
                 'currency' => 'USD',
                 'status' => 'approved',
@@ -62,7 +62,7 @@ class TransactionReporterIntegrationTest extends TestCase
                 'gateway_response_code' => '00'
             ],
             [
-                'id' => 'INTEGRATION_002',
+                'id' => '1002',
                 'amount' => 'VERIFY',
                 'currency' => 'USD',
                 'status' => 'approved',
@@ -81,7 +81,7 @@ class TransactionReporterIntegrationTest extends TestCase
                 'reference' => 'REF002'
             ],
             [
-                'id' => 'INTEGRATION_003',
+                'id' => '1003',
                 'amount' => '25.50',
                 'currency' => 'USD',
                 'status' => 'declined',
@@ -115,7 +115,7 @@ class TransactionReporterIntegrationTest extends TestCase
         // Verify transactions were stored correctly
         $foundTransactions = [];
         foreach ($retrieved as $transaction) {
-            if (strpos($transaction['id'], 'INTEGRATION_') === 0) {
+            if (in_array($transaction['id'], ['1001', '1002', '1003'])) {
                 $foundTransactions[$transaction['id']] = $transaction;
             }
         }
@@ -123,7 +123,7 @@ class TransactionReporterIntegrationTest extends TestCase
         $this->assertCount(3, $foundTransactions);
 
         // Verify payment transaction
-        $payment = $foundTransactions['INTEGRATION_001'];
+        $payment = $foundTransactions['1001'];
         $this->assertEquals('10.00', $payment['amount']);
         $this->assertEquals('approved', $payment['status']);
         $this->assertEquals('payment', $payment['type']);
@@ -132,13 +132,13 @@ class TransactionReporterIntegrationTest extends TestCase
         $this->assertEquals('00', $payment['response']['code']);
 
         // Verify verification transaction
-        $verification = $foundTransactions['INTEGRATION_002'];
+        $verification = $foundTransactions['1002'];
         $this->assertEquals('VERIFY', $verification['amount']);
         $this->assertEquals('verification', $verification['type']);
         $this->assertEquals('MASTERCARD', $verification['card']['type']);
 
         // Verify declined transaction
-        $declined = $foundTransactions['INTEGRATION_003'];
+        $declined = $foundTransactions['1003'];
         $this->assertEquals('25.50', $declined['amount']);
         $this->assertEquals('declined', $declined['status']);
         $this->assertEquals('96', $declined['response']['code']);
@@ -146,10 +146,10 @@ class TransactionReporterIntegrationTest extends TestCase
 
     public function testDateRangeFiltering(): void
     {
-        // Record transactions on different dates
+        // Record transactions on different dates with numeric IDs
         $transactions = [
             [
-                'id' => 'DATE_001',
+                'id' => '2001',
                 'amount' => '15.00',
                 'status' => 'approved',
                 'type' => 'payment',
@@ -158,7 +158,7 @@ class TransactionReporterIntegrationTest extends TestCase
                 'response' => ['code' => '00', 'message' => 'Approved']
             ],
             [
-                'id' => 'DATE_002',
+                'id' => '2002',
                 'amount' => '20.00',
                 'status' => 'approved',
                 'type' => 'payment',
@@ -167,7 +167,7 @@ class TransactionReporterIntegrationTest extends TestCase
                 'response' => ['code' => '00', 'message' => 'Approved']
             ],
             [
-                'id' => 'DATE_003',
+                'id' => '2003',
                 'amount' => '30.00',
                 'status' => 'approved',
                 'type' => 'payment',
@@ -185,17 +185,17 @@ class TransactionReporterIntegrationTest extends TestCase
         $todayTransactions = $this->reporter->getLocalTransactions('2025-07-29', '2025-07-29');
         $todayIds = array_column($todayTransactions, 'id');
         
-        $this->assertContains('DATE_002', $todayIds);
-        $this->assertNotContains('DATE_001', $todayIds);
-        $this->assertNotContains('DATE_003', $todayIds);
+        $this->assertContains('2002', $todayIds);
+        $this->assertNotContains('2001', $todayIds);
+        $this->assertNotContains('2003', $todayIds);
 
         // Test filtering for yesterday to today
         $rangeTransactions = $this->reporter->getLocalTransactions('2025-07-28', '2025-07-29');
         $rangeIds = array_column($rangeTransactions, 'id');
         
-        $this->assertContains('DATE_001', $rangeIds);
-        $this->assertContains('DATE_002', $rangeIds);
-        $this->assertNotContains('DATE_003', $rangeIds);
+        $this->assertContains('2001', $rangeIds);
+        $this->assertContains('2002', $rangeIds);
+        $this->assertNotContains('2003', $rangeIds);
 
         // Test filtering for future dates (should be empty)
         $futureTransactions = $this->reporter->getLocalTransactions('2025-08-01', '2025-08-02');
@@ -208,10 +208,10 @@ class TransactionReporterIntegrationTest extends TestCase
 
     public function testTransactionLimitHandling(): void
     {
-        // Record many transactions
+        // Record many transactions with numeric IDs
         for ($i = 1; $i <= 15; $i++) {
             $transaction = [
-                'id' => sprintf('LIMIT_TEST_%03d', $i),
+                'id' => sprintf('%d', 3000 + $i), // Numeric IDs like 3001, 3002, etc.
                 'amount' => sprintf('%.2f', $i * 5.00),
                 'status' => 'approved',
                 'type' => 'payment',
@@ -229,7 +229,7 @@ class TransactionReporterIntegrationTest extends TestCase
         $this->assertLessThanOrEqual(5, count($limitedTransactions));
         
         $limitTestTransactions = array_filter($limitedTransactions, function($tx) {
-            return strpos($tx['id'], 'LIMIT_TEST_') === 0;
+            return in_array($tx['id'], array_map(function($i) { return sprintf('%d', 3000 + $i); }, range(1, 15)));
         });
         
         // We should have some of our test transactions (but not necessarily all 5 due to other transactions)
@@ -239,7 +239,7 @@ class TransactionReporterIntegrationTest extends TestCase
         $allTestTransactions = array_filter(
             $this->reporter->getLocalTransactions(null, null, 100),
             function($tx) {
-                return strpos($tx['id'], 'LIMIT_TEST_') === 0;
+                return in_array($tx['id'], array_map(function($i) { return sprintf('%d', 3000 + $i); }, range(1, 15)));
             }
         );
 
@@ -257,7 +257,7 @@ class TransactionReporterIntegrationTest extends TestCase
     public function testTransactionDataIntegrity(): void
     {
         $originalTransaction = [
-            'id' => 'INTEGRITY_TEST',
+            'id' => '4001',
             'amount' => '99.99',
             'currency' => 'EUR',
             'status' => 'approved',
@@ -293,7 +293,7 @@ class TransactionReporterIntegrationTest extends TestCase
         $found = null;
 
         foreach ($retrieved as $transaction) {
-            if ($transaction['id'] === 'INTEGRITY_TEST') {
+            if ($transaction['id'] === '4001') {
                 $found = $transaction;
                 break;
             }
@@ -322,9 +322,9 @@ class TransactionReporterIntegrationTest extends TestCase
 
     public function testDefaultValueHandling(): void
     {
-        // Test recording transaction with minimal data
+        // Test recording transaction with minimal data with numeric ID
         $minimalTransaction = [
-            'id' => 'MINIMAL_TEST'
+            'id' => '5001'
         ];
 
         $this->reporter->recordTransaction($minimalTransaction);
@@ -333,7 +333,7 @@ class TransactionReporterIntegrationTest extends TestCase
         $found = null;
 
         foreach ($retrieved as $transaction) {
-            if ($transaction['id'] === 'MINIMAL_TEST') {
+            if ($transaction['id'] === '5001') {
                 $found = $transaction;
                 break;
             }
@@ -342,7 +342,7 @@ class TransactionReporterIntegrationTest extends TestCase
         $this->assertNotNull($found, 'Minimal transaction not found');
 
         // Verify default values are applied
-        $this->assertEquals('MINIMAL_TEST', $found['id']);
+        $this->assertEquals('5001', $found['id']);
         $this->assertEquals('', $found['reference']);
         $this->assertEquals('unknown', $found['status']);
         $this->assertEquals('0.00', $found['amount']);

@@ -364,9 +364,9 @@ class TransactionReporterTest extends TestCase
 
     public function testGetLocalTransactions(): void
     {
-        // First record a test transaction
+        // First record a test transaction with numeric ID (like real Portico transactions)
         $testTransaction = [
-            'id' => 'LOCAL_TEST_001',
+            'id' => '987654321',
             'amount' => '25.00',
             'status' => 'approved',
             'type' => 'payment',
@@ -387,7 +387,7 @@ class TransactionReporterTest extends TestCase
         // Find our test transaction
         $found = false;
         foreach ($transactions as $transaction) {
-            if ($transaction['id'] === 'LOCAL_TEST_001') {
+            if ($transaction['id'] === '987654321') {
                 $found = true;
                 $this->assertEquals('25.00', $transaction['amount']);
                 $this->assertEquals('approved', $transaction['status']);
@@ -399,10 +399,10 @@ class TransactionReporterTest extends TestCase
 
     public function testGetLocalTransactionsWithDateFilter(): void
     {
-        // Use a specific date that we know exists
+        // Use a specific date that we know exists with numeric ID (like real Portico transactions)
         $testDate = '2025-07-29';
         $testTransaction = [
-            'id' => 'DATE_TEST_001',
+            'id' => '123456789',
             'amount' => '30.00',
             'status' => 'approved',
             'timestamp' => $testDate . 'T10:00:00Z',
@@ -422,7 +422,7 @@ class TransactionReporterTest extends TestCase
         $transactionIds = [];
         foreach ($transactions as $transaction) {
             $transactionIds[] = $transaction['id'];
-            if ($transaction['id'] === 'DATE_TEST_001') {
+            if ($transaction['id'] === '123456789') {
                 $found = true;
                 break;
             }
