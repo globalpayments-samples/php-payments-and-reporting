@@ -686,6 +686,27 @@ class TransactionReporter
         $content = file_get_contents($masterLogFile);
         $transactions = json_decode($content, true) ?: [];
 
+        // Filter out test/mock transactions - only show genuine Portico API transactions
+        $transactions = array_filter($transactions, function ($transaction) {
+            $transactionId = $transaction['id'] ?? '';
+            
+            // Portico only accepts numeric transaction IDs
+            // Filter out alphanumeric test IDs like LIMIT_TEST_*, INTEGRATION_*, etc.
+            if (!is_numeric($transactionId)) {
+                return false;
+            }
+            
+            // Additional validation for genuine transactions
+            $mockIndicators = ['MOCK', 'TEST', 'DEMO', 'SAMPLE', 'INTEGRATION', 'LIMIT'];
+            foreach ($mockIndicators as $indicator) {
+                if (stripos($transactionId, $indicator) !== false) {
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+
         // Apply date filters if provided
         if ($startDate || $endDate) {
             $transactions = array_filter($transactions, function ($transaction) use ($startDate, $endDate) {
