@@ -3,7 +3,7 @@
 # Environment and secrets
 .env
 .env.*
-!.env.sample
+!.env.example
 
 # Dependencies
 /vendor/

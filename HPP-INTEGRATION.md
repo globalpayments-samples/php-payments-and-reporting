@@ -1,5 +1,11 @@
 # Global Payments Hosted Payment Page (HPP) Integration
 
+> **⚠️ ARCHIVED DOCUMENTATION**
+> 
+> This document describes the legacy HPP integration that has been replaced with direct GlobalPayments SDK integration. This documentation is maintained for historical reference only.
+> 
+> **Current Implementation**: The system now uses direct SDK integration instead of HPP. See the main [README.md](README.md) for current documentation.
+
 ## Overview
 
 This integration adds real transaction processing capability to the existing card verification system using Global Payments Hosted Payment Page (HPP). The system now supports both card authentication/verification (without charges) and real payment processing.
