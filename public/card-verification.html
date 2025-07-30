@@ -218,7 +218,7 @@
             }
 
             async loadConfiguration() {
-                const response = await fetch('/config.php');
+                const response = await fetch('/api/config.php');
                 if (!response.ok) {
                     throw new Error(`Configuration failed: ${response.status}`);
                 }
@@ -277,7 +277,7 @@
 
                     console.log('Processing verification...', verificationData);
 
-                    const response = await fetch('/verify-card.php', {
+                    const response = await fetch('/api/verify-card.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'

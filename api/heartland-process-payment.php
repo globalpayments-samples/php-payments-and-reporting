@@ -17,8 +17,8 @@ declare(strict_types=1);
 
 namespace GlobalPayments\Examples;
 
-require_once __DIR__ . '/vendor/autoload.php';
-require_once __DIR__ . '/src/Logger.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../src/Logger.php';
 
 use Dotenv\Dotenv;
 use GlobalPayments\Api\Entities\Exceptions\ApiException;
@@ -82,7 +82,7 @@ final class HeartlandPaymentProcessor
         }
 
         try {
-            $dotenv = Dotenv::createImmutable(__DIR__);
+            $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
             $dotenv->load();
 
             $secretApiKey = $_ENV['SECRET_API_KEY'] ?? throw new ApiException('SECRET_API_KEY not configured');

@@ -18,7 +18,7 @@ declare(strict_types=1);
  * @link      https://github.com/globalpayments
  */
 
-require_once 'vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
@@ -50,7 +50,7 @@ try {
     }
 
     // Load environment variables from .env file
-    $dotenv = Dotenv::createImmutable(__DIR__);
+    $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->load();
 
     // Validate required environment variables

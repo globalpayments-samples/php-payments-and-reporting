@@ -21,7 +21,7 @@ declare(strict_types=1);
  * @license   MIT License
  */
 
-require_once 'vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use GlobalPayments\Examples\TransactionReporter;
 
@@ -118,86 +118,52 @@ function handleRequest(TransactionReporter $reporter, array $params): array
             return $reporter->getTransactionDetails($params['transaction_id']);
         }
         
-        // Handle date range query - merge API and local data
+        // Handle date range query - only show legitimate Global Payments API transactions
         if (isset($params['start_date']) && isset($params['end_date'])) {
             $apiResult = $reporter->getTransactionsByDateRange(
                 $params['start_date'],
                 $params['end_date'],
                 $params['limit']
             );
-            $localTransactions = $reporter->getLocalTransactions(
-                $params['start_date'],
-                $params['end_date'],
-                $params['limit']
-            );
 
-            // Merge and sort transactions
-            $allTransactions = [];
-            
+            $transactions = [];
             if ($apiResult['success'] && isset($apiResult['data']['transactions'])) {
-                $allTransactions = array_merge($allTransactions, $apiResult['data']['transactions']);
-            }
-            
-            $allTransactions = array_merge($allTransactions, $localTransactions);
-
-            // Sort by timestamp descending (newest first)
-            usort($allTransactions, function($a, $b) {
-                $timeA = strtotime($a['timestamp'] ?? '');
-                $timeB = strtotime($b['timestamp'] ?? '');
-                return $timeB - $timeA;
-            });
-
-            // Apply limit to merged results
-            if (count($allTransactions) > $params['limit']) {
-                $allTransactions = array_slice($allTransactions, 0, $params['limit']);
+                $transactions = $apiResult['data']['transactions'];
             }
 
             return [
                 'success' => true,
                 'data' => [
-                    'transactions' => $allTransactions,
-                    'total_count' => count($allTransactions),
-                    'api_transactions' => $apiResult['success'] ? count($apiResult['data']['transactions'] ?? []) : 0,
-                    'local_transactions' => count($localTransactions)
+                    'transactions' => $transactions,
+                    'total_count' => count($transactions),
+                    'date_range' => [
+                        'start_date' => $params['start_date'],
+                        'end_date' => $params['end_date']
+                    ],
+                    'source' => 'global_payments_api_only',
+                    'note' => 'Showing only legitimate transactions processed through Global Payments API'
                 ],
-                'message' => 'Transactions retrieved successfully'
+                'message' => 'Legitimate transactions retrieved successfully from Global Payments API'
             ];
         }
         
-        // Handle recent transactions (default) - merge API and local data
+        // Handle recent transactions (default) - only show legitimate Global Payments API transactions
         $apiResult = $reporter->getRecentTransactions($params['limit'], $params['page']);
-        $localTransactions = $reporter->getLocalTransactions(null, null, $params['limit']);
 
-        // Merge and sort transactions
-        $allTransactions = [];
-        
+        $transactions = [];
         if ($apiResult['success'] && isset($apiResult['data']['transactions'])) {
-            $allTransactions = array_merge($allTransactions, $apiResult['data']['transactions']);
-        }
-        
-        $allTransactions = array_merge($allTransactions, $localTransactions);
-
-        // Sort by timestamp descending (newest first)
-        usort($allTransactions, function($a, $b) {
-            $timeA = strtotime($a['timestamp'] ?? '');
-            $timeB = strtotime($b['timestamp'] ?? '');
-            return $timeB - $timeA;
-        });
-
-        // Apply limit to merged results
-        if (count($allTransactions) > $params['limit']) {
-            $allTransactions = array_slice($allTransactions, 0, $params['limit']);
+            $transactions = $apiResult['data']['transactions'];
         }
 
         return [
             'success' => true,
             'data' => [
-                'transactions' => $allTransactions,
-                'total_count' => count($allTransactions),
-                'api_transactions' => $apiResult['success'] ? count($apiResult['data']['transactions'] ?? []) : 0,
-                'local_transactions' => count($localTransactions)
+                'transactions' => $transactions,
+                'total_count' => count($transactions),
+                'source' => 'global_payments_api_only',
+                'note' => 'Showing only legitimate transactions processed through Global Payments API'
             ],
-            'message' => 'Transactions retrieved successfully'
+            'message' => 'Legitimate transactions retrieved successfully from Global Payments API'
         ];
         
     } catch (Exception $e) {

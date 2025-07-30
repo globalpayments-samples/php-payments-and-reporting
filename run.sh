@@ -171,11 +171,11 @@ start_server() {
         # In development mode, we could add file watchers here
     fi
     
-    # Start PHP built-in server
+    # Start PHP built-in server with router
     if [ "$SHOW_LOGS" = true ]; then
-        php -S "${HOST}:${PORT}" -t . 2>&1 | tee logs/server.log
+        php -S "${HOST}:${PORT}" -t . router.php 2>&1 | tee logs/server.log
     else
-        php -S "${HOST}:${PORT}" -t .
+        php -S "${HOST}:${PORT}" -t . router.php
     fi
 }
 

@@ -72,13 +72,13 @@ USER app
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost:${PORT:-8000}/config.php || exit 1
+    CMD wget --quiet --tries=1 --spider http://localhost:${PORT:-8000}/api/config.php || exit 1
 
 # Expose port
 EXPOSE 8000
 
 # Start command
-CMD ["php", "-S", "0.0.0.0:8000"]
+CMD ["php", "-S", "0.0.0.0:8000", "-t", ".", "router.php"]
 
 # Multi-stage build for production
 FROM php:8.3-cli as production
@@ -125,4 +125,4 @@ USER app
 
 EXPOSE 8000
 
-CMD ["php", "-S", "0.0.0.0:8000"]
+CMD ["php", "-S", "0.0.0.0:8000", "-t", ".", "router.php"]

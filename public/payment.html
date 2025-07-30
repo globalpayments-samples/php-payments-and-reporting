@@ -391,7 +391,7 @@
             }
 
             async loadConfiguration() {
-                const response = await fetch('/config.php');
+                const response = await fetch('/api/config.php');
                 if (!response.ok) {
                     throw new Error(`Configuration failed: ${response.status}`);
                 }
@@ -521,7 +521,7 @@
 
                     console.log('Processing payment...', paymentData);
 
-                    const response = await fetch('/process-payment.php', {
+                    const response = await fetch('/api/process-payment.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'

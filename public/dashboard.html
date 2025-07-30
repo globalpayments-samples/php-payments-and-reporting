@@ -146,7 +146,7 @@
                 try {
                     this.showLoading();
                     
-                    let url = 'transactions-api.php';
+                    let url = '/api/transactions-api.php';
                     const params = new URLSearchParams();
                     
                     const startDate = document.getElementById('start-date').value;
@@ -472,7 +472,7 @@
 
             async viewDetails(transactionId) {
                 try {
-                    const response = await fetch(`transactions-api.php?transaction_id=${transactionId}`);
+                    const response = await fetch(`/api/transactions-api.php?transaction_id=${transactionId}`);
                     const data = await response.json();
 
                     if (data.success) {
