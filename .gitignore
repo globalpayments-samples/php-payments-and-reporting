@@ -48,10 +48,12 @@ Desktop.ini
 
 # Test coverage and reports
 /coverage/
+/coverage-html/
 /build/
 /reports/
 clover.xml
 junit.xml
+test-results.xml
 
 # Docker related
 .docker/

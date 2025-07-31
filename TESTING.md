@@ -98,6 +98,15 @@ tests/
    ./vendor/bin/phpunit --verbose --testdox
    ```
 
+### Test Output Files
+
+The test configuration generates the following output files:
+
+- `test-results.xml` - JUnit format test results (automatically excluded from git)
+- `coverage-html/` - HTML coverage report (when running with coverage)
+
+**Note**: `test-results.xml` is automatically excluded from version control in `.gitignore`.
+
 ### Quality Assurance
 
 Run both linting and tests together:

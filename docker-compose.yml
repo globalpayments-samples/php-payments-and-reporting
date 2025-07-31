@@ -1,5 +1,5 @@
 # PHP Card Authentication - Docker Compose Configuration
-# This file provides a complete development environment with all necessary services
+# This file provides a development environment for the card authentication system
 
 version: '3.8'
 
@@ -19,18 +19,15 @@ services:
       - /app/vendor  # Anonymous volume for vendor to prevent overwrites
     environment:
       - APP_ENV=${APP_ENV:-development}
-      - PUBLIC_API_KEY=${PUBLIC_API_KEY}
       - SECRET_API_KEY=${SECRET_API_KEY}
       - DEVELOPER_ID=${DEVELOPER_ID:-000000}
       - VERSION_NUMBER=${VERSION_NUMBER:-0000}
       - SERVICE_URL=${SERVICE_URL:-https://cert.api2.heartlandportico.com}
-      - LOG_LEVEL=${LOG_LEVEL:-debug}
+      - ENABLE_REQUEST_LOGGING=${ENABLE_REQUEST_LOGGING:-false}
     env_file:
       - .env
     networks:
       - card-auth-network
-    depends_on:
-      - redis
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000/api/config.php"]
@@ -39,170 +36,63 @@ services:
       retries: 3
       start_period: 40s
 
-  # Redis for caching and rate limiting
-  redis:
-    image: redis:7-alpine
-    container_name: php-card-auth-redis
+  # Production service (optional)
+  app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: php-card-auth-app-prod
     ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis_data:/data
-      - ./docker/redis.conf:/etc/redis/redis.conf
-    command: redis-server /etc/redis/redis.conf
-    networks:
-      - card-auth-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Nginx web server (optional, for production-like setup)
-  nginx:
-    image: nginx:alpine
-    container_name: php-card-auth-nginx
-    ports:
-      - "${NGINX_PORT:-8080}:80"
-      - "${NGINX_SSL_PORT:-8443}:443"
-    volumes:
-      - .:/app
-      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
-      - ./docker/ssl:/etc/nginx/ssl
-    depends_on:
-      - app
+      - "${PROD_PORT:-8001}:8000"
+    environment:
+      - APP_ENV=production
+      - SECRET_API_KEY=${SECRET_API_KEY}
+      - DEVELOPER_ID=${DEVELOPER_ID:-000000}
+      - VERSION_NUMBER=${VERSION_NUMBER:-0000}
+      - SERVICE_URL=${SERVICE_URL:-https://cert.api2.heartlandportico.com}
+      - ENABLE_REQUEST_LOGGING=false
+    env_file:
+      - .env
     networks:
       - card-auth-network
     restart: unless-stopped
     profiles:
       - production
-
-  # Database (optional, for storing verification logs)
-  mysql:
-    image: mysql:8.0
-    container_name: php-card-auth-mysql
-    ports:
-      - "${MYSQL_PORT:-3306}:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-card_auth}
-      MYSQL_USER: ${MYSQL_USER:-card_auth_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-userpassword}
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./docker/mysql-init:/docker-entrypoint-initdb.d
-    networks:
-      - card-auth-network
-    restart: unless-stopped
-    profiles:
-      - database
+      - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000/api/config.php"]
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # PHPMyAdmin (optional, for database management)
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: php-card-auth-phpmyadmin
-    ports:
-      - "${PHPMYADMIN_PORT:-8081}:80"
-    environment:
-      PMA_HOST: mysql
-      PMA_USER: ${MYSQL_USER:-card_auth_user}
-      PMA_PASSWORD: ${MYSQL_PASSWORD:-userpassword}
-    depends_on:
-      - mysql
-    networks:
-      - card-auth-network
-    restart: unless-stopped
-    profiles:
-      - database
-
-  # Elasticsearch for advanced logging (optional)
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: php-card-auth-elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "${ELASTICSEARCH_PORT:-9200}:9200"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    networks:
-      - card-auth-network
-    restart: unless-stopped
-    profiles:
-      - logging
-
-  # Kibana for log visualization (optional)
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.0
-    container_name: php-card-auth-kibana
-    ports:
-      - "${KIBANA_PORT:-5601}:5601"
-    environment:
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
-    depends_on:
-      - elasticsearch
-    networks:
-      - card-auth-network
-    restart: unless-stopped
-    profiles:
-      - logging
+      start_period: 40s
 
   # Testing service
   tests:
     build:
       context: .
-      dockerfile: Dockerfile.test
+      dockerfile: Dockerfile
+      target: development
     container_name: php-card-auth-tests
     volumes:
       - .:/app
-      - ./test-results:/app/test-results
     environment:
-      - XDEBUG_MODE=coverage
+      - APP_ENV=testing
+      - SECRET_API_KEY=skapi_cert_test_key
+      - DEVELOPER_ID=000000
+      - VERSION_NUMBER=0000
+      - SERVICE_URL=https://cert.api2.heartlandportico.com
     networks:
       - card-auth-network
     profiles:
       - testing
-    command: ["./vendor/bin/phpunit", "--coverage-html", "test-results/coverage"]
-
-  # Load balancer (for scaling)
-  haproxy:
-    image: haproxy:alpine
-    container_name: php-card-auth-lb
-    ports:
-      - "${LOAD_BALANCER_PORT:-8082}:80"
-    volumes:
-      - ./docker/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
-    depends_on:
-      - app
-    networks:
-      - card-auth-network
-    restart: unless-stopped
-    profiles:
-      - scaling
-
-# Named volumes for data persistence
-volumes:
-  redis_data:
-    driver: local
-  mysql_data:
-    driver: local
-  elasticsearch_data:
-    driver: local
+    command: ["./vendor/bin/phpunit", "--colors=always", "--testdox"]
 
 # Custom network for service communication
 networks:
   card-auth-network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
 
 # Development override example
 # Create docker-compose.override.yml for local development customizations

@@ -45,6 +45,8 @@ card-authentication/
 ├── composer.json                  # PHP dependencies and scripts
 ├── composer.lock                  # Dependency lock file
 ├── phpunit.xml                    # PHPUnit test configuration
+├── router.php                     # Development server router
+├── run.sh                         # Development server startup script
 ├── README.md                      # Main project documentation
 ├── TESTING.md                     # Testing guide and procedures
 ├── PROJECT_STRUCTURE.md           # This file
@@ -145,19 +147,19 @@ card-authentication/
 ### Frontend → API Flow
 
 ```
-index.html
+public/index.html
 ├── → tools/test-payment.php (diagnostics)
 └── → tools/debug-payment.php (system check)
 
-card-verification.html
+public/card-verification.html
 ├── → api/config.php (SDK configuration)
 └── → api/verify-card.php (verification processing)
 
-payment.html
+public/payment.html
 ├── → api/config.php (SDK configuration)
 └── → api/process-payment.php (payment processing)
 
-dashboard.html
+public/dashboard.html
 └── → api/transactions-api.php (transaction data)
 ```
 

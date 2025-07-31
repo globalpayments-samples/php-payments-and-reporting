@@ -58,7 +58,7 @@ A comprehensive card verification and payment processing solution built with the
 
 4. **Start development server:**
    ```bash
-   php -S localhost:8000
+   php -S localhost:8000 router.php
    ```
 
 5. **Access the application:**
@@ -102,6 +102,7 @@ card-authentication/
 ├── .env.example                   # Environment configuration template
 ├── composer.json                  # PHP dependencies and scripts
 ├── phpunit.xml                    # Test configuration
+├── router.php                     # Development server router
 └── README.md                      # This file
 ```
 
@@ -168,21 +169,21 @@ Logs are stored in the `logs/` directory with the following structure:
 
 ### Card Verification
 
-1. Navigate to `http://localhost:8000/card-verification.html`
+1. Navigate to `http://localhost:8000/public/card-verification.html`
 2. Enter test card details (provided on the page)
 3. Submit for zero-charge verification
 4. View results including AVS/CVV validation
 
 ### Payment Processing
 
-1. Navigate to `http://localhost:8000/payment.html`
+1. Navigate to `http://localhost:8000/public/payment.html`
 2. Enter payment amount and card details
 3. Process secure payment through GlobalPayments
 4. Monitor results in real-time
 
 ### Transaction Monitoring
 
-1. Navigate to `http://localhost:8000/dashboard.html`
+1. Navigate to `http://localhost:8000/public/dashboard.html`
 2. View all transactions with filtering options
 3. Export data to CSV format
 4. Access detailed transaction information
