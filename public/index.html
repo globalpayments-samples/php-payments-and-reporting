@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Payments Integration - Already on it.</title>
+    <title>Global Payments Integration</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
@@ -15,7 +16,7 @@
         }
 
         body {
-            font-family: "DM Sans", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: "Inter", "DM Sans", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #262AFF 0%, #1B1EC6 100%);
             min-height: 100vh;
             padding: 20px;
@@ -42,9 +43,10 @@
         }
 
         .header h1 {
-            font-size: 2.5em;
+            font-size: 2.8em;
             margin-bottom: 0.5em;
-            font-weight: 300;
+            font-weight: 700;
+            letter-spacing: -0.02em;
         }
 
         .header p {
@@ -214,13 +216,13 @@
         }
 
         .footer {
-            background: #333;
+            background: linear-gradient(135deg, #262AFF 0%, #1B1EC6 100%);
             color: white;
             padding: 30px;
             text-align: center;
             margin: 0 20px 20px 20px;
             border-radius: 36px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 10px 40px rgba(38, 42, 255, 0.15);
         }
 
         .footer p {
@@ -229,12 +231,16 @@
         }
 
         .footer a {
-            color: #4285f4;
-            text-decoration: none;
+            color: white;
+            text-decoration: underline;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
 
         .footer a:hover {
+            color: rgba(255, 255, 255, 0.8);
             text-decoration: underline;
+            text-decoration-thickness: 2px;
         }
 
         @media (max-width: 768px) {
@@ -273,7 +279,7 @@
     <div class="container">
         <div class="header">
             <h1>🔐 Global Payments Integration</h1>
-            <p>Complete card verification and payment processing solution - Already on it.</p>
+            <p>Complete card verification and payment processing solution</p>
             <div class="badges">
                 <span class="badge">🔒 PCI Compliant</span>
                 <span class="badge">📊 Full Dashboard</span>
@@ -375,8 +381,8 @@
         </div>
 
         <div class="footer">
-            <p>🔒 Powered by Global Payments</p>
-            <p>🏗️ Sandbox Environment - Safe for Testing</p>
+            <p>Powered by Global Payments</p>
+            <p>Sandbox Environment</p>
             <p style="margin-top: 15px;">
                 <a href="https://developer.globalpay.com/" target="_blank">Developer Documentation</a> • 
                 <a href="https://developer.globalpay.com/" target="_blank">Global Payments API</a>
