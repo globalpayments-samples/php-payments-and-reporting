@@ -42,32 +42,90 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
         }
 
+        .header-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        .gp-logo {
+            height: 180px;
+            width: auto;
+            max-width: 800px;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
+        }
+
         .header h1 {
-            font-size: 2.8em;
-            margin-bottom: 0.5em;
+            font-size: 3.2em;
+            margin-bottom: 0.4em;
             font-weight: 700;
             letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.4em;
+                line-height: 1.2;
+            }
+            
+            .header p {
+                font-size: 1.2em;
+                margin-bottom: 25px;
+                max-width: 90%;
+            }
+            
+            .gp-logo {
+                height: 130px;
+                max-width: 600px;
+            }
+            
+            .header-logo {
+                margin-bottom: 30px;
+            }
+            
+            .badges {
+                gap: 15px;
+            }
+            
+            .badge {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
         }
 
         .header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-            margin-bottom: 20px;
+            font-size: 1.4em;
+            opacity: 0.95;
+            margin-bottom: 30px;
+            line-height: 1.4;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .badges {
             display: flex;
             justify-content: center;
-            gap: 15px;
+            gap: 20px;
             flex-wrap: wrap;
         }
 
         .badge {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            font-weight: 500;
+            background: rgba(255, 255, 255, 0.25);
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .badge:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-2px);
         }
 
         .main-content {
@@ -278,7 +336,10 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔐 Global Payments Integration</h1>
+            <div class="header-logo">
+                <img src="assets/images/gpguide_logo_3.png" alt="Global Payments" class="gp-logo">
+            </div>
+            <h1>Payment Integration Platform</h1>
             <p>Complete card verification and payment processing solution</p>
             <div class="badges">
                 <span class="badge">🔒 PCI Compliant</span>
