@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Heartland Payment Processing</title>
+    <title>Global Payments Processing - Already on it.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
@@ -12,26 +15,29 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: "DM Sans", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #262AFF 0%, #1B1EC6 100%);
             min-height: 100vh;
             padding: 20px;
+            line-height: 1.5;
         }
 
         .container {
             max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
+            margin: 20px auto;
+            background: transparent;
+            border-radius: 36px;
+            overflow: visible;
         }
 
         .header {
-            background: linear-gradient(90deg, #4285f4 0%, #34a853 100%);
+            background: linear-gradient(90deg, #262AFF 0%, #1B1EC6 100%);
             color: white;
             padding: 30px;
             text-align: center;
+            border-radius: 36px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            margin-bottom: 20px;
         }
 
         .header h1 {
@@ -47,15 +53,26 @@
 
         .form-container {
             padding: 40px;
+            background: white;
+            border-radius: 36px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
         }
 
 
         .form-section {
             margin-bottom: 30px;
-            padding: 25px;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            background: #fafafa;
+            padding: 30px;
+            background: linear-gradient(135deg, #ffffff 0%, #fafbff 100%);
+            border: 2px solid rgba(38, 42, 255, 0.1);
+            border-radius: 36px;
+            box-shadow: 0 4px 20px rgba(38, 42, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .form-section:hover {
+            border-color: rgba(38, 42, 255, 0.2);
+            box-shadow: 0 8px 30px rgba(38, 42, 255, 0.12);
+            transform: translateY(-2px);
         }
 
         .form-section h3 {
@@ -90,7 +107,7 @@
             width: 100%;
             padding: 14px;
             border: 2px solid #ddd;
-            border-radius: 8px;
+            border-radius: 36px;
             font-size: 16px;
             transition: all 0.3s ease;
             background: white;
@@ -99,8 +116,8 @@
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #4285f4;
-            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+            border-color: #262AFF;
+            box-shadow: 0 0 0 3px rgba(38, 42, 255, 0.1);
         }
 
         .form-group input::placeholder {
@@ -109,19 +126,30 @@
 
         /* Card form styling */
         #card-form-container {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 25px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border: 2px solid rgba(38, 42, 255, 0.15);
+            border-radius: 36px;
+            padding: 30px;
             margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(38, 42, 255, 0.1);
+            position: relative;
+        }
+
+        #card-form-container::before {
+            content: '🔒';
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 18px;
+            opacity: 0.6;
         }
 
         .payment-button {
-            background: linear-gradient(90deg, #4285f4 0%, #34a853 100%);
+            background: linear-gradient(90deg, #262AFF 0%, #1B1EC6 100%);
             color: white;
             border: none;
             padding: 18px 30px;
-            border-radius: 10px;
+            border-radius: 36px;
             font-size: 18px;
             font-weight: 600;
             cursor: pointer;
@@ -133,7 +161,7 @@
 
         .payment-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(66, 133, 244, 0.3);
+            box-shadow: 0 8px 25px rgba(38, 42, 255, 0.3);
         }
 
         .payment-button:disabled {
@@ -164,7 +192,7 @@
         .result-container {
             margin-top: 30px;
             padding: 20px;
-            border-radius: 12px;
+            border-radius: 36px;
             display: none;
             animation: fadeIn 0.5s ease;
         }
@@ -198,32 +226,78 @@
         .result-details {
             background: rgba(255,255,255,0.5);
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 36px;
             margin-top: 15px;
             font-size: 0.9em;
             line-height: 1.5;
         }
 
         .test-cards {
-            background: #e3f2fd;
-            border-left: 4px solid #2196f3;
-            padding: 15px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border: 2px solid #262AFF;
+            box-shadow: 0 8px 25px rgba(38, 42, 255, 0.15);
+            padding: 25px;
             margin-bottom: 25px;
-            border-radius: 6px;
+            border-radius: 36px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .test-cards::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #262AFF 0%, #1B1EC6 100%);
         }
 
         .test-cards h4 {
-            color: #1976d2;
-            margin-bottom: 10px;
+            color: #262AFF;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .test-cards ul {
-            margin-left: 20px;
-            color: #424242;
+            margin-left: 0;
+            padding-left: 0;
+            list-style: none;
+            color: #333;
         }
 
         .test-cards li {
-            margin-bottom: 5px;
+            margin-bottom: 12px;
+            padding: 12px 16px;
+            background: rgba(38, 42, 255, 0.05);
+            border-radius: 12px;
+            border-left: 4px solid #262AFF;
+            transition: all 0.2s ease;
+        }
+
+        .test-cards li:hover {
+            background: rgba(38, 42, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        .test-cards li strong {
+            color: #262AFF;
+            font-weight: 600;
+        }
+
+        .test-cards p {
+            margin-top: 15px;
+            padding: 12px 16px;
+            background: rgba(38, 42, 255, 0.05);
+            border-radius: 12px;
+            font-style: normal;
+            font-size: 0.9em;
+            color: #666;
+            border: 1px solid rgba(38, 42, 255, 0.1);
         }
 
         @media (max-width: 768px) {
@@ -235,8 +309,14 @@
                 margin: 10px;
             }
             
+            .header {
+                border-radius: 24px;
+                margin-bottom: 10px;
+            }
+            
             .form-container {
                 padding: 25px;
+                border-radius: 24px;
             }
         }
     </style>
@@ -244,12 +324,12 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>💳 Heartland Payment Processing</h1>
-            <p>Secure payments powered by Heartland</p>
+            <h1>💳 Global Payments Processing</h1>
+            <p>Secure payments powered by Global Payments - Already on it.</p>
             <div style="margin-top: 20px;">
-                <a href="index.html" style="display: inline-block; padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 6px; margin: 0 5px; font-size: 14px;">🏠 Home</a>
-                <a href="card-verification.html" style="display: inline-block; padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 6px; margin: 0 5px; font-size: 14px;">🔐 Verification</a>
-                <a href="dashboard.html" style="display: inline-block; padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 6px; margin: 0 5px; font-size: 14px;">📊 Dashboard</a>
+                <a href="index.html" style="display: inline-block; padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px;">🏠 Home</a>
+                <a href="card-verification.html" style="display: inline-block; padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px;">🔐 Verification</a>
+                <a href="dashboard.html" style="display: inline-block; padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px;">📊 Dashboard</a>
             </div>
         </div>
 
