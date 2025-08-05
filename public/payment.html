@@ -426,7 +426,7 @@
         </div>
     </div>
 
-    <script src="https://js.sandbox.globalpay.com/v1/globalpay.js"></script>
+    <script src="https://js.globalpay.com/4.1.11/globalpayments.js"></script>
     <script>
         class GPPaymentProcessor {
             constructor() {
@@ -450,7 +450,7 @@
 
             waitForSDK() {
                 return new Promise((resolve, reject) => {
-                    if (typeof GlobalPay !== 'undefined') {
+                    if (typeof GlobalPayments !== 'undefined') {
                         resolve();
                         return;
                     }
@@ -459,7 +459,7 @@
                     const maxAttempts = 30;
                     const checkInterval = setInterval(() => {
                         attempts++;
-                        if (typeof GlobalPay !== 'undefined') {
+                        if (typeof GlobalPayments !== 'undefined') {
                             clearInterval(checkInterval);
                             resolve();
                         } else if (attempts >= maxAttempts) {
@@ -496,31 +496,45 @@
 
             initializeCardForm() {
                 try {
-                    // Initialize GP-API Drop-In UI
-                    this.cardForm = GlobalPay.ui.create({
-                        amount: 1000, // Will be updated dynamically
-                        currency: 'USD',
-                        country: 'US',
-                        env: this.environment,
-                        session: {
-                            id: this.appId
-                        },
-                        on: {
-                            paymentMethodReceived: (paymentMethod) => {
-                                console.log('✅ Payment method received');
-                                this.processPayment(paymentMethod);
-                            },
-                            error: (error) => {
-                                console.error('❌ Drop-In UI error:', error);
-                                this.showError('Payment processing failed: ' + error.message);
-                                this.hideLoading();
-                            }
-                        }
+                    // Configure GP-API
+                    GlobalPayments.configure({
+                        accessToken: this.appId,
+                        apiVersion: '2021-03-22',
+                        env: this.environment
                     });
 
-                    this.cardForm.mount('#card-form-container');
-                    console.log('✅ GP-API Drop-In UI mounted');
-                    this.isInitialized = true;
+                    // Initialize GP-API credit card form
+                    this.cardForm = GlobalPayments.creditCard.form('#card-form-container', {
+                        style: 'gp-default'
+                    });
+
+                    // Set up event listeners
+                    this.cardForm.on('token-success', (resp) => {
+                        console.log('✅ Card tokenized successfully');
+                        this.processPayment(resp);
+                    });
+
+                    this.cardForm.on('token-error', (resp) => {
+                        console.error('❌ Tokenization error:', resp);
+                        console.error('❌ Error details:', JSON.stringify(resp, null, 2));
+                        
+                        let errorMessage = 'Card tokenization failed: ';
+                        if (resp.reasons && resp.reasons.length > 0) {
+                            errorMessage += resp.reasons.map(reason => reason.message || reason).join(', ');
+                        } else if (resp.error && resp.error.message) {
+                            errorMessage += resp.error.message;
+                        } else {
+                            errorMessage += 'Unknown error - check console for details';
+                        }
+                        
+                        this.showError(errorMessage);
+                        this.hideLoading();
+                    });
+
+                    this.cardForm.ready(() => {
+                        console.log('✅ GP-API credit card form ready');
+                        this.isInitialized = true;
+                    });
 
                 } catch (error) {
                     console.error('❌ Card form initialization failed:', error);
@@ -561,13 +575,13 @@
                 }
             }
 
-            async processPayment(paymentMethod) {
+            async processPayment(tokenResponse) {
                 try {
                     const amount = parseFloat(document.getElementById('amount').value);
                     const currency = document.getElementById('currency').value;
                     
                     const paymentData = {
-                        payment_token: paymentMethod.id,
+                        payment_token: tokenResponse.paymentReference,
                         amount: amount,
                         currency: currency
                     };

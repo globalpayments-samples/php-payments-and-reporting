@@ -242,7 +242,7 @@
         </div>
     </div>
 
-    <script src="https://js.sandbox.globalpay.com/v1/globalpay.js"></script>
+    <script src="https://js.globalpay.com/4.1.11/globalpayments.js"></script>
     <script>
         class CardVerificationProcessor {
             constructor() {
@@ -265,7 +265,7 @@
 
             waitForSDK() {
                 return new Promise((resolve, reject) => {
-                    if (typeof GlobalPay !== 'undefined') {
+                    if (typeof GlobalPayments !== 'undefined') {
                         resolve();
                         return;
                     }
@@ -274,7 +274,7 @@
                     const maxAttempts = 30;
                     const checkInterval = setInterval(() => {
                         attempts++;
-                        if (typeof GlobalPay !== 'undefined') {
+                        if (typeof GlobalPayments !== 'undefined') {
                             clearInterval(checkInterval);
                             resolve();
                         } else if (attempts >= maxAttempts) {
@@ -312,32 +312,46 @@
             initializeVerificationForm() {
                 try {
                     console.log('Initializing verification form...');
-                    console.log('GlobalPay object:', GlobalPay);
+                    console.log('GlobalPayments object:', GlobalPayments);
                     
-                    // Initialize GP-API Drop-In UI for verification
-                    this.verificationForm = GlobalPay.ui.create({
-                        amount: 0, // No charge for verification
-                        currency: 'USD',
-                        country: 'US',
-                        env: this.environment,
-                        session: {
-                            id: this.appId
-                        },
-                        on: {
-                            paymentMethodReceived: (paymentMethod) => {
-                                console.log('✅ Payment method received for verification');
-                                this.processVerification(paymentMethod);
-                            },
-                            error: (error) => {
-                                console.error('❌ Drop-In UI error:', error);
-                                this.showError('Card verification failed: ' + error.message);
-                            }
-                        }
+                    // Configure GP-API
+                    GlobalPayments.configure({
+                        accessToken: this.appId,
+                        apiVersion: '2021-03-22',
+                        env: this.environment
                     });
 
-                    this.verificationForm.mount('#card-verification-form');
-                    console.log('✅ GP-API Drop-In UI mounted for verification');
-                    this.isInitialized = true;
+                    // Initialize GP-API credit card form for verification
+                    this.verificationForm = GlobalPayments.creditCard.form('#card-verification-form', {
+                        style: 'gp-default'
+                    });
+
+                    // Set up event listeners
+                    this.verificationForm.on('token-success', (resp) => {
+                        console.log('✅ Card tokenized successfully for verification');
+                        this.processVerification(resp);
+                    });
+
+                    this.verificationForm.on('token-error', (resp) => {
+                        console.error('❌ Tokenization error:', resp);
+                        console.error('❌ Error details:', JSON.stringify(resp, null, 2));
+                        
+                        let errorMessage = 'Card tokenization failed: ';
+                        if (resp.reasons && resp.reasons.length > 0) {
+                            errorMessage += resp.reasons.map(reason => reason.message || reason).join(', ');
+                        } else if (resp.error && resp.error.message) {
+                            errorMessage += resp.error.message;
+                        } else {
+                            errorMessage += 'Unknown error - check console for details';
+                        }
+                        
+                        this.showError(errorMessage);
+                    });
+
+                    this.verificationForm.ready(() => {
+                        console.log('✅ GP-API verification form ready');
+                        this.isInitialized = true;
+                    });
 
                 } catch (error) {
                     console.error('❌ Verification form initialization failed:', error);
@@ -345,10 +359,10 @@
                 }
             }
 
-            async processVerification(paymentMethod) {
+            async processVerification(tokenResponse) {
                 try {
                     const verificationData = {
-                        payment_token: paymentMethod.id,
+                        payment_token: tokenResponse.paymentReference,
                         verification_type: 'basic' // Basic verification
                     };
 
