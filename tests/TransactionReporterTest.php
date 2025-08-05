@@ -56,27 +56,27 @@ class TransactionReporterTest extends TestCase
     {
         $transaction = new stdClass();
         
-        // Default values
+        // Default values for GP-API compatible test data
         $defaults = [
-            'transactionId' => '123456789',
+            'transactionId' => 'TXN_' . time() . '_' . rand(1000, 9999),
             'referenceNumber' => 'REF123',
             'amount' => 10.50,
             'currency' => 'USD',
             'responseDate' => '2025-07-29T15:30:45.123Z',
             'transactionDate' => new \DateTime('2025-07-29 15:30:45'),
-            'responseCode' => '00',
-            'responseMessage' => 'Approved',
-            'gatewayResponseCode' => '00',
+            'responseCode' => 'SUCCESS',
+            'responseMessage' => 'APPROVED',
+            'gatewayResponseCode' => 'SUCCESS',
             'gatewayResponseMessage' => 'Transaction approved',
-            'transactionStatus' => 'A',
+            'transactionStatus' => 'CAPTURED',
             'serviceName' => 'CreditSale',
             'cardType' => 'VISA',
-            'maskedCardNumber' => '****4242',
+            'maskedCardNumber' => '411111******1111',
             'cardExpMonth' => '12',
             'cardExpYear' => '2025',
-            'avsResponseCode' => 'Y',
+            'avsResponseCode' => 'MATCHED',
             'avsResponseMessage' => 'Address and ZIP match',
-            'cvnResponseCode' => 'M',
+            'cvnResponseCode' => 'MATCHED',
             'cvnResponseMessage' => 'CVV matches',
             'batchId' => 'BATCH001',
             'authCode' => 'AUTH123',
@@ -97,7 +97,7 @@ class TransactionReporterTest extends TestCase
         $result = $this->callPrivateMethod('formatTransactionForDashboard', [$transaction]);
         
         $this->assertIsArray($result);
-        $this->assertEquals('123456789', $result['id']);
+        $this->assertStringContainsString('TXN_', $result['id']);
         $this->assertEquals(10.50, $result['amount']);
         $this->assertEquals('USD', $result['currency']);
         $this->assertEquals('approved', $result['status']);
@@ -107,19 +107,19 @@ class TransactionReporterTest extends TestCase
         // Test card information
         $this->assertArrayHasKey('card', $result);
         $this->assertEquals('VISA', $result['card']['type']);
-        $this->assertEquals('4242', $result['card']['last4']);
+        $this->assertEquals('1111', $result['card']['last4']);
         $this->assertEquals('12', $result['card']['exp_month']);
         $this->assertEquals('2025', $result['card']['exp_year']);
         
         // Test response information
         $this->assertArrayHasKey('response', $result);
-        $this->assertEquals('00', $result['response']['code']);
-        $this->assertEquals('Approved', $result['response']['message']);
+        $this->assertEquals('SUCCESS', $result['response']['code']);
+        $this->assertEquals('APPROVED', $result['response']['message']);
         
         // Test additional fields
         $this->assertEquals('REF123', $result['reference']);
         $this->assertEquals('BATCH001', $result['batch_id']);
-        $this->assertEquals('00', $result['gateway_response_code']);
+        $this->assertEquals('SUCCESS', $result['gateway_response_code']);
     }
 
     public function testFormatTransactionWithVerificationAmount(): void
@@ -364,7 +364,7 @@ class TransactionReporterTest extends TestCase
 
     public function testGetLocalTransactions(): void
     {
-        // First record a test transaction with numeric ID (like real Portico transactions)
+        // First record a test transaction with GP-API compatible ID
         $testTransaction = [
             'id' => '987654321',
             'amount' => '25.00',
@@ -399,7 +399,7 @@ class TransactionReporterTest extends TestCase
 
     public function testGetLocalTransactionsWithDateFilter(): void
     {
-        // Use a specific date that we know exists with numeric ID (like real Portico transactions)
+        // Use a specific date that we know exists with GP-API compatible ID
         $testDate = '2025-07-29';
         $testTransaction = [
             'id' => '123456789',

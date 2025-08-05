@@ -63,17 +63,22 @@ try {
         throw new Exception('Payment amount too large', 400);
     }
 
-    // Configure GlobalPayments SDK
-    $secretApiKey = $_ENV['SECRET_API_KEY'] ?? null;
-    if (empty($secretApiKey)) {
-        throw new Exception('Payment system not configured', 500);
+    // Configure GP-API SDK
+    $appId = $_ENV['GP_API_APP_ID'] ?? null;
+    $appKey = $_ENV['GP_API_APP_KEY'] ?? null;
+    $environment = $_ENV['GP_API_ENVIRONMENT'] ?? 'sandbox';
+    
+    if (empty($appId) || empty($appKey)) {
+        throw new Exception('GP-API credentials not configured', 500);
     }
 
-    $config = new \GlobalPayments\Api\ServiceConfigs\Gateways\PorticoConfig();
-    $config->secretApiKey = $secretApiKey;
-    $config->developerId = $_ENV['DEVELOPER_ID'] ?? '000000';
-    $config->versionNumber = $_ENV['VERSION_NUMBER'] ?? '0000';
-    $config->serviceUrl = $_ENV['SERVICE_URL'] ?? 'https://cert.api2.heartlandportico.com';
+    $config = new \GlobalPayments\Api\ServiceConfigs\Gateways\GpApiConfig();
+    $config->appId = $appId;
+    $config->appKey = $appKey;
+    $config->environment = $environment === 'production' 
+        ? \GlobalPayments\Api\Entities\Enums\Environment::PRODUCTION 
+        : \GlobalPayments\Api\Entities\Enums\Environment::TEST;
+    $config->channel = \GlobalPayments\Api\Entities\Enums\Channel::CardNotPresent;
 
     \GlobalPayments\Api\ServicesContainer::configureService($config);
 

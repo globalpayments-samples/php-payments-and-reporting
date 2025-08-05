@@ -25,7 +25,9 @@ use GlobalPayments\Api\Entities\Address;
 use GlobalPayments\Api\Entities\Customer;
 use GlobalPayments\Api\Entities\Exceptions\ApiException;
 use GlobalPayments\Api\PaymentMethods\CreditCardData;
-use GlobalPayments\Api\ServiceConfigs\Gateways\PorticoConfig;
+use GlobalPayments\Api\ServiceConfigs\Gateways\GpApiConfig;
+use GlobalPayments\Api\Entities\Enums\Environment;
+use GlobalPayments\Api\Entities\Enums\Channel;
 use GlobalPayments\Api\ServicesContainer;
 
 // Disable error display for production security
@@ -54,11 +56,17 @@ function configureSdk(): void
     $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->load();
 
-    $config = new PorticoConfig();
-    $config->secretApiKey = $_ENV['SECRET_API_KEY'];
-    $config->developerId = $_ENV['DEVELOPER_ID'] ?? '000000';
-    $config->versionNumber = $_ENV['VERSION_NUMBER'] ?? '0000';
-    $config->serviceUrl = $_ENV['SERVICE_URL'] ?? 'https://cert.api2.heartlandportico.com';
+    if (empty($_ENV['GP_API_APP_ID']) || empty($_ENV['GP_API_APP_KEY'])) {
+        throw new Exception('GP-API credentials not configured in environment');
+    }
+
+    $config = new GpApiConfig();
+    $config->appId = $_ENV['GP_API_APP_ID'];
+    $config->appKey = $_ENV['GP_API_APP_KEY'];
+    $config->environment = $_ENV['GP_API_ENVIRONMENT'] === 'production' 
+        ? Environment::PRODUCTION 
+        : Environment::TEST;
+    $config->channel = Channel::CardNotPresent;
     
     ServicesContainer::configureService($config);
 }
@@ -284,7 +292,7 @@ try {
         exit;
     }
 
-    // Initialize payment method with token
+    // Initialize payment method with token from Drop-In UI
     $card = new CreditCardData();
     $card->token = $data['payment_token'];
 

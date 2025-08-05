@@ -426,9 +426,9 @@
         </div>
     </div>
 
-    <script src="https://js.globalpay.com/v1/globalpayments.js"></script>
+    <script src="https://js.sandbox.globalpay.com/v1/globalpay.js"></script>
     <script>
-        class HeartlandPaymentProcessor {
+        class GPPaymentProcessor {
             constructor() {
                 this.cardForm = null;
                 this.isInitialized = false;
@@ -441,7 +441,7 @@
                     await this.loadConfiguration();
                     this.setupEventListeners();
                     this.initializeCardForm();
-                    console.log('✅ Heartland Payment Processor initialized');
+                    console.log('✅ GP-API Payment Processor initialized');
                 } catch (error) {
                     console.error('❌ Initialization failed:', error);
                     this.showError('Failed to initialize payment system: ' + error.message);
@@ -450,7 +450,7 @@
 
             waitForSDK() {
                 return new Promise((resolve, reject) => {
-                    if (typeof GlobalPayments !== 'undefined') {
+                    if (typeof GlobalPay !== 'undefined') {
                         resolve();
                         return;
                     }
@@ -459,64 +459,68 @@
                     const maxAttempts = 30;
                     const checkInterval = setInterval(() => {
                         attempts++;
-                        if (typeof GlobalPayments !== 'undefined') {
+                        if (typeof GlobalPay !== 'undefined') {
                             clearInterval(checkInterval);
                             resolve();
                         } else if (attempts >= maxAttempts) {
                             clearInterval(checkInterval);
-                            reject(new Error('Heartland SDK failed to load'));
+                            reject(new Error('GP-API SDK failed to load'));
                         }
                     }, 100);
                 });
             }
 
             async loadConfiguration() {
-                const response = await fetch('/api/config.php');
+                const response = await fetch('/api/get-access-token.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
                 if (!response.ok) {
-                    throw new Error(`Configuration failed: ${response.status}`);
+                    throw new Error(`Access token failed: ${response.status}`);
                 }
                 
-                const config = await response.json();
-                if (!config.success) {
-                    throw new Error('Invalid configuration response');
+                const tokenData = await response.json();
+                if (!tokenData.success) {
+                    throw new Error('Invalid token response');
                 }
 
-                GlobalPayments.configure({
-                    publicApiKey: config.data.publicApiKey
-                });
+                // Store the app_id for Drop-In UI initialization
+                this.appId = tokenData.data.accessToken;
+                this.environment = tokenData.data.environment;
 
-                console.log('✅ Configuration loaded:', config.data.environment);
+                console.log('✅ GP-API configured with access token:', tokenData.data.environment);
             }
 
             initializeCardForm() {
                 try {
-                    this.cardForm = GlobalPayments.creditCard.form('#card-form-container', {
-                        style: 'gp-default'
+                    // Initialize GP-API Drop-In UI
+                    this.cardForm = GlobalPay.ui.create({
+                        amount: 1000, // Will be updated dynamically
+                        currency: 'USD',
+                        country: 'US',
+                        env: this.environment,
+                        session: {
+                            id: this.appId
+                        },
+                        on: {
+                            paymentMethodReceived: (paymentMethod) => {
+                                console.log('✅ Payment method received');
+                                this.processPayment(paymentMethod);
+                            },
+                            error: (error) => {
+                                console.error('❌ Drop-In UI error:', error);
+                                this.showError('Payment processing failed: ' + error.message);
+                                this.hideLoading();
+                            }
+                        }
                     });
 
-                    this.cardForm.on('token-success', (resp) => {
-                        console.log('✅ Token created successfully');
-                        this.processPayment(resp);
-                    });
-
-                    this.cardForm.on('token-error', (error) => {
-                        console.error('❌ Tokenization failed:', error);
-                        this.showError('Card tokenization failed: ' + error.message);
-                        this.hideLoading();
-                    });
-
-                    this.cardForm.ready(() => {
-                        console.log('✅ Card form ready');
-                        this.isInitialized = true;
-                    });
-
-                    this.cardForm.on('card-type-changed', (cardType) => {
-                        console.log('Card type detected:', cardType);
-                    });
-
-                    this.cardForm.on('validation-error', (error) => {
-                        console.log('Validation error:', error);
-                    });
+                    this.cardForm.mount('#card-form-container');
+                    console.log('✅ GP-API Drop-In UI mounted');
+                    this.isInitialized = true;
 
                 } catch (error) {
                     console.error('❌ Card form initialization failed:', error);
@@ -557,13 +561,13 @@
                 }
             }
 
-            async processPayment(tokenResponse) {
+            async processPayment(paymentMethod) {
                 try {
                     const amount = parseFloat(document.getElementById('amount').value);
                     const currency = document.getElementById('currency').value;
                     
                     const paymentData = {
-                        token_value: tokenResponse.paymentReference,
+                        payment_token: paymentMethod.id,
                         amount: amount,
                         currency: currency
                     };
@@ -692,7 +696,7 @@
 
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
-            new HeartlandPaymentProcessor();
+            new GPPaymentProcessor();
         });
     </script>
 </body>

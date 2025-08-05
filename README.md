@@ -1,6 +1,6 @@
-# Heartland Payment Integration - Production MVP
+# Global Payments GP-API Integration - Production MVP
 
-A comprehensive card verification and payment processing solution built with the GlobalPayments PHP SDK, featuring real-time transaction monitoring, secure payment processing, and professional dashboard interfaces.
+A comprehensive card verification and payment processing solution built with GP-API Drop-In UI and the GlobalPayments PHP SDK, featuring real-time transaction monitoring, secure payment processing, and professional dashboard interfaces.
 
 ## Table of Contents
 
@@ -20,7 +20,7 @@ A comprehensive card verification and payment processing solution built with the
 
 ### Core Functionality
 - **Card Verification**: Zero-charge validation with AVS/CVV checks
-- **Payment Processing**: Secure payment transactions via GlobalPayments SDK
+- **Payment Processing**: Secure payment transactions via GP-API Drop-In UI
 - **Transaction Dashboard**: Real-time monitoring with filtering and export capabilities
 - **Multi-format Support**: CSV export, detailed transaction views, and comprehensive reporting
 
@@ -35,7 +35,7 @@ A comprehensive card verification and payment processing solution built with the
 ### Prerequisites
 - PHP 8.0 or higher
 - Composer
-- GlobalPayments sandbox account and API credentials
+- Global Payments GP-API sandbox account and app credentials
 
 ### Installation
 
@@ -53,7 +53,7 @@ A comprehensive card verification and payment processing solution built with the
 3. **Configure environment:**
    ```bash
    cp .env.example .env
-   # Edit .env with your GlobalPayments credentials
+   # Edit .env with your GP-API app credentials
    ```
 
 4. **Start development server:**
@@ -124,11 +124,10 @@ card-authentication/
    # Create environment file
    cp .env.example .env
    
-   # Configure your GlobalPayments credentials in .env:
-   SECRET_API_KEY=your_secret_api_key_here
-   DEVELOPER_ID=your_developer_id
-   VERSION_NUMBER=your_version_number
-   SERVICE_URL=https://cert.api2.heartlandportico.com
+   # Configure your GP-API credentials in .env:
+   GP_API_APP_ID=your_app_id_here
+   GP_API_APP_KEY=your_app_key_here
+   GP_API_ENVIRONMENT=sandbox
    ```
 
 2. **Install Dependencies:**
@@ -151,10 +150,9 @@ card-authentication/
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
-| `SECRET_API_KEY` | GlobalPayments secret API key | Yes | - |
-| `DEVELOPER_ID` | Your developer ID | Yes | `000000` |
-| `VERSION_NUMBER` | API version number | Yes | `0000` |
-| `SERVICE_URL` | GlobalPayments service URL | Yes | Sandbox URL |
+| `GP_API_APP_ID` | GP-API application ID | Yes | - |
+| `GP_API_APP_KEY` | GP-API application key | Yes | - |
+| `GP_API_ENVIRONMENT` | GP-API environment (sandbox/production) | Yes | `sandbox` |
 | `ENABLE_REQUEST_LOGGING` | Enable detailed API request logging | No | `false` |
 
 ### Logging Configuration

@@ -6,7 +6,9 @@ namespace GlobalPayments\Examples;
 
 use Dotenv\Dotenv;
 use GlobalPayments\Api\Entities\Exceptions\ApiException;
-use GlobalPayments\Api\ServiceConfigs\Gateways\PorticoConfig;
+use GlobalPayments\Api\ServiceConfigs\Gateways\GpApiConfig;
+use GlobalPayments\Api\Entities\Enums\Environment;
+use GlobalPayments\Api\Entities\Enums\Channel;
 use GlobalPayments\Api\ServicesContainer;
 use GlobalPayments\Api\Services\ReportingService;
 use GlobalPayments\Api\Utils\Logging\Logger;
@@ -42,11 +44,17 @@ class TransactionReporter
         $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
         $dotenv->load();
 
-        $config = new PorticoConfig();
-        $config->secretApiKey = $_ENV['SECRET_API_KEY'];
-        $config->developerId = $_ENV['DEVELOPER_ID'] ?? '000000';
-        $config->versionNumber = $_ENV['VERSION_NUMBER'] ?? '0000';
-        $config->serviceUrl = $_ENV['SERVICE_URL'] ?? 'https://cert.api2.heartlandportico.com';
+        if (empty($_ENV['GP_API_APP_ID']) || empty($_ENV['GP_API_APP_KEY'])) {
+            throw new ApiException('GP-API credentials not configured in environment');
+        }
+
+        $config = new GpApiConfig();
+        $config->appId = $_ENV['GP_API_APP_ID'];
+        $config->appKey = $_ENV['GP_API_APP_KEY'];
+        $config->environment = $_ENV['GP_API_ENVIRONMENT'] === 'production'
+            ? Environment::PRODUCTION
+            : Environment::TEST;
+        $config->channel = Channel::CardNotPresent;
 
         // Enable request logging for debugging (optional)
         if (isset($_ENV['ENABLE_REQUEST_LOGGING']) && $_ENV['ENABLE_REQUEST_LOGGING'] === 'true') {
@@ -419,9 +427,9 @@ class TransactionReporter
     private function getResponseCode($transaction): ?string
     {
         // Try multiple possible response code fields
-        return $transaction->responseCode ?? 
-               $transaction->gatewayResponseCode ?? 
-               $transaction->authCode ?? 
+        return $transaction->responseCode ??
+               $transaction->gatewayResponseCode ??
+               $transaction->authCode ??
                ($transaction->transactionStatus === 'A' ? '00' : null);
     }
 
@@ -434,9 +442,9 @@ class TransactionReporter
     private function getResponseMessage($transaction): ?string
     {
         // Try multiple possible response message fields
-        return $transaction->responseMessage ?? 
-               $transaction->gatewayResponseMessage ?? 
-               ($transaction->transactionStatus === 'A' ? 'Approved' : 
+        return $transaction->responseMessage ??
+               $transaction->gatewayResponseMessage ??
+               ($transaction->transactionStatus === 'A' ? 'Approved' :
                 ($transaction->transactionStatus === 'D' ? 'Declined' : null));
     }
 
@@ -450,20 +458,26 @@ class TransactionReporter
     {
         $responseCode = $transaction->responseCode ?? null;
 
-        // Handle standard response codes
+        // Handle GP-API and legacy response codes
         switch ($responseCode) {
             case '00':
+            case 'SUCCESS':
+            case 'APPROVED':
                 return 'approved';
             case '10':
+            case 'PARTIAL':
                 return 'partially_approved';
             case '96':
+            case 'DECLINED':
                 return 'declined';
             case '91':
+            case 'ERROR':
+            case 'FAILED':
                 return 'error';
             default:
                 // Check gateway response code as fallback
                 $gatewayCode = $transaction->gatewayResponseCode ?? null;
-                if ($gatewayCode === '00') {
+                if ($gatewayCode === '00' || $gatewayCode === 'SUCCESS') {
                     return 'approved';
                 }
 
@@ -689,13 +703,13 @@ class TransactionReporter
         // Filter out test/mock transactions - only show genuine Portico API transactions
         $transactions = array_filter($transactions, function ($transaction) {
             $transactionId = $transaction['id'] ?? '';
-            
+
             // Portico only accepts numeric transaction IDs
             // Filter out alphanumeric test IDs like LIMIT_TEST_*, INTEGRATION_*, etc.
             if (!is_numeric($transactionId)) {
                 return false;
             }
-            
+
             // Additional validation for genuine transactions
             $mockIndicators = ['MOCK', 'TEST', 'DEMO', 'SAMPLE', 'INTEGRATION', 'LIMIT'];
             foreach ($mockIndicators as $indicator) {
@@ -703,7 +717,7 @@ class TransactionReporter
                     return false;
                 }
             }
-            
+
             return true;
         });
 
