@@ -315,6 +315,12 @@
                     console.log('GlobalPayments object:', GlobalPayments);
                     
                     // Configure GP-API
+                    console.log('🔧 Configuring GlobalPayments with:', {
+                        accessToken: this.appId.substring(0, 10) + '...',
+                        apiVersion: '2021-03-22',
+                        env: this.environment
+                    });
+                    
                     GlobalPayments.configure({
                         accessToken: this.appId,
                         apiVersion: '2021-03-22',
@@ -363,7 +369,8 @@
                 try {
                     const verificationData = {
                         payment_token: tokenResponse.paymentReference,
-                        verification_type: 'basic' // Basic verification
+                        verification_type: 'basic', // Basic verification
+                        currency: 'USD' // Required field for verification
                     };
 
                     console.log('Processing verification...', verificationData);

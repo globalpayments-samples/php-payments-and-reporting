@@ -15,6 +15,7 @@ use GlobalPayments\Api\ServiceConfigs\Gateways\GpApiConfig;
 use GlobalPayments\Api\Entities\Enums\Environment;
 use GlobalPayments\Api\Entities\Enums\Channel;
 use GlobalPayments\Api\ServicesContainer;
+use GlobalPayments\Api\Services\GpApiService;
 
 // Set security headers
 header('Content-Type: application/json');
@@ -39,106 +40,41 @@ try {
         exit;
     }
 
-    // Load environment variables
+    // Load environment variables from .env file
     $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->load();
 
-    // Validate required environment variables
-    $appId = $_ENV['GP_API_APP_ID'] ?? null;
-    $appKey = $_ENV['GP_API_APP_KEY'] ?? null;
-    $environment = $_ENV['GP_API_ENVIRONMENT'] ?? 'sandbox';
-    
-    if (empty($appId) || empty($appKey)) {
-        throw new Exception('GP-API credentials not configured');
-    }
-
-    // Configure GP-API to get access token
     $config = new GpApiConfig();
-    $config->appId = $appId;
-    $config->appKey = $appKey;
-    $config->environment = $environment === 'production' 
+    $config->appId = $_ENV['GP_API_APP_ID'];
+    $config->appKey = $_ENV['GP_API_APP_KEY'];
+    $config->environment = $_ENV['GP_API_ENVIRONMENT'] === 'production' 
         ? Environment::PRODUCTION 
         : Environment::TEST;
     $config->channel = Channel::CardNotPresent;
-
+    $config->permissions = ['PMT_POST_Create_Single'];
+    
     ServicesContainer::configureService($config);
-
-    // Generate GP-API access token following official documentation
     
-    // 1. Create a nonce (timestamp)
-    $nonce = date('c'); // ISO 8601 format: 2025-01-05T14:30:00+00:00
+    // Generate access token for frontend tokenization
+    $accessTokenInfo = GpApiService::generateTransactionKey($config);
     
-    // 2. Calculate secret key (SHA512 hash of nonce + app_key)
-    $secret = hash('sha512', $nonce . $appKey);
+    // Set response content type to JSON
+    header('Content-Type: application/json');
     
-    // 3. Prepare endpoint URL
-    $tokenUrl = $environment === 'production' 
-        ? 'https://apis.globalpay.com/ucp/accesstoken'
-        : 'https://apis.sandbox.globalpay.com/ucp/accesstoken';
-    
-    // 4. Prepare payload
-    $payload = [
-        'app_id' => $appId,
-        'nonce' => $nonce,
-        'secret' => $secret,
-        'grant_type' => 'client_credentials'
-    ];
-    
-    // 5. Make the API call
-    $ch = curl_init();
-    curl_setopt_array($ch, [
-        CURLOPT_URL => $tokenUrl,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($payload),
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'X-GP-Version: 2021-03-22',
-            'Accept-Encoding: gzip, deflate'
-        ],
-        CURLOPT_ENCODING => '', // Enable automatic decompression
-        CURLOPT_TIMEOUT => 30
-    ]);
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-    
-    if ($curlError) {
-        throw new Exception('CURL error: ' . $curlError);
-    }
-    
-    if ($httpCode !== 200) {
-        throw new Exception('GP-API authentication failed (HTTP ' . $httpCode . '): ' . $response);
-    }
-    
-    $tokenResponse = json_decode($response, true);
-    if (!$tokenResponse || !isset($tokenResponse['token'])) {
-        throw new Exception('Invalid token response from GP-API');
-    }
-    
-    $accessToken = $tokenResponse['token'];
-
-    // Return the access token
+    // Return public API key in JSON response
     echo json_encode([
         'success' => true,
         'data' => [
-            'accessToken' => $accessToken,
-            'environment' => $environment
-        ]
+            'accessToken' => $accessTokenInfo->accessToken,
+            'environment' => $_ENV['GP_API_ENVIRONMENT'] ?? 'sandbox'
+        ],
     ]);
 
 } catch (Exception $e) {
+    // Handle configuration errors
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Access token generation failed',
-        'error' => [
-            'code' => 'TOKEN_ERROR',
-            'details' => $e->getMessage()
-        ]
+        'message' => 'Error loading configuration: ' . $e->getMessage()
     ]);
-
-    error_log('GP-API access token error: ' . $e->getMessage());
 }

@@ -196,6 +196,7 @@ function createCustomer(array $data): ?Customer
 function performVerification(
     CreditCardData $card, 
     string $verificationType, 
+    string $currency = 'USD',
     ?Address $address = null,
     ?Customer $customer = null
 ): array {
@@ -203,6 +204,7 @@ function performVerification(
         case 'basic':
             // Basic card verification without additional checks
             $response = $card->verify()
+                ->withCurrency($currency)
                 ->withAllowDuplicates(true)
                 ->execute();
             break;
@@ -210,6 +212,7 @@ function performVerification(
         case 'avs':
             // Address Verification Service check
             $response = $card->verify()
+                ->withCurrency($currency)
                 ->withAllowDuplicates(true)
                 ->withAddress($address)
                 ->execute();
@@ -218,6 +221,7 @@ function performVerification(
         case 'cvv':
             // CVV verification (CVV already included in token)
             $response = $card->verify()
+                ->withCurrency($currency)
                 ->withAllowDuplicates(true)
                 ->execute();
             break;
@@ -225,6 +229,7 @@ function performVerification(
         case 'full':
             // Full verification with all available checks
             $builder = $card->verify()
+                ->withCurrency($currency)
                 ->withAllowDuplicates(true);
                 
             if ($address) {
@@ -304,6 +309,7 @@ try {
     $verificationResult = performVerification(
         $card, 
         $data['verification_type'], 
+        $data['currency'] ?? 'USD',
         $address, 
         $customer
     );
