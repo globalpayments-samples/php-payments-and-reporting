@@ -67,6 +67,10 @@ function configureSdk(): void
         ? Environment::PRODUCTION 
         : Environment::TEST;
     $config->channel = Channel::CardNotPresent;
+    $config->permissions = ['PMT_POST_Create_Single'];
+    
+    // Set merchant account for verification requests
+    $config->merchantId = $_ENV['GP_API_ACCOUNT_ID'] ?? '';
     
     ServicesContainer::configureService($config);
 }
@@ -203,10 +207,12 @@ function performVerification(
     switch ($verificationType) {
         case 'basic':
             // Basic card verification without additional checks
-            $response = $card->verify()
+            $builder = $card->verify()
                 ->withCurrency($currency)
-                ->withAllowDuplicates(true)
-                ->execute();
+                ->withAllowDuplicates(true);
+                
+            
+            $response = $builder->execute();
             break;
 
         case 'avs':
