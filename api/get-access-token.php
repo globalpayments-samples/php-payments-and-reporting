@@ -62,11 +62,13 @@ try {
     header('Content-Type: application/json');
     
     // Return public API key in JSON response
+    $rawEnv = $_ENV['GP_API_ENVIRONMENT'] ?? 'sandbox';
+    $jsEnv = ($rawEnv === 'test') ? 'sandbox' : $rawEnv; // Map 'test' to JS 'sandbox'
     echo json_encode([
         'success' => true,
         'data' => [
             'accessToken' => $accessTokenInfo->accessToken,
-            'environment' => $_ENV['GP_API_ENVIRONMENT'] ?? 'sandbox'
+            'environment' => $jsEnv
         ],
     ]);
 

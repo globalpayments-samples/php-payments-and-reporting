@@ -49,7 +49,7 @@ try {
     // Validate required fields
     $tokenValue = $data['token_value'] ?? $data['payment_token'] ?? null;
     $amount = $data['amount'] ?? null;
-    $currency = $data['currency'] ?? 'USD';
+    $currency = $data['currency'] ?? ($_ENV['GP_API_CURRENCY'] ?? 'USD');
 
     if (empty($tokenValue)) {
         throw new Exception('Payment token is required', 400);
@@ -79,8 +79,26 @@ try {
         ? \GlobalPayments\Api\Entities\Enums\Environment::PRODUCTION 
         : \GlobalPayments\Api\Entities\Enums\Environment::TEST;
     $config->channel = \GlobalPayments\Api\Entities\Enums\Channel::CardNotPresent;
+    // Ensure token scope includes transaction processing accounts so SDK can populate account_id/account_name
+    $config->permissions = ['TRN_POST_Authorize', 'PMT_POST_Create_Single'];
+    // Set processing country from env to match merchant setup (defaults to US)
+    $config->country = $_ENV['GP_API_COUNTRY'] ?? 'US';
+    // Optional: if merchant id is configured, set it to improve routing (not required)
+    if (!empty($_ENV['GP_API_MERCHANT_ID'])) {
+        $config->merchantId = $_ENV['GP_API_MERCHANT_ID'];
+    }
 
     \GlobalPayments\Api\ServicesContainer::configureService($config);
+
+    // Preflight: ensure token has transaction processing account scope
+    try {
+        $tokenInfo = \GlobalPayments\Api\Services\GpApiService::generateTransactionKey($config);
+        if (empty($tokenInfo->transactionProcessingAccountID) || empty($tokenInfo->transactionProcessingAccountName)) {
+            throw new Exception('GP-API access token lacks transaction processing account scope. Check TRN_POST_Authorize permission and merchant/account assignment.');
+        }
+    } catch (Exception $e) {
+        throw new Exception('GP-API token preflight failed: ' . $e->getMessage(), 500);
+    }
 
     // Create card data from token
     $card = new \GlobalPayments\Api\PaymentMethods\CreditCardData();
@@ -98,13 +116,16 @@ try {
         $address->country = $billingData['country'] ?? 'US';
     }
 
-    // Generate unique order ID
-    $orderId = 'ORDER-' . time() . '-' . strtoupper(substr(uniqid(), -8));
+    // Generate unique order and client reference for idempotency/tracing
+    $orderId = 'ORDER-' . time() . '-' . strtoupper(substr(uniqid('', true), -8));
+    $clientReference = $data['client_reference'] ?? ('REF-' . bin2hex(random_bytes(6)));
 
     // Process the charge
     $chargeBuilder = $card->charge((float)$amount)
         ->withCurrency($currency)
-        ->withOrderId($orderId);
+        ->withOrderId($orderId)
+        ->withClientTransactionId($clientReference)
+        ->withIdempotencyKey($clientReference);
 
     if ($address) {
         $chargeBuilder = $chargeBuilder->withAddress($address);
@@ -166,14 +187,31 @@ try {
         ]
     ], JSON_THROW_ON_ERROR);
 
-} catch (\GlobalPayments\Api\Entities\Exceptions\ApiException $e) {
+} catch (\GlobalPayments\Api\Entities\Exceptions\GatewayException $e) {
     // Log API errors
     error_log("GlobalPayments API error: " . $e->getMessage());
+    $status = 500;
+    $errorDetails = $e->getMessage();
+    // Attempt to extract response details if available
+    if (!empty($e->responseCode)) {
+        $errorDetails = sprintf('Status Code: %s - %s', $e->responseCode, $e->getMessage());
+        $status = ($e->responseCode === 'INVALID_REQUEST_DATA') ? 400 : 500;
+    }
     
-    // Check if it's a declined transaction vs system error
-    $statusCode = (strpos($e->getMessage(), 'declined') !== false) ? 400 : 500;
-    
-    http_response_code($statusCode);
+    http_response_code($status);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Payment processing failed',
+        'error' => [
+            'code' => 'PAYMENT_ERROR',
+            'details' => $errorDetails
+        ]
+    ], JSON_THROW_ON_ERROR);
+
+} catch (\GlobalPayments\Api\Entities\Exceptions\ApiException $e) {
+    // Fallback for generic API exceptions without responseCode
+    error_log("GlobalPayments API error: " . $e->getMessage());
+    http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => 'Payment processing failed',

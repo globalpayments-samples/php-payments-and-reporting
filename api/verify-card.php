@@ -67,12 +67,26 @@ function configureSdk(): void
         ? Environment::PRODUCTION 
         : Environment::TEST;
     $config->channel = Channel::CardNotPresent;
-    $config->permissions = ['PMT_POST_Create_Single'];
+    // Request transaction permission so SDK populates transactionProcessingAccount in token
+    $config->permissions = ['TRN_POST_Authorize', 'PMT_POST_Create_Single'];
+    $config->country = $_ENV['GP_API_COUNTRY'] ?? 'US';
     
-    // Set merchant account for verification requests
-    $config->merchantId = $_ENV['GP_API_ACCOUNT_ID'] ?? '';
+    // Optional: if a GP-API merchant ID is configured, set it; otherwise omit
+    if (!empty($_ENV['GP_API_MERCHANT_ID'])) {
+        $config->merchantId = $_ENV['GP_API_MERCHANT_ID'];
+    }
     
     ServicesContainer::configureService($config);
+
+    // Preflight: ensure token has transaction processing account scope
+    try {
+        $access = \GlobalPayments\Api\Services\GpApiService::generateTransactionKey($config);
+        if (empty($access->transactionProcessingAccountID) || empty($access->transactionProcessingAccountName)) {
+            throw new Exception('GP-API access token lacks transaction processing account scope. Check TRN_POST_Authorize permission and merchant/account assignment.');
+        }
+    } catch (Exception $e) {
+        throw new Exception('GP-API token preflight failed: ' . $e->getMessage());
+    }
 }
 
 /**
@@ -204,12 +218,16 @@ function performVerification(
     ?Address $address = null,
     ?Customer $customer = null
 ): array {
+    // Generate a stable reference for idempotency and tracing
+    $clientReference = 'VER_' . date('YmdHis') . '_' . bin2hex(random_bytes(4));
     switch ($verificationType) {
         case 'basic':
             // Basic card verification without additional checks
             $builder = $card->verify()
                 ->withCurrency($currency)
-                ->withAllowDuplicates(true);
+                ->withAllowDuplicates(true)
+                ->withClientTransactionId($clientReference)
+                ->withIdempotencyKey($clientReference);
                 
             
             $response = $builder->execute();
@@ -220,6 +238,8 @@ function performVerification(
             $response = $card->verify()
                 ->withCurrency($currency)
                 ->withAllowDuplicates(true)
+                ->withClientTransactionId($clientReference)
+                ->withIdempotencyKey($clientReference)
                 ->withAddress($address)
                 ->execute();
             break;
@@ -229,6 +249,8 @@ function performVerification(
             $response = $card->verify()
                 ->withCurrency($currency)
                 ->withAllowDuplicates(true)
+                ->withClientTransactionId($clientReference)
+                ->withIdempotencyKey($clientReference)
                 ->execute();
             break;
 
@@ -236,7 +258,9 @@ function performVerification(
             // Full verification with all available checks
             $builder = $card->verify()
                 ->withCurrency($currency)
-                ->withAllowDuplicates(true);
+                ->withAllowDuplicates(true)
+                ->withClientTransactionId($clientReference)
+                ->withIdempotencyKey($clientReference);
                 
             if ($address) {
                 $builder->withAddress($address);
@@ -253,6 +277,14 @@ function performVerification(
             throw new ApiException('Invalid verification type');
     }
 
+    // Avoid deprecated fields: derive brand/last4 strictly from mapped payment method
+    $cardBrand = null;
+    $cardLast4 = null;
+    if (isset($response->paymentMethod) && isset($response->paymentMethod->card)) {
+        $cardBrand = $response->paymentMethod->card->brand ?? null;
+        $cardLast4 = $response->paymentMethod->card->maskedNumberLast4 ?? null;
+    }
+
     return [
         'transaction_id' => $response->transactionReference->transactionId,
         'response_code' => $response->responseCode,
@@ -262,8 +294,8 @@ function performVerification(
         'cvn_response_code' => $response->cvnResponseCode ?? null,
         'cvn_response_message' => $response->cvnResponseMessage ?? null,
         'commercial_indicator' => $response->commercialIndicator ?? null,
-        'card_type' => $response->cardType ?? null,
-        'card_last4' => $response->cardLast4 ?? null
+        'card_brand' => $cardBrand,
+        'card_last4' => $cardLast4
     ];
 }
 
@@ -315,7 +347,7 @@ try {
     $verificationResult = performVerification(
         $card, 
         $data['verification_type'], 
-        $data['currency'] ?? 'USD',
+        $data['currency'] ?? ($_ENV['GP_API_CURRENCY'] ?? 'USD'),
         $address, 
         $customer
     );
@@ -350,7 +382,7 @@ try {
     ]);
 
 } catch (ApiException $e) {
-    // Handle API-specific errors
+    // Handle API-specific errors with clearer detail
     http_response_code(400);
     echo json_encode([
         'success' => false,

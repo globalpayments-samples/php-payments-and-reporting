@@ -624,7 +624,11 @@
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify(paymentData)
+                        // Add a unique client reference for idempotency and tracing
+                        body: JSON.stringify({
+                            ...paymentData,
+                            client_reference: 'WEB_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)
+                        })
                     });
 
                     const result = await response.json();
