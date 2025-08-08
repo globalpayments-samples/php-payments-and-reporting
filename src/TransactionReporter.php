@@ -88,8 +88,8 @@ class TransactionReporter
             $endDateStr = $endDate->format('Y-m-d\TH:i:s.999\Z');
 
             $response = $reportingService->findTransactions()
-                ->withStartDate($startDateStr)
-                ->withEndDate($endDateStr)
+                ->withStartDate($startDate)
+                ->withEndDate($endDate)
                 ->execute();
 
             $transactions = [];
@@ -175,8 +175,8 @@ class TransactionReporter
             $endDateStr = $endDateObj->format('Y-m-d\TH:i:s.999\Z');
 
             $response = $reportingService->findTransactions()
-                ->withStartDate($startDateStr)
-                ->withEndDate($endDateStr)
+                ->withStartDate($startDate)
+                ->withEndDate($endDate)
                 ->execute();
 
             $transactions = [];
@@ -700,9 +700,15 @@ class TransactionReporter
         $content = file_get_contents($masterLogFile);
         $transactions = json_decode($content, true) ?: [];
 
-        // Filter out test/mock transactions - only show genuine Portico API transactions
+        // Filter out test/mock transactions - allow genuine Portico API transactions and verification transactions
         $transactions = array_filter($transactions, function ($transaction) {
             $transactionId = $transaction['id'] ?? '';
+            $transactionType = $transaction['type'] ?? '';
+
+            // Allow verification transactions (they have alphanumeric IDs starting with VER_)
+            if ($transactionType === 'verification' && strpos($transactionId, 'VER_') === 0) {
+                return true;
+            }
 
             // Portico only accepts numeric transaction IDs
             // Filter out alphanumeric test IDs like LIMIT_TEST_*, INTEGRATION_*, etc.
@@ -755,6 +761,14 @@ class TransactionReporter
             $transactions = array_slice($transactions, 0, $limit);
         }
 
-        return $transactions;
+        return [
+            'success' => true,
+            'data' => [
+                'transactions' => $transactions,
+                'total_count' => count($transactions),
+                'source' => 'local_storage'
+            ],
+            'message' => 'Local transactions retrieved successfully'
+        ];
     }
 }

@@ -79,14 +79,14 @@ function validateParams(array $params): array
     
     // Validate date parameters
     if (isset($params['start_date'])) {
-        $startDate = filter_var($params['start_date'], FILTER_SANITIZE_STRING);
+        $startDate = htmlspecialchars($params['start_date'], ENT_QUOTES, 'UTF-8');
         if ($startDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
             $validated['start_date'] = $startDate;
         }
     }
     
     if (isset($params['end_date'])) {
-        $endDate = filter_var($params['end_date'], FILTER_SANITIZE_STRING);
+        $endDate = htmlspecialchars($params['end_date'], ENT_QUOTES, 'UTF-8');
         if ($endDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
             $validated['end_date'] = $endDate;
         }
@@ -94,7 +94,7 @@ function validateParams(array $params): array
     
     // Validate transaction_id parameter
     if (isset($params['transaction_id'])) {
-        $transactionId = filter_var($params['transaction_id'], FILTER_SANITIZE_STRING);
+        $transactionId = htmlspecialchars($params['transaction_id'], ENT_QUOTES, 'UTF-8');
         if ($transactionId && preg_match('/^[a-zA-Z0-9\-_]+$/', $transactionId)) {
             $validated['transaction_id'] = $transactionId;
         }
@@ -118,18 +118,35 @@ function handleRequest(TransactionReporter $reporter, array $params): array
             return $reporter->getTransactionDetails($params['transaction_id']);
         }
         
-        // Handle date range query - only show legitimate Global Payments API transactions
+        // Handle date range query - include both API and local transactions
         if (isset($params['start_date']) && isset($params['end_date'])) {
             $apiResult = $reporter->getTransactionsByDateRange(
                 $params['start_date'],
                 $params['end_date'],
                 $params['limit']
             );
+            $localResult = $reporter->getLocalTransactions($params['start_date'], $params['end_date'], $params['limit']);
 
             $transactions = [];
+            
+            // Add API transactions
             if ($apiResult['success'] && isset($apiResult['data']['transactions'])) {
-                $transactions = $apiResult['data']['transactions'];
+                $transactions = array_merge($transactions, $apiResult['data']['transactions']);
             }
+            
+            // Add local transactions (including verifications)
+            if ($localResult['success'] && isset($localResult['data']['transactions'])) {
+                $transactions = array_merge($transactions, $localResult['data']['transactions']);
+            }
+            
+            // Sort by timestamp (newest first) and limit
+            usort($transactions, function($a, $b) {
+                $timeA = strtotime($a['timestamp'] ?? '1970-01-01');
+                $timeB = strtotime($b['timestamp'] ?? '1970-01-01');
+                return $timeB - $timeA; // Descending order
+            });
+            
+            $transactions = array_slice($transactions, 0, $params['limit']);
 
             return [
                 'success' => true,
@@ -140,30 +157,47 @@ function handleRequest(TransactionReporter $reporter, array $params): array
                         'start_date' => $params['start_date'],
                         'end_date' => $params['end_date']
                     ],
-                    'source' => 'global_payments_api_only',
-                    'note' => 'Showing only legitimate transactions processed through Global Payments API'
+                    'source' => 'global_payments_api_and_local',
+                    'note' => 'Showing transactions from Global Payments API and local verification records'
                 ],
-                'message' => 'Legitimate transactions retrieved successfully from Global Payments API'
+                'message' => 'Transactions retrieved successfully from multiple sources'
             ];
         }
         
-        // Handle recent transactions (default) - only show legitimate Global Payments API transactions
+        // Handle recent transactions (default) - include both API and local transactions
         $apiResult = $reporter->getRecentTransactions($params['limit'], $params['page']);
+        $localResult = $reporter->getLocalTransactions(null, null, $params['limit']);
 
         $transactions = [];
+        
+        // Add API transactions
         if ($apiResult['success'] && isset($apiResult['data']['transactions'])) {
-            $transactions = $apiResult['data']['transactions'];
+            $transactions = array_merge($transactions, $apiResult['data']['transactions']);
         }
+        
+        // Add local transactions (including verifications)
+        if ($localResult['success'] && isset($localResult['data']['transactions'])) {
+            $transactions = array_merge($transactions, $localResult['data']['transactions']);
+        }
+        
+        // Sort by timestamp (newest first) and limit
+        usort($transactions, function($a, $b) {
+            $timeA = strtotime($a['timestamp'] ?? '1970-01-01');
+            $timeB = strtotime($b['timestamp'] ?? '1970-01-01');
+            return $timeB - $timeA; // Descending order
+        });
+        
+        $transactions = array_slice($transactions, 0, $params['limit']);
 
         return [
             'success' => true,
             'data' => [
                 'transactions' => $transactions,
                 'total_count' => count($transactions),
-                'source' => 'global_payments_api_only',
-                'note' => 'Showing only legitimate transactions processed through Global Payments API'
+                'source' => 'global_payments_api_and_local',
+                'note' => 'Showing transactions from Global Payments API and local verification records'
             ],
-            'message' => 'Legitimate transactions retrieved successfully from Global Payments API'
+            'message' => 'Transactions retrieved successfully from multiple sources'
         ];
         
     } catch (Exception $e) {

@@ -401,6 +401,13 @@
             showSuccess(data) {
                 const container = document.getElementById('result-container');
                 container.className = 'result-container result-success';
+                
+                // Extract card details from GP-API response
+                const verificationResult = data.verification_result;
+                const paymentMethod = verificationResult.payment_method || {};
+                const card = paymentMethod.card || {};
+                const action = verificationResult.action || {};
+                
                 container.innerHTML = `
                     <div class="result-header">
                         <span>✅</span>
@@ -409,10 +416,12 @@
                     <p>Your card has been verified successfully without any charges.</p>
                     <div class="result-details">
                         <strong>Verification Details:</strong><br>
-                        Card Type: ${data.card_type || 'N/A'}<br>
-                        Last Four Digits: ****${data.last_four || 'N/A'}<br>
-                        Status: ${data.response_message || 'Verified'}<br>
-                        Verification ID: ${data.transaction_id || 'N/A'}<br>
+                        Card Type: ${card.brand || 'N/A'}<br>
+                        Last Four Digits: ${card.masked_number_last4 || 'N/A'}<br>
+                        Status: ${verificationResult.status || 'Verified'}<br>
+                        Result Code: ${action.result_code || 'SUCCESS'}<br>
+                        Verification ID: ${verificationResult.id || 'N/A'}<br>
+                        Reference: ${verificationResult.reference || 'N/A'}<br>
                         Processed: ${new Date().toLocaleString()}
                     </div>
                 `;

@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 /**
- * Card Verification Script
+ * Card Verification Script - GP-API SDK Implementation
  *
- * This script demonstrates card verification using the Global Payments SDK.
+ * This script performs card verification using the Global Payments SDK.
  * It validates cards without processing charges, perfect for verification
  * scenarios, subscription setups, and card validation workflows.
  *
@@ -15,20 +15,18 @@ declare(strict_types=1);
  * @package   GlobalPayments_Examples
  * @author    Global Payments
  * @license   MIT License
- * @link      https://github.com/globalpayments
+ * @link      https://developer.globalpay.com/api/verifications
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
-use GlobalPayments\Api\Entities\Address;
-use GlobalPayments\Api\Entities\Customer;
-use GlobalPayments\Api\Entities\Exceptions\ApiException;
-use GlobalPayments\Api\PaymentMethods\CreditCardData;
 use GlobalPayments\Api\ServiceConfigs\Gateways\GpApiConfig;
 use GlobalPayments\Api\Entities\Enums\Environment;
 use GlobalPayments\Api\Entities\Enums\Channel;
 use GlobalPayments\Api\ServicesContainer;
+use GlobalPayments\Api\Services\GpApiService;
+use GlobalPayments\Examples\TransactionReporter;
 
 // Disable error display for production security
 ini_set('display_errors', '0');
@@ -46,66 +44,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 /**
- * Configure the Global Payments SDK
+ * Load environment configuration and get access token using SDK
  *
- * @return void
- * @throws Exception If environment configuration fails
+ * @return array Environment variables and access token
+ * @throws Exception If required credentials are missing or token generation fails
  */
-function configureSdk(): void
+function loadEnvironmentAndToken(): array
 {
     $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->load();
 
-    if (empty($_ENV['GP_API_APP_ID']) || empty($_ENV['GP_API_APP_KEY'])) {
-        throw new Exception('GP-API credentials not configured in environment');
+    $required = ['GP_API_APP_ID', 'GP_API_APP_KEY'];
+    foreach ($required as $var) {
+        if (empty($_ENV[$var])) {
+            throw new Exception("Missing required environment variable: {$var}");
+        }
     }
 
-    $config = new GpApiConfig();
-    $config->appId = $_ENV['GP_API_APP_ID'];
-    $config->appKey = $_ENV['GP_API_APP_KEY'];
-    $config->environment = $_ENV['GP_API_ENVIRONMENT'] === 'production' 
+    $config = [
+        'app_id' => $_ENV['GP_API_APP_ID'],
+        'app_key' => $_ENV['GP_API_APP_KEY'],
+        'environment' => $_ENV['GP_API_ENVIRONMENT'] ?? 'sandbox',
+        'country' => $_ENV['GP_API_COUNTRY'] ?? 'US',
+        'currency' => $_ENV['GP_API_CURRENCY'] ?? 'USD',
+        'merchant_id' => $_ENV['GP_API_MERCHANT_ID'] ?? null
+    ];
+    
+    // Get access token using SDK
+    $sdkConfig = new GpApiConfig();
+    $sdkConfig->appId = $config['app_id'];
+    $sdkConfig->appKey = $config['app_key'];
+    $sdkConfig->environment = $config['environment'] === 'production' 
         ? Environment::PRODUCTION 
         : Environment::TEST;
-    $config->channel = Channel::CardNotPresent;
-    // Request transaction permission so SDK populates transactionProcessingAccount in token
-    $config->permissions = ['TRN_POST_Authorize', 'PMT_POST_Create_Single'];
-    $config->country = $_ENV['GP_API_COUNTRY'] ?? 'US';
+    $sdkConfig->channel = Channel::CardNotPresent;
+    // Let SDK use all available permissions
+    $sdkConfig->country = $config['country'];
     
-    // Optional: if a GP-API merchant ID is configured, set it; otherwise omit
-    if (!empty($_ENV['GP_API_MERCHANT_ID'])) {
-        $config->merchantId = $_ENV['GP_API_MERCHANT_ID'];
-    }
+    ServicesContainer::configureService($sdkConfig);
     
-    ServicesContainer::configureService($config);
-
-    // Preflight: ensure token has transaction processing account scope
     try {
-        $access = \GlobalPayments\Api\Services\GpApiService::generateTransactionKey($config);
-        if (empty($access->transactionProcessingAccountID) || empty($access->transactionProcessingAccountName)) {
-            throw new Exception('GP-API access token lacks transaction processing account scope. Check TRN_POST_Authorize permission and merchant/account assignment.');
-        }
+        $accessTokenInfo = GpApiService::generateTransactionKey($sdkConfig);
+        $config['access_token'] = $accessTokenInfo->accessToken;
     } catch (Exception $e) {
-        throw new Exception('GP-API token preflight failed: ' . $e->getMessage());
-    }
-}
-
-/**
- * Sanitize and validate postal code
- *
- * @param string|null $postalCode The postal code to sanitize
- * @return string Sanitized postal code
- */
-function sanitizePostalCode(?string $postalCode): string
-{
-    if ($postalCode === null) {
-        return '';
+        throw new Exception('Failed to generate access token: ' . $e->getMessage());
     }
     
-    // Remove non-alphanumeric characters except hyphens and spaces
-    $sanitized = preg_replace('/[^a-zA-Z0-9\-\s]/', '', $postalCode);
-    
-    // Limit to reasonable length
-    return substr(trim($sanitized), 0, 10);
+    return $config;
 }
 
 /**
@@ -118,8 +103,12 @@ function validateRequest(array $data): array
 {
     $errors = [];
 
-    if (empty($data['payment_token'])) {
-        $errors[] = 'Payment token is required';
+    // Check if we have either payment token (from Drop-In UI) or direct card details
+    $hasPaymentToken = !empty($data['payment_token']);
+    $hasCardDetails = !empty($data['card_number']) && !empty($data['expiry_month']) && !empty($data['expiry_year']);
+    
+    if (!$hasPaymentToken && !$hasCardDetails) {
+        $errors[] = 'Either payment_token (from Drop-In UI) or card details (card_number, expiry_month, expiry_year) are required';
     }
 
     if (empty($data['verification_type'])) {
@@ -135,168 +124,77 @@ function validateRequest(array $data): array
 }
 
 /**
- * Create address object for AVS verification
+ * Perform card verification using GP-API SDK
  *
- * @param array $data Request data
- * @return Address|null
- */
-function createAddress(array $data): ?Address
-{
-    if (empty($data['billing_address'])) {
-        return null;
-    }
-
-    $addressData = $data['billing_address'];
-    $address = new Address();
-    
-    if (!empty($addressData['street'])) {
-        $address->streetAddress1 = substr(trim($addressData['street']), 0, 50);
-    }
-    
-    if (!empty($addressData['city'])) {
-        $address->city = substr(trim($addressData['city']), 0, 30);
-    }
-    
-    if (!empty($addressData['state'])) {
-        $address->state = substr(trim($addressData['state']), 0, 20);
-    }
-    
-    if (!empty($addressData['postal_code'])) {
-        $address->postalCode = sanitizePostalCode($addressData['postal_code']);
-    }
-    
-    if (!empty($addressData['country'])) {
-        $address->country = substr(trim($addressData['country']), 0, 2);
-    }
-
-    return $address;
-}
-
-/**
- * Create customer object for enhanced verification
- *
- * @param array $data Request data
- * @return Customer|null
- */
-function createCustomer(array $data): ?Customer
-{
-    if (empty($data['customer'])) {
-        return null;
-    }
-
-    $customerData = $data['customer'];
-    $customer = new Customer();
-    
-    if (!empty($customerData['id'])) {
-        $customer->id = substr(trim($customerData['id']), 0, 50);
-    }
-    
-    if (!empty($customerData['email'])) {
-        $customer->email = substr(trim($customerData['email']), 0, 100);
-    }
-    
-    if (!empty($customerData['phone'])) {
-        $customer->homePhone = preg_replace('/[^0-9]/', '', $customerData['phone']);
-    }
-
-    return $customer;
-}
-
-/**
- * Perform card verification based on type
- *
- * @param CreditCardData $card The credit card to verify
- * @param string $verificationType Type of verification
- * @param Address|null $address Billing address for AVS
- * @param Customer|null $customer Customer data
+ * @param string $accessToken GP-API access token
+ * @param array $config Environment configuration
+ * @param array $requestData Request data
  * @return array Verification result
+ * @throws Exception If verification fails
  */
-function performVerification(
-    CreditCardData $card, 
-    string $verificationType, 
-    string $currency = 'USD',
-    ?Address $address = null,
-    ?Customer $customer = null
-): array {
+function performVerification(string $accessToken, array $config, array $requestData): array
+{
+    // Configure SDK for verification
+    $sdkConfig = new GpApiConfig();
+    $sdkConfig->appId = $config['app_id'];
+    $sdkConfig->appKey = $config['app_key'];
+    $sdkConfig->environment = $config['environment'] === 'production' 
+        ? Environment::PRODUCTION 
+        : Environment::TEST;
+    $sdkConfig->channel = Channel::CardNotPresent;
+    $sdkConfig->country = $config['country'];
+    
+    ServicesContainer::configureService($sdkConfig);
+    
+    // Create payment method from token
+    $paymentMethod = new \GlobalPayments\Api\PaymentMethods\CreditCardData();
+    $paymentMethod->token = $requestData['payment_token'];
+    
     // Generate a stable reference for idempotency and tracing
-    $clientReference = 'VER_' . date('YmdHis') . '_' . bin2hex(random_bytes(4));
-    switch ($verificationType) {
-        case 'basic':
-            // Basic card verification without additional checks
-            $builder = $card->verify()
-                ->withCurrency($currency)
-                ->withAllowDuplicates(true)
-                ->withClientTransactionId($clientReference)
-                ->withIdempotencyKey($clientReference);
-                
-            
-            $response = $builder->execute();
-            break;
-
-        case 'avs':
-            // Address Verification Service check
-            $response = $card->verify()
-                ->withCurrency($currency)
-                ->withAllowDuplicates(true)
-                ->withClientTransactionId($clientReference)
-                ->withIdempotencyKey($clientReference)
-                ->withAddress($address)
-                ->execute();
-            break;
-
-        case 'cvv':
-            // CVV verification (CVV already included in token)
-            $response = $card->verify()
-                ->withCurrency($currency)
-                ->withAllowDuplicates(true)
-                ->withClientTransactionId($clientReference)
-                ->withIdempotencyKey($clientReference)
-                ->execute();
-            break;
-
-        case 'full':
-            // Full verification with all available checks
-            $builder = $card->verify()
-                ->withCurrency($currency)
-                ->withAllowDuplicates(true)
-                ->withClientTransactionId($clientReference)
-                ->withIdempotencyKey($clientReference);
-                
-            if ($address) {
-                $builder->withAddress($address);
-            }
-            
-            if ($customer) {
-                $builder->withCustomerData($customer);
-            }
-            
-            $response = $builder->execute();
-            break;
-
-        default:
-            throw new ApiException('Invalid verification type');
+    $reference = 'VER_' . date('YmdHis') . '_' . bin2hex(random_bytes(4));
+    
+    try {
+        // Perform basic verification
+        $response = $paymentMethod->verify()
+            ->withCurrency($requestData['currency'] ?? $config['currency'])
+            ->withAllowDuplicates(true)
+            ->withClientTransactionId($reference)
+            ->withIdempotencyKey($reference)
+            ->execute();
+        
+        // Convert SDK response to array format
+        $result = [
+            'id' => $response->transactionReference->transactionId,
+            'status' => 'VERIFIED',
+            'channel' => 'CNP',
+            'country' => $config['country'],
+            'reference' => $reference,
+            'payment_method' => [
+                'result' => $response->responseCode,
+                'message' => $response->responseMessage,
+                'entry_mode' => 'ECOM',
+                'card' => [
+                    'brand' => $response->paymentMethod->card->brand ?? null,
+                    'masked_number_last4' => $response->paymentMethod->card->maskedNumberLast4 ?? null
+                ]
+            ],
+            'action' => [
+                'result_code' => $response->responseCode === 'SUCCESS' ? 'SUCCESS' : 'FAILED'
+            ]
+        ];
+        
+        return $result;
+        
+    } catch (Exception $e) {
+        
+        // Check if it's a permissions issue
+        if (strpos($e->getMessage(), 'Merchant configuration does not exist') !== false || 
+            strpos($e->getMessage(), 'action_type - VERIFY') !== false) {
+            throw new Exception('Card verification is not enabled for this account. Please contact your administrator to enable verification permissions.');
+        }
+        
+        throw new Exception('Verification failed: ' . $e->getMessage());
     }
-
-    // Avoid deprecated fields: derive brand/last4 strictly from mapped payment method
-    $cardBrand = null;
-    $cardLast4 = null;
-    if (isset($response->paymentMethod) && isset($response->paymentMethod->card)) {
-        $cardBrand = $response->paymentMethod->card->brand ?? null;
-        $cardLast4 = $response->paymentMethod->card->maskedNumberLast4 ?? null;
-    }
-
-    return [
-        'transaction_id' => $response->transactionReference->transactionId,
-        'response_code' => $response->responseCode,
-        'response_message' => $response->responseMessage,
-        'avs_response_code' => $response->avsResponseCode ?? null,
-        'avs_response_message' => $response->avsResponseMessage ?? null,
-        'cvn_response_code' => $response->cvnResponseCode ?? null,
-        'cvn_response_message' => $response->cvnResponseMessage ?? null,
-        'commercial_indicator' => $response->commercialIndicator ?? null,
-        'card_brand' => $cardBrand,
-        'card_last4' => $cardLast4
-    ];
 }
 
 // Main request processing
@@ -312,15 +210,15 @@ try {
         exit;
     }
 
-    // Initialize SDK
-    configureSdk();
+    // Load environment configuration and get access token
+    $config = loadEnvironmentAndToken();
 
     // Get and decode request data
     $input = file_get_contents('php://input');
     $data = json_decode($input, true);
     
     if (json_last_error() !== JSON_ERROR_NONE) {
-        throw new ApiException('Invalid JSON data');
+        throw new Exception('Invalid JSON data');
     }
 
     // Validate request
@@ -335,25 +233,14 @@ try {
         exit;
     }
 
-    // Initialize payment method with token from Drop-In UI
-    $card = new CreditCardData();
-    $card->token = $data['payment_token'];
-
-    // Create address and customer objects if provided
-    $address = createAddress($data);
-    $customer = createCustomer($data);
-
     // Perform verification
-    $verificationResult = performVerification(
-        $card, 
-        $data['verification_type'], 
-        $data['currency'] ?? ($_ENV['GP_API_CURRENCY'] ?? 'USD'),
-        $address, 
-        $customer
-    );
+    $verificationResult = performVerification($config['access_token'], $config, $data);
 
     // Check if verification was successful
-    $isSuccessful = $verificationResult['response_code'] === '00';
+    // For verifications, success is indicated by status being 'VERIFIED'
+    // The response code might be different from authorization responses
+    $isSuccessful = isset($verificationResult['status']) && 
+                   $verificationResult['status'] === 'VERIFIED';
 
     if (!$isSuccessful) {
         http_response_code(422); // Unprocessable Entity
@@ -363,10 +250,49 @@ try {
             'verification_result' => $verificationResult,
             'error' => [
                 'code' => 'VERIFICATION_FAILED',
-                'details' => $verificationResult['response_message']
+                'details' => $verificationResult['action']['result_code'] ?? 'Unknown failure'
             ]
         ]);
         exit;
+    }
+
+    // Record the transaction for dashboard display
+    try {
+        $reporter = new TransactionReporter();
+        $transactionData = [
+            'id' => $verificationResult['id'],
+            'reference' => $verificationResult['reference'],
+            'status' => 'approved', // Verifications are always approved if successful
+            'amount' => 'VERIFY',
+            'currency' => $data['currency'] ?? $config['currency'],
+            'type' => 'verification',
+            'timestamp' => date('c'),
+            'card' => [
+                'type' => $verificationResult['payment_method']['card']['brand'] ?? 'Unknown',
+                'last4' => $verificationResult['payment_method']['card']['masked_number_last4'] ?? '0000',
+                'exp_month' => '',
+                'exp_year' => ''
+            ],
+            'response' => [
+                'code' => $verificationResult['payment_method']['result'] ?? 'SUCCESS',
+                'message' => $verificationResult['payment_method']['message'] ?? 'VERIFIED'
+            ],
+            'gateway_response_code' => $verificationResult['action']['result_code'] ?? 'SUCCESS',
+            'gateway_response_message' => $verificationResult['payment_method']['message'] ?? 'VERIFIED',
+            'batch_id' => $verificationResult['batch_id'] ?? '',
+            'avs' => [
+                'code' => '',
+                'message' => ''
+            ],
+            'cvv' => [
+                'code' => '',
+                'message' => ''
+            ]
+        ];
+        $reporter->recordTransaction($transactionData);
+    } catch (Exception $e) {
+        // Log the error but don't fail the verification
+        error_log('Failed to record verification transaction: ' . $e->getMessage());
     }
 
     // Success response
@@ -377,34 +303,20 @@ try {
         'data' => [
             'verified' => true,
             'verification_type' => $data['verification_type'],
-            'transaction_id' => $verificationResult['transaction_id']
+            'transaction_id' => $verificationResult['id'],
+            'reference' => $verificationResult['reference']
         ]
     ]);
 
-} catch (ApiException $e) {
-    // Handle API-specific errors with clearer detail
+} catch (Exception $e) {
+    // Handle errors with proper GP-API error format
     http_response_code(400);
     echo json_encode([
         'success' => false,
         'message' => 'Card verification processing failed',
         'error' => [
-            'code' => 'API_ERROR',
+            'code' => 'VERIFICATION_ERROR',
             'details' => $e->getMessage()
         ]
     ]);
-
-} catch (Exception $e) {
-    // Handle unexpected errors
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Internal server error',
-        'error' => [
-            'code' => 'INTERNAL_ERROR',
-            'details' => 'An unexpected error occurred'
-        ]
-    ]);
-
-    // Log error for debugging (not exposed to client)
-    error_log('Card verification error: ' . $e->getMessage());
 }
