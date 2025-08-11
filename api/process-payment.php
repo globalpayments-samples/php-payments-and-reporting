@@ -79,10 +79,10 @@ try {
         ? \GlobalPayments\Api\Entities\Enums\Environment::PRODUCTION 
         : \GlobalPayments\Api\Entities\Enums\Environment::TEST;
     $config->channel = \GlobalPayments\Api\Entities\Enums\Channel::CardNotPresent;
-    // Ensure token scope includes transaction processing accounts so SDK can populate account_id/account_name
-    $config->permissions = ['TRN_POST_Authorize', 'PMT_POST_Create_Single'];
     // Set processing country from env to match merchant setup (defaults to US)
     $config->country = $_ENV['GP_API_COUNTRY'] ?? 'US';
+    // Note: Account ID is automatically populated from the access token
+    // The account ID from environment is used for validation
     // Optional: if merchant id is configured, set it to improve routing (not required)
     if (!empty($_ENV['GP_API_MERCHANT_ID'])) {
         $config->merchantId = $_ENV['GP_API_MERCHANT_ID'];
@@ -93,9 +93,22 @@ try {
     // Preflight: ensure token has transaction processing account scope
     try {
         $tokenInfo = \GlobalPayments\Api\Services\GpApiService::generateTransactionKey($config);
+        
+        // Log account information for debugging
+        error_log("GP-API Token Info - Account ID: " . ($tokenInfo->transactionProcessingAccountID ?? 'NOT_SET'));
+        error_log("GP-API Token Info - Account Name: " . ($tokenInfo->transactionProcessingAccountName ?? 'NOT_SET'));
+        error_log("GP-API Token Info - Token: " . ($tokenInfo->accessToken ?? 'NOT_SET'));
+        
         if (empty($tokenInfo->transactionProcessingAccountID) || empty($tokenInfo->transactionProcessingAccountName)) {
-            throw new Exception('GP-API access token lacks transaction processing account scope. Check TRN_POST_Authorize permission and merchant/account assignment.');
+            throw new Exception('GP-API access token lacks transaction processing account scope. Check merchant/account assignment.');
         }
+        
+        // Validate that the account ID matches what we expect
+        $expectedAccountId = $_ENV['GP_API_ACCOUNT_ID'] ?? null;
+        if ($expectedAccountId && $tokenInfo->transactionProcessingAccountID !== $expectedAccountId) {
+            error_log("Account ID mismatch - Expected: $expectedAccountId, Got: " . $tokenInfo->transactionProcessingAccountID);
+        }
+        
     } catch (Exception $e) {
         throw new Exception('GP-API token preflight failed: ' . $e->getMessage(), 500);
     }
@@ -147,8 +160,24 @@ try {
     // Execute the charge
     $result = $chargeBuilder->execute();
 
+            // Debug: Log the full response structure to understand card data
+        $logger = new \GlobalPayments\Examples\Logger('logs', 'DEBUG');
+        $logger->info(
+            'Payment response structure debug',
+            [
+                'result_class' => get_class($result),
+                'result_properties' => get_object_vars($result),
+                'has_paymentMethod' => isset($result->paymentMethod),
+                'paymentMethod_properties' => isset($result->paymentMethod) ? get_object_vars($result->paymentMethod) : null,
+                'has_card' => isset($result->paymentMethod->card),
+                'card_properties' => isset($result->paymentMethod->card) ? get_object_vars($result->paymentMethod->card) : null,
+                'request_card_info' => $data['card_info'] ?? null,
+                'token_value' => $tokenValue,
+            ],
+            'system'
+        );
+
     // Log successful transaction
-    $logger = new \GlobalPayments\Examples\Logger();
     $logger->info(
         'Payment processed successfully',
         [
@@ -164,6 +193,131 @@ try {
         ],
         'payment'
     );
+
+    // Record transaction for dashboard display
+    try {
+        $reporter = new GlobalPayments\Examples\TransactionReporter();
+        // Extract card information with fallback options
+        $cardType = 'Unknown';
+        $cardLast4 = null;
+        $cardExpMonth = '';
+        $cardExpYear = '';
+
+        // Try multiple possible locations for card data
+        if (isset($result->paymentMethod) && isset($result->paymentMethod->card)) {
+            $card = $result->paymentMethod->card;
+            $cardType = $card->brand ?? $card->cardType ?? $card->type ?? 'Unknown';
+            $cardLast4 = $card->maskedNumberLast4 ?? $card->lastFourDigits ?? $card->last4 ?? $card->maskedNumber ?? null;
+            $cardExpMonth = $card->expMonth ?? $card->expiryMonth ?? '';
+            $cardExpYear = $card->expYear ?? $card->expiryYear ?? '';
+        } elseif (isset($result->card)) {
+            // Direct card property
+            $card = $result->card;
+            $cardType = $card->brand ?? $card->cardType ?? $card->type ?? 'Unknown';
+            $cardLast4 = $card->maskedNumberLast4 ?? $card->lastFourDigits ?? $card->last4 ?? $card->maskedNumber ?? null;
+            $cardExpMonth = $card->expMonth ?? $card->expiryMonth ?? '';
+            $cardExpYear = $card->expYear ?? $card->expiryYear ?? '';
+        }
+
+        // Also try to extract from payment token if available
+        if ($cardLast4 === null && isset($tokenValue)) {
+            // Log the token for debugging
+            $logger->info(
+                'Attempting to extract card info from token',
+                [
+                    'token_value' => $tokenValue,
+                    'token_length' => strlen($tokenValue),
+                ],
+                'system'
+            );
+            
+            // The payment token might contain card information
+            // This is a fallback - the actual implementation depends on GP-API token structure
+            // For now, we'll rely on the card_info from the request
+        }
+
+        // Use card information from request if available (from tokenization response)
+        if (isset($data['card_info'])) {
+            $cardInfo = $data['card_info'];
+            
+            // Log the card info for debugging
+            $logger->info(
+                'Card info from request',
+                [
+                    'card_info' => $cardInfo,
+                    'current_card_type' => $cardType,
+                    'current_card_last4' => $cardLast4,
+                ],
+                'system'
+            );
+            
+            // Also log to error_log for immediate debugging
+            error_log('Card info from request: ' . json_encode($cardInfo));
+            
+            // Always prefer card info from request over API response for consistency
+            if (!empty($cardInfo['type'])) {
+                $cardType = $cardInfo['type'];
+            }
+            if (!empty($cardInfo['last4'])) {
+                $cardLast4 = $cardInfo['last4'];
+            }
+            if (!empty($cardInfo['exp_month'])) {
+                $cardExpMonth = $cardInfo['exp_month'];
+            }
+            if (!empty($cardInfo['exp_year'])) {
+                $cardExpYear = $cardInfo['exp_year'];
+            }
+        } else {
+            error_log('No card_info found in request data');
+        }
+
+        // Log the final card information that will be stored
+        $logger->info(
+            'Final card information for storage',
+            [
+                'card_type' => $cardType,
+                'card_last4' => $cardLast4,
+                'card_exp_month' => $cardExpMonth,
+                'card_exp_year' => $cardExpYear,
+            ],
+            'system'
+        );
+
+        $transactionData = [
+            'id' => $result->transactionId,
+            'reference' => $orderId,
+            'status' => 'approved',
+            'amount' => (string)$amount,
+            'currency' => $currency,
+            'type' => 'payment',
+            'timestamp' => date('c'),
+            'card' => [
+                'type' => $cardType,
+                'last4' => $cardLast4,
+                'exp_month' => $cardExpMonth,
+                'exp_year' => $cardExpYear
+            ],
+            'response' => [
+                'code' => $result->responseCode ?? 'SUCCESS',
+                'message' => $result->responseMessage ?? 'Approved'
+            ],
+            'gateway_response_code' => $result->responseCode ?? 'SUCCESS',
+            'gateway_response_message' => $result->responseMessage ?? 'Approved',
+            'batch_id' => $result->batchId ?? '',
+            'avs' => [
+                'code' => $result->avsResponseCode ?? '',
+                'message' => $result->avsResponseMessage ?? ''
+            ],
+            'cvv' => [
+                'code' => $result->cvnResponseCode ?? '',
+                'message' => $result->cvnResponseMessage ?? ''
+            ]
+        ];
+        $reporter->recordTransaction($transactionData);
+    } catch (Exception $e) {
+        // Log the error but don't fail the payment
+        error_log('Failed to record payment transaction: ' . $e->getMessage());
+    }
 
     // Return success response
     http_response_code(200);
