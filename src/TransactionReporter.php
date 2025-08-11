@@ -797,6 +797,11 @@ class TransactionReporter
                 if ($transactionType === 'verification' && strpos($transactionId, 'VER_') === 0) {
                     return true;
                 }
+                
+                // Allow payment transactions (they have alphanumeric IDs starting with TRN_)
+                if ($transactionType === 'payment' && strpos($transactionId, 'TRN_') === 0) {
+                    return true;
+                }
 
                 // For non-verification transactions, only allow numeric IDs that are likely real
                 // Filter out common test patterns

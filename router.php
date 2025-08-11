@@ -55,11 +55,33 @@ if (in_array($clean_path, ['/dashboard.html', '/card-verification.html', '/payme
     return true;
 }
 
-// Check if it's a public file
+// Handle static assets (CSS, JS, images) from public directory
 $public_file = __DIR__ . '/public' . $clean_path;
 if (file_exists($public_file) && is_file($public_file)) {
-    // Let PHP serve the file naturally for CSS, JS, images, etc.
-    return false;
+    // Set appropriate content type based on file extension
+    $extension = pathinfo($clean_path, PATHINFO_EXTENSION);
+    $content_types = [
+        'css' => 'text/css',
+        'js' => 'application/javascript',
+        'png' => 'image/png',
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'gif' => 'image/gif',
+        'svg' => 'image/svg+xml',
+        'ico' => 'image/x-icon',
+        'woff' => 'font/woff',
+        'woff2' => 'font/woff2',
+        'ttf' => 'font/ttf',
+        'eot' => 'application/vnd.ms-fontobject'
+    ];
+    
+    if (isset($content_types[$extension])) {
+        header('Content-Type: ' . $content_types[$extension]);
+    }
+    
+    // Serve the file directly
+    readfile($public_file);
+    return true;
 }
 
 // Check if it's a root-level file
