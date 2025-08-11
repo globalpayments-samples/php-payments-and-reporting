@@ -108,13 +108,14 @@ class TransactionReporterIntegrationTest extends TestCase
 
         // Retrieve all local transactions
         $retrieved = $this->reporter->getLocalTransactions();
+        $transactions = $retrieved['data']['transactions'] ?? [];
 
-        $this->assertIsArray($retrieved);
-        $this->assertGreaterThanOrEqual(3, count($retrieved));
+        $this->assertIsArray($transactions);
+        $this->assertGreaterThanOrEqual(3, count($transactions));
 
         // Verify transactions were stored correctly
         $foundTransactions = [];
-        foreach ($retrieved as $transaction) {
+        foreach ($transactions as $transaction) {
             if (in_array($transaction['id'], ['1001', '1002', '1003'])) {
                 $foundTransactions[$transaction['id']] = $transaction;
             }
@@ -182,7 +183,8 @@ class TransactionReporterIntegrationTest extends TestCase
         }
 
         // Test filtering for today only
-        $todayTransactions = $this->reporter->getLocalTransactions('2025-07-29', '2025-07-29');
+        $todayResponse = $this->reporter->getLocalTransactions('2025-07-29', '2025-07-29');
+        $todayTransactions = $todayResponse['data']['transactions'] ?? [];
         $todayIds = array_column($todayTransactions, 'id');
         
         $this->assertContains('2002', $todayIds);
@@ -190,7 +192,8 @@ class TransactionReporterIntegrationTest extends TestCase
         $this->assertNotContains('2003', $todayIds);
 
         // Test filtering for yesterday to today
-        $rangeTransactions = $this->reporter->getLocalTransactions('2025-07-28', '2025-07-29');
+        $rangeResponse = $this->reporter->getLocalTransactions('2025-07-28', '2025-07-29');
+        $rangeTransactions = $rangeResponse['data']['transactions'] ?? [];
         $rangeIds = array_column($rangeTransactions, 'id');
         
         $this->assertContains('2001', $rangeIds);
@@ -198,7 +201,8 @@ class TransactionReporterIntegrationTest extends TestCase
         $this->assertNotContains('2003', $rangeIds);
 
         // Test filtering for future dates (should be empty)
-        $futureTransactions = $this->reporter->getLocalTransactions('2025-08-01', '2025-08-02');
+        $futureResponse = $this->reporter->getLocalTransactions('2025-08-01', '2025-08-02');
+        $futureTransactions = $futureResponse['data']['transactions'] ?? [];
         $futureIds = array_column($futureTransactions, 'id');
         
         $this->assertNotContains('DATE_001', $futureIds);
@@ -223,7 +227,8 @@ class TransactionReporterIntegrationTest extends TestCase
         }
 
         // Test limiting results
-        $limitedTransactions = $this->reporter->getLocalTransactions(null, null, 5);
+        $limitedResponse = $this->reporter->getLocalTransactions(null, null, 5);
+        $limitedTransactions = $limitedResponse['data']['transactions'] ?? [];
         
         // Should get at most 5 transactions total, and at least some should be our test transactions
         $this->assertLessThanOrEqual(5, count($limitedTransactions));
@@ -236,8 +241,10 @@ class TransactionReporterIntegrationTest extends TestCase
         $this->assertGreaterThan(0, count($limitTestTransactions));
 
         // Test that transactions are sorted by timestamp descending (newest first)
+        $allResponse = $this->reporter->getLocalTransactions(null, null, 100);
+        $allTransactions = $allResponse['data']['transactions'] ?? [];
         $allTestTransactions = array_filter(
-            $this->reporter->getLocalTransactions(null, null, 100),
+            $allTransactions,
             function($tx) {
                 return in_array($tx['id'], array_map(function($i) { return sprintf('%d', 3000 + $i); }, range(1, 15)));
             }
@@ -290,9 +297,10 @@ class TransactionReporterIntegrationTest extends TestCase
         $this->reporter->recordTransaction($originalTransaction);
 
         $retrieved = $this->reporter->getLocalTransactions();
+        $transactions = $retrieved['data']['transactions'] ?? [];
         $found = null;
 
-        foreach ($retrieved as $transaction) {
+        foreach ($transactions as $transaction) {
             if ($transaction['id'] === '4001') {
                 $found = $transaction;
                 break;
@@ -330,9 +338,10 @@ class TransactionReporterIntegrationTest extends TestCase
         $this->reporter->recordTransaction($minimalTransaction);
 
         $retrieved = $this->reporter->getLocalTransactions();
+        $transactions = $retrieved['data']['transactions'] ?? [];
         $found = null;
 
-        foreach ($retrieved as $transaction) {
+        foreach ($transactions as $transaction) {
             if ($transaction['id'] === '5001') {
                 $found = $transaction;
                 break;
@@ -349,7 +358,7 @@ class TransactionReporterIntegrationTest extends TestCase
         $this->assertEquals('USD', $found['currency']);
         $this->assertEquals('verification', $found['type']);
         $this->assertEquals('Unknown', $found['card']['type']);
-        $this->assertEquals('0000', $found['card']['last4']);
+        $this->assertNull($found['card']['last4']);
         $this->assertEquals('Unknown', $found['response']['code']);
         $this->assertEquals('Transaction processed', $found['response']['message']);
         

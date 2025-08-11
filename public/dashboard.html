@@ -306,7 +306,7 @@
                         <td>
                             <div class="card-info">
                                 <span class="card-type">${transaction.card.type || 'N/A'}</span>
-                                <span>****${transaction.card.last4 || 'N/A'}</span>
+                                <span>****${transaction.card.last4 || 'UNKNOWN'}</span>
                             </div>
                         </td>
                         <td>
@@ -570,7 +570,7 @@
                                     <span>${transaction.card.type || 'N/A'}</span>
                                     
                                     <strong>Card Number:</strong>
-                                    <span style="font-family: monospace;">****${transaction.card.last4 || 'N/A'}</span>
+                                    <span style="font-family: monospace;">****${transaction.card.last4 || 'UNKNOWN'}</span>
                                     
                                     <strong>Expiry:</strong>
                                     <span>${transaction.card.exp_month || 'N/A'}/${transaction.card.exp_year || 'N/A'}</span>
@@ -849,7 +849,7 @@
                         amount,
                         t.currency || 'USD',
                         t.card.type || 'N/A',
-                        t.card.last4 ? '****' + t.card.last4 : 'N/A',
+                        t.card.last4 ? '****' + t.card.last4 : 'UNKNOWN',
                         t.response.code || 'N/A',
                         t.response.message || 'N/A',
                         t.reference || 'N/A',

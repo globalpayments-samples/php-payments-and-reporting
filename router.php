@@ -49,6 +49,12 @@ if ($clean_path === '/' || $clean_path === '/index.html') {
     return true;
 }
 
+// Handle specific HTML files
+if (in_array($clean_path, ['/dashboard.html', '/card-verification.html', '/payment.html'])) {
+    require __DIR__ . '/public' . $clean_path;
+    return true;
+}
+
 // Check if it's a public file
 $public_file = __DIR__ . '/public' . $clean_path;
 if (file_exists($public_file) && is_file($public_file)) {

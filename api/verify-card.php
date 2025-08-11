@@ -269,7 +269,7 @@ try {
             'timestamp' => date('c'),
             'card' => [
                 'type' => $verificationResult['payment_method']['card']['brand'] ?? 'Unknown',
-                'last4' => $verificationResult['payment_method']['card']['masked_number_last4'] ?? '0000',
+                'last4' => $verificationResult['payment_method']['card']['masked_number_last4'] ?? null,
                 'exp_month' => '',
                 'exp_year' => ''
             ],

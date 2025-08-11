@@ -190,12 +190,19 @@ try {
 } catch (\GlobalPayments\Api\Entities\Exceptions\GatewayException $e) {
     // Log API errors
     error_log("GlobalPayments API error: " . $e->getMessage());
-    $status = 500;
+    
+    // Extract the actual GP-API error code and details
+    $gpErrorCode = $e->responseCode ?? 'UNKNOWN_ERROR';
     $errorDetails = $e->getMessage();
-    // Attempt to extract response details if available
-    if (!empty($e->responseCode)) {
-        $errorDetails = sprintf('Status Code: %s - %s', $e->responseCode, $e->getMessage());
-        $status = ($e->responseCode === 'INVALID_REQUEST_DATA') ? 400 : 500;
+    $status = 500;
+    
+    // Set appropriate HTTP status based on error type
+    if (in_array($gpErrorCode, ['INVALID_REQUEST_DATA', 'MANDATORY_DATA_MISSING'])) {
+        $status = 400;
+    } elseif (in_array($gpErrorCode, ['ACTION_NOT_AUTHORIZED', 'PERMISSION_NOT_ENABLED'])) {
+        $status = 403;
+    } elseif (in_array($gpErrorCode, ['DECLINED', 'CARD_DECLINED'])) {
+        $status = 422;
     }
     
     http_response_code($status);
@@ -203,8 +210,10 @@ try {
         'success' => false,
         'message' => 'Payment processing failed',
         'error' => [
-            'code' => 'PAYMENT_ERROR',
-            'details' => $errorDetails
+            'code' => $gpErrorCode,
+            'details' => $errorDetails,
+            'gp_response_code' => $e->responseCode ?? null,
+            'gp_response_message' => $e->responseMessage ?? null
         ]
     ], JSON_THROW_ON_ERROR);
 
@@ -216,8 +225,10 @@ try {
         'success' => false,
         'message' => 'Payment processing failed',
         'error' => [
-            'code' => 'PAYMENT_ERROR',
-            'details' => $e->getMessage()
+            'code' => 'API_EXCEPTION',
+            'details' => $e->getMessage(),
+            'gp_response_code' => null,
+            'gp_response_message' => null
         ]
     ], JSON_THROW_ON_ERROR);
 

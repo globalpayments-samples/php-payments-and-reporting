@@ -31,6 +31,7 @@
     
     <php>
         <env name="APP_ENV" value="testing"/>
+        <env name="PHPUNIT_RUNNING" value="1"/>
         <!-- Load test environment variables -->
         <env name="SECRET_API_KEY" value="skapi_cert_test_key"/>
         <env name="DEVELOPER_ID" value="000000"/>

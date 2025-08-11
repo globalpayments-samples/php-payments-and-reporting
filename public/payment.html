@@ -637,7 +637,18 @@
                     if (result.success) {
                         this.showSuccess(result.data);
                     } else {
-                        this.showError('Payment failed: ' + (result.message || 'Unknown error occurred'));
+                        // Extract and display the actual GP-API error code
+                        const errorCode = result.error?.code || 'UNKNOWN_ERROR';
+                        const errorDetails = result.error?.details || result.message || 'Unknown error occurred';
+                        const gpResponseCode = result.error?.gp_response_code;
+                        const gpResponseMessage = result.error?.gp_response_message;
+                        
+                        let errorMessage = `Payment failed: ${errorDetails}`;
+                        if (gpResponseCode) {
+                            errorMessage += ` (GP-API Code: ${gpResponseCode})`;
+                        }
+                        
+                        this.showError(errorMessage);
                     }
 
                 } catch (error) {

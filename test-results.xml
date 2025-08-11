@@ -1,43 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
-  <testsuite name="" tests="17" assertions="125" errors="0" warnings="0" failures="2" skipped="0" time="0.119335">
-    <testsuite name="Unit Tests" tests="17" assertions="125" errors="0" warnings="0" failures="2" skipped="0" time="0.119335">
-      <testsuite name="GlobalPayments\Examples\Tests\TransactionReporterIntegrationTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterIntegrationTest.php" tests="5" assertions="64" errors="0" warnings="0" failures="0" skipped="0" time="0.096470">
-        <testcase name="testRecordAndRetrieveLocalTransactions" class="GlobalPayments\Examples\Tests\TransactionReporterIntegrationTest" classname="GlobalPayments.Examples.Tests.TransactionReporterIntegrationTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterIntegrationTest.php" line="40" assertions="16" time="0.018522"/>
-        <testcase name="testDateRangeFiltering" class="GlobalPayments\Examples\Tests\TransactionReporterIntegrationTest" classname="GlobalPayments.Examples.Tests.TransactionReporterIntegrationTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterIntegrationTest.php" line="147" assertions="9" time="0.014708"/>
-        <testcase name="testTransactionLimitHandling" class="GlobalPayments\Examples\Tests\TransactionReporterIntegrationTest" classname="GlobalPayments.Examples.Tests.TransactionReporterIntegrationTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterIntegrationTest.php" line="209" assertions="9" time="0.049258"/>
-        <testcase name="testTransactionDataIntegrity" class="GlobalPayments\Examples\Tests\TransactionReporterIntegrationTest" classname="GlobalPayments.Examples.Tests.TransactionReporterIntegrationTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterIntegrationTest.php" line="257" assertions="17" time="0.004367"/>
-        <testcase name="testDefaultValueHandling" class="GlobalPayments\Examples\Tests\TransactionReporterIntegrationTest" classname="GlobalPayments.Examples.Tests.TransactionReporterIntegrationTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterIntegrationTest.php" line="323" assertions="13" time="0.009615"/>
-      </testsuite>
-      <testsuite name="GlobalPayments\Examples\Tests\TransactionReporterTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php" tests="12" assertions="61" errors="0" warnings="0" failures="2" skipped="0" time="0.022865">
-        <testcase name="testFormatTransactionForDashboard" class="GlobalPayments\Examples\Tests\TransactionReporterTest" classname="GlobalPayments.Examples.Tests.TransactionReporterTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php" line="93" assertions="16" time="0.002018">
-          <failure type="PHPUnit\Framework\ExpectationFailedException">GlobalPayments\Examples\Tests\TransactionReporterTest::testFormatTransactionForDashboard
-Failed asserting that two strings are equal.
---- Expected
-+++ Actual
-@@ @@
--'REF123'
-+'REF_6891f52f4b879'
-
-/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php:120</failure>
-        </testcase>
-        <testcase name="testFormatTransactionWithVerificationAmount" class="GlobalPayments\Examples\Tests\TransactionReporterTest" classname="GlobalPayments.Examples.Tests.TransactionReporterTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php" line="125" assertions="2" time="0.000172"/>
-        <testcase name="testGetTransactionType" class="GlobalPayments\Examples\Tests\TransactionReporterTest" classname="GlobalPayments.Examples.Tests.TransactionReporterTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php" line="138" assertions="6" time="0.000112"/>
-        <testcase name="testGetResponseCode" class="GlobalPayments\Examples\Tests\TransactionReporterTest" classname="GlobalPayments.Examples.Tests.TransactionReporterTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php" line="178" assertions="5" time="0.000241"/>
-        <testcase name="testGetResponseMessage" class="GlobalPayments\Examples\Tests\TransactionReporterTest" classname="GlobalPayments.Examples.Tests.TransactionReporterTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php" line="223" assertions="4" time="0.000151"/>
-        <testcase name="testGetTransactionStatus" class="GlobalPayments\Examples\Tests\TransactionReporterTest" classname="GlobalPayments.Examples.Tests.TransactionReporterTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php" line="256" assertions="7" time="0.000165"/>
-        <testcase name="testValidateTransactionAuthenticity" class="GlobalPayments\Examples\Tests\TransactionReporterTest" classname="GlobalPayments.Examples.Tests.TransactionReporterTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php" line="306" assertions="6" time="0.000407"/>
-        <testcase name="testRecordTransaction" class="GlobalPayments\Examples\Tests\TransactionReporterTest" classname="GlobalPayments.Examples.Tests.TransactionReporterTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php" line="342" assertions="0" time="0.004179"/>
-        <testcase name="testGetLocalTransactions" class="GlobalPayments\Examples\Tests\TransactionReporterTest" classname="GlobalPayments.Examples.Tests.TransactionReporterTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php" line="365" assertions="6" time="0.006266"/>
-        <testcase name="testGetLocalTransactionsWithDateFilter" class="GlobalPayments\Examples\Tests\TransactionReporterTest" classname="GlobalPayments.Examples.Tests.TransactionReporterTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php" line="400" assertions="2" time="0.008567">
-          <failure type="PHPUnit\Framework\AssertionFailedError">GlobalPayments\Examples\Tests\TransactionReporterTest::testGetLocalTransactionsWithDateFilter
-Date-filtered transaction not found. Transaction IDs found: 4001, 4001, 4001, 4001, 4001, 1003, 1003, 1003, 1003, 1003. Total transactions: 100
-
-/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php:434</failure>
-        </testcase>
-        <testcase name="testTimestampHandling" class="GlobalPayments\Examples\Tests\TransactionReporterTest" classname="GlobalPayments.Examples.Tests.TransactionReporterTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php" line="445" assertions="4" time="0.000315"/>
-        <testcase name="testCardDataHandling" class="GlobalPayments\Examples\Tests\TransactionReporterTest" classname="GlobalPayments.Examples.Tests.TransactionReporterTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterTest.php" line="484" assertions="3" time="0.000272"/>
-      </testsuite>
-    </testsuite>
+  <testsuite name="GlobalPayments\Examples\Tests\TransactionReporterIntegrationTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterIntegrationTest.php" tests="5" assertions="64" errors="0" warnings="0" failures="0" skipped="0" time="0.105902">
+    <testcase name="testRecordAndRetrieveLocalTransactions" class="GlobalPayments\Examples\Tests\TransactionReporterIntegrationTest" classname="GlobalPayments.Examples.Tests.TransactionReporterIntegrationTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterIntegrationTest.php" line="40" assertions="16" time="0.016128"/>
+    <testcase name="testDateRangeFiltering" class="GlobalPayments\Examples\Tests\TransactionReporterIntegrationTest" classname="GlobalPayments.Examples.Tests.TransactionReporterIntegrationTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterIntegrationTest.php" line="148" assertions="9" time="0.006412"/>
+    <testcase name="testTransactionLimitHandling" class="GlobalPayments\Examples\Tests\TransactionReporterIntegrationTest" classname="GlobalPayments.Examples.Tests.TransactionReporterIntegrationTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterIntegrationTest.php" line="213" assertions="9" time="0.068410"/>
+    <testcase name="testTransactionDataIntegrity" class="GlobalPayments\Examples\Tests\TransactionReporterIntegrationTest" classname="GlobalPayments.Examples.Tests.TransactionReporterIntegrationTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterIntegrationTest.php" line="264" assertions="17" time="0.006726"/>
+    <testcase name="testDefaultValueHandling" class="GlobalPayments\Examples\Tests\TransactionReporterIntegrationTest" classname="GlobalPayments.Examples.Tests.TransactionReporterIntegrationTest" file="/home/radoslavsheytanov/Documents/card-authentication/card-authentication/tests/TransactionReporterIntegrationTest.php" line="331" assertions="13" time="0.008226"/>
   </testsuite>
 </testsuites>
