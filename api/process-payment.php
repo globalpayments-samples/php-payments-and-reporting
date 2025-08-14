@@ -9,6 +9,16 @@ error_reporting(E_ALL);
 ini_set('display_errors', 0); // Don't display errors to user
 ini_set('log_errors', 1);
 
+/**
+ * Helper function to safely access object properties without triggering magic method warnings
+ * @param object $object The object to check
+ * @param string $property The property name to access
+ * @return mixed|null The property value or null if not accessible
+ */
+function safeGetProperty($object, $property) {
+    return property_exists($object, $property) ? $object->$property : null;
+}
+
 // Set headers first
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -162,15 +172,17 @@ try {
 
             // Debug: Log the full response structure to understand card data
         $logger = new \GlobalPayments\Examples\Logger('logs', 'DEBUG');
+
+        
         $logger->info(
             'Payment response structure debug',
             [
                 'result_class' => get_class($result),
                 'result_properties' => get_object_vars($result),
-                'has_paymentMethod' => isset($result->paymentMethod),
-                'paymentMethod_properties' => isset($result->paymentMethod) ? get_object_vars($result->paymentMethod) : null,
-                'has_card' => isset($result->paymentMethod->card),
-                'card_properties' => isset($result->paymentMethod->card) ? get_object_vars($result->paymentMethod->card) : null,
+                'has_paymentMethod' => property_exists($result, 'paymentMethod'),
+                'paymentMethod_properties' => safeGetProperty($result, 'paymentMethod') ? get_object_vars(safeGetProperty($result, 'paymentMethod')) : null,
+                'has_card' => property_exists($result, 'paymentMethod') && property_exists(safeGetProperty($result, 'paymentMethod'), 'card'),
+                'card_properties' => (property_exists($result, 'paymentMethod') && property_exists(safeGetProperty($result, 'paymentMethod'), 'card')) ? get_object_vars(safeGetProperty(safeGetProperty($result, 'paymentMethod'), 'card')) : null,
                 'request_card_info' => $data['card_info'] ?? null,
                 'token_value' => $tokenValue,
             ],
@@ -185,9 +197,9 @@ try {
             'amount' => (float)$amount,
             'currency' => $currency,
             'order_id' => $orderId,
-            'transaction_id' => $result->transactionId,
-            'response_code' => $result->responseCode,
-            'response_message' => $result->responseMessage,
+            'transaction_id' => safeGetProperty($result, 'transactionId'),
+            'response_code' => safeGetProperty($result, 'responseCode'),
+            'response_message' => safeGetProperty($result, 'responseMessage'),
             'status' => 'approved',
             'timestamp' => date('c')
         ],
@@ -204,19 +216,20 @@ try {
         $cardExpYear = '';
 
         // Try multiple possible locations for card data
-        if (isset($result->paymentMethod) && isset($result->paymentMethod->card)) {
-            $card = $result->paymentMethod->card;
-            $cardType = $card->brand ?? $card->cardType ?? $card->type ?? 'Unknown';
-            $cardLast4 = $card->maskedNumberLast4 ?? $card->lastFourDigits ?? $card->last4 ?? $card->maskedNumber ?? null;
-            $cardExpMonth = $card->expMonth ?? $card->expiryMonth ?? '';
-            $cardExpYear = $card->expYear ?? $card->expiryYear ?? '';
-        } elseif (isset($result->card)) {
+        if (property_exists($result, 'paymentMethod') && property_exists(safeGetProperty($result, 'paymentMethod'), 'card')) {
+            $card = safeGetProperty($result, 'paymentMethod');
+            $card = safeGetProperty($card, 'card');
+            $cardType = safeGetProperty($card, 'brand') ?? safeGetProperty($card, 'cardType') ?? safeGetProperty($card, 'type') ?? 'Unknown';
+            $cardLast4 = safeGetProperty($card, 'maskedNumberLast4') ?? safeGetProperty($card, 'lastFourDigits') ?? safeGetProperty($card, 'last4') ?? safeGetProperty($card, 'maskedNumber') ?? null;
+            $cardExpMonth = safeGetProperty($card, 'expMonth') ?? safeGetProperty($card, 'expiryMonth') ?? '';
+            $cardExpYear = safeGetProperty($card, 'expYear') ?? safeGetProperty($card, 'expiryYear') ?? '';
+        } elseif (property_exists($result, 'card')) {
             // Direct card property
-            $card = $result->card;
-            $cardType = $card->brand ?? $card->cardType ?? $card->type ?? 'Unknown';
-            $cardLast4 = $card->maskedNumberLast4 ?? $card->lastFourDigits ?? $card->last4 ?? $card->maskedNumber ?? null;
-            $cardExpMonth = $card->expMonth ?? $card->expiryMonth ?? '';
-            $cardExpYear = $card->expYear ?? $card->expiryYear ?? '';
+            $card = safeGetProperty($result, 'card');
+            $cardType = safeGetProperty($card, 'brand') ?? safeGetProperty($card, 'cardType') ?? safeGetProperty($card, 'type') ?? 'Unknown';
+            $cardLast4 = safeGetProperty($card, 'maskedNumberLast4') ?? safeGetProperty($card, 'lastFourDigits') ?? safeGetProperty($card, 'last4') ?? safeGetProperty($card, 'maskedNumber') ?? null;
+            $cardExpMonth = safeGetProperty($card, 'expMonth') ?? safeGetProperty($card, 'expiryMonth') ?? '';
+            $cardExpYear = safeGetProperty($card, 'expYear') ?? safeGetProperty($card, 'expiryYear') ?? '';
         }
 
         // Also try to extract from payment token if available
@@ -284,7 +297,7 @@ try {
         );
 
         $transactionData = [
-            'id' => $result->transactionId,
+            'id' => safeGetProperty($result, 'transactionId'),
             'reference' => $orderId,
             'status' => 'approved',
             'amount' => (string)$amount,
@@ -298,19 +311,19 @@ try {
                 'exp_year' => $cardExpYear
             ],
             'response' => [
-                'code' => $result->responseCode ?? 'SUCCESS',
-                'message' => $result->responseMessage ?? 'Approved'
+                'code' => safeGetProperty($result, 'responseCode') ?? 'SUCCESS',
+                'message' => safeGetProperty($result, 'responseMessage') ?? 'Approved'
             ],
-            'gateway_response_code' => $result->responseCode ?? 'SUCCESS',
-            'gateway_response_message' => $result->responseMessage ?? 'Approved',
-            'batch_id' => $result->batchId ?? '',
+            'gateway_response_code' => safeGetProperty($result, 'responseCode') ?? 'SUCCESS',
+            'gateway_response_message' => safeGetProperty($result, 'responseMessage') ?? 'Approved',
+            'batch_id' => safeGetProperty($result, 'batchId') ?? '',
             'avs' => [
-                'code' => $result->avsResponseCode ?? '',
-                'message' => $result->avsResponseMessage ?? ''
+                'code' => safeGetProperty($result, 'avsResponseCode') ?? '',
+                'message' => safeGetProperty($result, 'avsResponseMessage') ?? ''
             ],
             'cvv' => [
-                'code' => $result->cvnResponseCode ?? '',
-                'message' => $result->cvnResponseMessage ?? ''
+                'code' => safeGetProperty($result, 'cvnResponseCode') ?? '',
+                'message' => safeGetProperty($result, 'cvnResponseMessage') ?? ''
             ]
         ];
         $reporter->recordTransaction($transactionData);
@@ -325,17 +338,17 @@ try {
         'success' => true,
         'message' => 'Payment processed successfully',
         'data' => [
-            'transaction_id' => $result->transactionId,
+            'transaction_id' => safeGetProperty($result, 'transactionId'),
             'order_id' => $orderId,
             'amount' => (float)$amount,
             'currency' => $currency,
-            'response_code' => $result->responseCode,
-            'response_message' => $result->responseMessage,
-            'authorization_code' => $result->authorizationCode ?? '',
-            'avs_response_code' => $result->avsResponseCode ?? '',
-            'avs_response_message' => $result->avsResponseMessage ?? '',
-            'cvv_response_code' => $result->cvnResponseCode ?? '',
-            'cvv_response_message' => $result->cvnResponseMessage ?? '',
+            'response_code' => safeGetProperty($result, 'responseCode'),
+            'response_message' => safeGetProperty($result, 'responseMessage'),
+            'authorization_code' => safeGetProperty($result, 'authorizationCode') ?? '',
+            'avs_response_code' => safeGetProperty($result, 'avsResponseCode') ?? '',
+            'avs_response_message' => safeGetProperty($result, 'avsResponseMessage') ?? '',
+            'cvv_response_code' => safeGetProperty($result, 'cvnResponseCode') ?? '',
+            'cvv_response_message' => safeGetProperty($result, 'cvnResponseMessage') ?? '',
             'processed_at' => date('c'),
             'status' => 'approved'
         ]
