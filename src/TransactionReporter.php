@@ -660,34 +660,55 @@ class TransactionReporter
      */
     public function recordTransaction(array $transactionData): void
     {
-        // Only filter out mock transactions in production environment
-        // Allow test transactions during testing
-        if (!getenv('PHPUNIT_RUNNING')) {
-            $transactionId = $transactionData['id'] ?? '';
-            $testPatterns = [
-                '/^100[1-9]$/',      // 1001-1009
-                '/^200[1-9]$/',      // 2001-2009
-                '/^300[1-9]$/',      // 3001-3009
-                '/^30[1-9][0-9]$/',  // 3010-3019
-                '/^400[1-9]$/',      // 4001-4009
-                '/^500[1-9]$/',      // 5001-5009
-                '/^TEST_/',
-                '/^MOCK_/',
-                '/^DEMO_/',
-                '/^SAMPLE_/',
-                '/^INTEGRATION_/',
-                '/^LIMIT_/',
-                '/^DATE_/',
-                '/^REF_/',
-                '/^BATCH_/'
-            ];
+        // Only record legitimate GlobalPayments API transactions
+        $transactionId = $transactionData['id'] ?? '';
+        $transactionType = $transactionData['type'] ?? '';
+        $status = $transactionData['status'] ?? '';
+        
+        // Skip recording if transaction ID is null or empty (except for declined transactions)
+        if ((empty($transactionId) || $transactionId === 'null') && $status !== 'declined') {
+            error_log("Skipping transaction recording: null or empty transaction ID (non-declined)");
+            return;
+        }
+        
+        // For declined transactions, use order ID as fallback if transaction ID is null
+        if ($status === 'declined' && (empty($transactionId) || $transactionId === 'null')) {
+            $transactionData['id'] = $transactionData['reference'] ?? 'DECLINED_' . uniqid();
+            $transactionId = $transactionData['id'];
+        }
+        
+        // Skip recording obvious test/mock transactions
+        $testPatterns = [
+            '/^TEST_/',
+            '/^MOCK_/',
+            '/^DEMO_/',
+            '/^SAMPLE_/',
+            '/^INTEGRATION_/',
+            '/^LIMIT_/',
+            '/^DATE_/',
+            '/^REF_/',
+            '/^BATCH_/',
+            '/^100[0-9]$/',      // 1000-1009
+            '/^200[0-9]$/',      // 2000-2009
+            '/^300[0-9]$/',      // 3000-3009
+            '/^400[0-9]$/',      // 4000-4009
+            '/^500[0-9]$/',      // 5000-5009
+            '/^ORDER-/',
+            '/^WEB_/'
+        ];
 
-            foreach ($testPatterns as $pattern) {
-                if (preg_match($pattern, $transactionId)) {
-                    error_log("Skipping mock transaction recording: $transactionId");
-                    return;
-                }
+        foreach ($testPatterns as $pattern) {
+            if (preg_match($pattern, $transactionId)) {
+                error_log("Skipping mock transaction recording: $transactionId");
+                return;
             }
+        }
+
+        // Allow legitimate GlobalPayments transaction IDs (alphanumeric, 5+ characters)
+        // Also allow declined transactions with generated IDs
+        if (!preg_match('/^[a-zA-Z0-9\-_]{5,}$/', $transactionId)) {
+            error_log("Skipping transaction recording: invalid transaction ID format: $transactionId");
+            return;
         }
 
         $logDir = __DIR__ . '/../logs';
@@ -792,6 +813,7 @@ class TransactionReporter
             $transactions = array_filter($transactions, function ($transaction) {
                 $transactionId = $transaction['id'] ?? '';
                 $transactionType = $transaction['type'] ?? '';
+                $status = $transaction['status'] ?? '';
 
                 // Allow verification transactions (they have alphanumeric IDs starting with VER_)
                 if ($transactionType === 'verification' && strpos($transactionId, 'VER_') === 0) {
@@ -803,15 +825,18 @@ class TransactionReporter
                     return true;
                 }
 
-                // For non-verification transactions, only allow numeric IDs that are likely real
-                // Filter out common test patterns
+                // Allow declined transactions (they might have generated IDs or order IDs)
+                if ($status === 'declined') {
+                    // Allow declined transactions with legitimate IDs or generated IDs
+                    if (preg_match('/^[a-zA-Z0-9\-_]{5,}$/', $transactionId) || 
+                        strpos($transactionId, 'DECLINED_') === 0 ||
+                        strpos($transactionId, 'ORDER-') === 0) {
+                        return true;
+                    }
+                }
+
+                // Filter out all obvious test patterns
                 $testPatterns = [
-                    '/^100[1-9]$/',      // 1001-1009
-                    '/^200[1-9]$/',      // 2001-2009
-                    '/^300[1-9]$/',      // 3001-3009
-                    '/^30[1-9][0-9]$/',  // 3010-3019
-                    '/^400[1-9]$/',      // 4001-4009
-                    '/^500[1-9]$/',      // 5001-5009
                     '/^TEST_/',
                     '/^MOCK_/',
                     '/^DEMO_/',
@@ -820,7 +845,13 @@ class TransactionReporter
                     '/^LIMIT_/',
                     '/^DATE_/',
                     '/^REF_/',
-                    '/^BATCH_/'
+                    '/^BATCH_/',
+                    '/^100[0-9]$/',      // 1000-1009
+                    '/^200[0-9]$/',      // 2000-2009
+                    '/^300[0-9]$/',      // 3000-3009
+                    '/^400[0-9]$/',      // 4000-4009
+                    '/^500[0-9]$/',      // 5000-5009
+                    '/^WEB_/'
                 ];
 
                 foreach ($testPatterns as $pattern) {
@@ -829,12 +860,12 @@ class TransactionReporter
                     }
                 }
 
-                // Only allow numeric transaction IDs for non-verification transactions
-                if (!is_numeric($transactionId)) {
-                    return false;
+                // Allow legitimate GlobalPayments transaction IDs (alphanumeric, 5+ characters)
+                if (preg_match('/^[a-zA-Z0-9\-_]{5,}$/', $transactionId)) {
+                    return true;
                 }
 
-                return true;
+                return false;
             });
         }
 

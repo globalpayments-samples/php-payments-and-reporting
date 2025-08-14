@@ -170,24 +170,87 @@ try {
     // Execute the charge
     $result = $chargeBuilder->execute();
 
-            // Debug: Log the full response structure to understand card data
-        $logger = new \GlobalPayments\Examples\Logger('logs', 'DEBUG');
+    // Debug: Log the full response structure to understand card data
+    $logger = new \GlobalPayments\Examples\Logger('logs', 'DEBUG');
 
-        
+    $logger->info(
+        'Payment response structure debug',
+        [
+            'result_class' => get_class($result),
+            'result_properties' => get_object_vars($result),
+            'has_paymentMethod' => property_exists($result, 'paymentMethod'),
+            'paymentMethod_properties' => safeGetProperty($result, 'paymentMethod') ? get_object_vars(safeGetProperty($result, 'paymentMethod')) : null,
+            'has_card' => property_exists($result, 'paymentMethod') && property_exists(safeGetProperty($result, 'paymentMethod'), 'card'),
+            'card_properties' => (property_exists($result, 'paymentMethod') && property_exists(safeGetProperty($result, 'paymentMethod'), 'card')) ? get_object_vars(safeGetProperty(safeGetProperty($result, 'paymentMethod'), 'card')) : null,
+            'request_card_info' => $data['card_info'] ?? null,
+            'token_value' => $tokenValue,
+        ],
+        'system'
+    );
+
+    // Check if the transaction was declined
+    $responseCode = safeGetProperty($result, 'responseCode');
+    $responseMessage = safeGetProperty($result, 'responseMessage');
+    
+    // GlobalPayments decline response codes
+    $declineCodes = ['DECLINED', 'CARD_DECLINED', 'INSUFFICIENT_FUNDS', 'CARD_EXPIRED', 'INVALID_CARD', 'CARD_NOT_SUPPORTED'];
+    
+    if (in_array($responseCode, $declineCodes)) {
+        // Log declined transaction
         $logger->info(
-            'Payment response structure debug',
+            'Payment declined',
             [
-                'result_class' => get_class($result),
-                'result_properties' => get_object_vars($result),
-                'has_paymentMethod' => property_exists($result, 'paymentMethod'),
-                'paymentMethod_properties' => safeGetProperty($result, 'paymentMethod') ? get_object_vars(safeGetProperty($result, 'paymentMethod')) : null,
-                'has_card' => property_exists($result, 'paymentMethod') && property_exists(safeGetProperty($result, 'paymentMethod'), 'card'),
-                'card_properties' => (property_exists($result, 'paymentMethod') && property_exists(safeGetProperty($result, 'paymentMethod'), 'card')) ? get_object_vars(safeGetProperty(safeGetProperty($result, 'paymentMethod'), 'card')) : null,
-                'request_card_info' => $data['card_info'] ?? null,
-                'token_value' => $tokenValue,
+                'type' => 'payment_declined',
+                'amount' => (float)$amount,
+                'currency' => $currency,
+                'order_id' => $orderId,
+                'transaction_id' => safeGetProperty(safeGetProperty($result, 'transactionReference'), 'transactionId'),
+                'response_code' => $responseCode,
+                'response_message' => $responseMessage,
+                'status' => 'declined',
+                'timestamp' => date('c')
             ],
-            'system'
+            'payment'
         );
+
+        // Record declined transaction for dashboard
+        try {
+            $reporter = new GlobalPayments\Examples\TransactionReporter();
+            $transactionData = [
+                'id' => safeGetProperty(safeGetProperty($result, 'transactionReference'), 'transactionId') ?: $orderId,
+                'reference' => $orderId,
+                'status' => 'declined',
+                'amount' => (string)$amount,
+                'currency' => $currency,
+                'type' => 'payment',
+                'timestamp' => date('c'),
+                'response' => [
+                    'code' => $responseCode,
+                    'message' => $responseMessage
+                ],
+                'gateway_response_code' => $responseCode,
+                'gateway_response_message' => $responseMessage,
+                'processed_at' => date('c')
+            ];
+            $reporter->recordTransaction($transactionData);
+        } catch (Exception $e) {
+            error_log('Failed to record declined transaction: ' . $e->getMessage());
+        }
+
+        // Return decline response
+        http_response_code(422);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Payment declined',
+            'error' => [
+                'code' => $responseCode,
+                'details' => $responseMessage,
+                'gp_response_code' => $responseCode,
+                'gp_response_message' => $responseMessage
+            ]
+        ], JSON_THROW_ON_ERROR);
+        return;
+    }
 
     // Log successful transaction
     $logger->info(
@@ -197,7 +260,7 @@ try {
             'amount' => (float)$amount,
             'currency' => $currency,
             'order_id' => $orderId,
-            'transaction_id' => safeGetProperty($result, 'transactionId'),
+            'transaction_id' => safeGetProperty(safeGetProperty($result, 'transactionReference'), 'transactionId'),
             'response_code' => safeGetProperty($result, 'responseCode'),
             'response_message' => safeGetProperty($result, 'responseMessage'),
             'status' => 'approved',
@@ -297,7 +360,7 @@ try {
         );
 
         $transactionData = [
-            'id' => safeGetProperty($result, 'transactionId'),
+            'id' => safeGetProperty(safeGetProperty($result, 'transactionReference'), 'transactionId'),
             'reference' => $orderId,
             'status' => 'approved',
             'amount' => (string)$amount,
@@ -316,7 +379,8 @@ try {
             ],
             'gateway_response_code' => safeGetProperty($result, 'responseCode') ?? 'SUCCESS',
             'gateway_response_message' => safeGetProperty($result, 'responseMessage') ?? 'Approved',
-            'batch_id' => safeGetProperty($result, 'batchId') ?? '',
+            'batch_id' => safeGetProperty($result, 'batchSummary') ? safeGetProperty(safeGetProperty($result, 'batchSummary'), 'batchReference') : '',
+            'auth_code' => safeGetProperty(safeGetProperty($result, 'transactionReference'), 'authCode') ?? '',
             'avs' => [
                 'code' => safeGetProperty($result, 'avsResponseCode') ?? '',
                 'message' => safeGetProperty($result, 'avsResponseMessage') ?? ''
@@ -338,19 +402,18 @@ try {
         'success' => true,
         'message' => 'Payment processed successfully',
         'data' => [
-            'transaction_id' => safeGetProperty($result, 'transactionId'),
-            'order_id' => $orderId,
-            'amount' => (float)$amount,
+            'transaction_id' => safeGetProperty(safeGetProperty($result, 'transactionReference'), 'transactionId'),
+            'amount' => (string)$amount,
             'currency' => $currency,
+            'status' => 'approved',
+            'authorization_code' => safeGetProperty(safeGetProperty($result, 'transactionReference'), 'authCode'),
             'response_code' => safeGetProperty($result, 'responseCode'),
             'response_message' => safeGetProperty($result, 'responseMessage'),
-            'authorization_code' => safeGetProperty($result, 'authorizationCode') ?? '',
-            'avs_response_code' => safeGetProperty($result, 'avsResponseCode') ?? '',
-            'avs_response_message' => safeGetProperty($result, 'avsResponseMessage') ?? '',
-            'cvv_response_code' => safeGetProperty($result, 'cvnResponseCode') ?? '',
-            'cvv_response_message' => safeGetProperty($result, 'cvnResponseMessage') ?? '',
             'processed_at' => date('c'),
-            'status' => 'approved'
+            'card_type' => safeGetProperty($result, 'cardType'),
+            'card_last4' => safeGetProperty($result, 'cardLast4'),
+            'avs_code' => safeGetProperty($result, 'avsResponseCode'),
+            'cvv_code' => safeGetProperty($result, 'cvnResponseCode')
         ]
     ], JSON_THROW_ON_ERROR);
 

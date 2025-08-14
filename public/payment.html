@@ -197,6 +197,12 @@
             color: #c62828;
         }
 
+        .result-decline {
+            background: #fff3e0;
+            border: 2px solid #ff9800;
+            color: #e65100;
+        }
+
         .result-header {
             display: flex;
             align-items: center;
@@ -318,14 +324,29 @@
 
         <div class="form-container">
             <div class="test-cards">
-                <h4>💡 Test Card Numbers</h4>
-                <ul>
-                    <li><strong>Visa:</strong> 4111 1111 1111 1111</li>
-                    <li><strong>MasterCard:</strong> 5473 5000 0000 0001</li>
-                    <li><strong>Amex:</strong> 3727 0000 0000 0000</li>
-                    <li><strong>Discover:</strong> 6011 0000 0000 0012</li>
-                </ul>
-                <p style="margin-top: 10px; font-size: 0.9em;">Use any future expiry date and any 3-4 digit CVV</p>
+                <h4>💡 Test Cards Reference</h4>
+                <p style="margin-bottom: 15px; font-size: 0.95em;">
+                    Use the official <strong>GlobalPayments Test Cards</strong> for testing different scenarios:
+                </p>
+                <div style="background: rgba(38, 42, 255, 0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(38, 42, 255, 0.1);">
+                    <a href="https://developer.globalpay.com/resources/test-cards" target="_blank" style="color: #262AFF; text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                        🔗 View All Test Cards
+                        <span style="font-size: 0.8em;">(opens in new tab)</span>
+                    </a>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        Includes approved, declined, 3D Secure, DCC, and other test scenarios for all card types.
+                    </p>
+                </div>
+                <div style="margin-top: 15px; padding: 12px; background: rgba(255, 152, 0, 0.05); border-radius: 8px; border-left: 4px solid #ff9800;">
+                    <strong>Quick Test Examples:</strong>
+                    <ul style="margin: 8px 0 0 20px; font-size: 0.9em;">
+                        <li><strong>Approved:</strong> 4263970000005262 (Visa)</li>
+                        <li><strong>Declined:</strong> 4000120000001154 (Visa)</li>
+                    </ul>
+                </div>
+                <p style="margin-top: 15px; font-size: 0.9em; color: #666;">
+                    Use any future expiry date and any 3-4 digit CVV for testing.
+                </p>
             </div>
 
             <form id="payment-form">
@@ -345,11 +366,6 @@
                             </select>
                         </div>
                     </div>
-                </div>
-
-                <div class="form-section">
-                    <h3>💳 Card Information</h3>
-                    <div id="card-form-container"></div>
                 </div>
 
                 <div class="form-section">
@@ -396,6 +412,11 @@
                             <input type="text" id="postal-code" name="postal-code" placeholder="12345">
                         </div>
                     </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>💳 Card Information</h3>
+                    <div id="card-form-container"></div>
                 </div>
             </form>
 
@@ -633,12 +654,18 @@
                         const gpResponseCode = result.error?.gp_response_code;
                         const gpResponseMessage = result.error?.gp_response_message;
                         
-                        let errorMessage = `Payment failed: ${errorDetails}`;
-                        if (gpResponseCode) {
-                            errorMessage += ` (GP-API Code: ${gpResponseCode})`;
-                        }
+                        // Check if this is a decline vs other error
+                        const isDecline = ['DECLINED', 'CARD_DECLINED', 'INSUFFICIENT_FUNDS', 'CARD_EXPIRED', 'INVALID_CARD', 'CARD_NOT_SUPPORTED'].includes(errorCode);
                         
-                        this.showError(errorMessage);
+                        if (isDecline) {
+                            this.showDecline(errorDetails, gpResponseCode, gpResponseMessage);
+                        } else {
+                            let errorMessage = `Payment failed: ${errorDetails}`;
+                            if (gpResponseCode) {
+                                errorMessage += ` (GP-API Code: ${gpResponseCode})`;
+                            }
+                            this.showError(errorMessage);
+                        }
                     }
 
                 } catch (error) {
@@ -684,6 +711,31 @@
                     <p>${message}</p>
                     <div class="result-details">
                         Please check your card information and try again. If the problem persists, contact support.
+                    </div>
+                `;
+                container.style.display = 'block';
+                container.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            showDecline(declineMessage, gpResponseCode, gpResponseMessage) {
+                const container = document.getElementById('result-container');
+                container.className = 'result-container result-decline';
+                container.innerHTML = `
+                    <div class="result-header">
+                        <span>🚫</span>
+                        <span>Payment Declined</span>
+                    </div>
+                    <p><strong>${declineMessage}</strong></p>
+                    <div class="result-details">
+                        <strong>Decline Details:</strong><br>
+                        ${gpResponseCode ? `Response Code: ${gpResponseCode}<br>` : ''}
+                        ${gpResponseMessage ? `Message: ${gpResponseMessage}<br>` : ''}
+                        <br>
+                        <strong>What to do:</strong><br>
+                        • Check with your card issuer for the specific reason<br>
+                        • Verify your card information is correct<br>
+                        • Try a different payment method<br>
+                        • Contact your bank if you believe this is an error
                     </div>
                 `;
                 container.style.display = 'block';
