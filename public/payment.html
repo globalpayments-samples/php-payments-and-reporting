@@ -586,13 +586,13 @@
 
                     // Add card information if available in token response
                     if (tokenResponse.details && tokenResponse.details.card) {
-                        paymentData.card_info = {
+                        paymentData.card_details = {
                             type: tokenResponse.details.card.type || tokenResponse.details.card.brand,
                             last4: tokenResponse.details.card.last4 || tokenResponse.details.card.lastFourDigits,
                             exp_month: tokenResponse.details.card.expMonth,
                             exp_year: tokenResponse.details.card.expYear
                         };
-                        console.log('Card info extracted:', paymentData.card_info);
+                        console.log('Card details extracted:', paymentData.card_details);
                     } else {
                         console.warn('No card details found in token response:', tokenResponse);
                     }

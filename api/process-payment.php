@@ -278,8 +278,20 @@ try {
         $cardExpMonth = '';
         $cardExpYear = '';
 
-        // Try multiple possible locations for card data
-        if (property_exists($result, 'paymentMethod') && property_exists(safeGetProperty($result, 'paymentMethod'), 'card')) {
+        // Try multiple possible locations for card data - based on actual GP-API response structure
+        if (property_exists($result, 'cardType') && property_exists($result, 'cardLast4')) {
+            // Direct properties on response object (as seen in logs)
+            $cardType = safeGetProperty($result, 'cardType') ?? 'Unknown';
+            $cardLast4 = safeGetProperty($result, 'cardLast4') ?? null;
+        } elseif (property_exists($result, 'cardDetails')) {
+            // Card details object (as seen in logs)
+            $cardDetails = safeGetProperty($result, 'cardDetails');
+            $cardType = safeGetProperty($cardDetails, 'brand') ?? safeGetProperty($cardDetails, 'cardType') ?? safeGetProperty($cardDetails, 'type') ?? 'Unknown';
+            $cardLast4 = safeGetProperty($cardDetails, 'maskedNumberLast4') ?? safeGetProperty($cardDetails, 'lastFourDigits') ?? safeGetProperty($cardDetails, 'last4') ?? safeGetProperty($cardDetails, 'maskedNumber') ?? null;
+            $cardExpMonth = safeGetProperty($cardDetails, 'cardExpMonth') ?? safeGetProperty($cardDetails, 'expMonth') ?? safeGetProperty($cardDetails, 'expiryMonth') ?? '';
+            $cardExpYear = safeGetProperty($cardDetails, 'cardExpYear') ?? safeGetProperty($cardDetails, 'expYear') ?? safeGetProperty($cardDetails, 'expiryYear') ?? '';
+        } elseif (property_exists($result, 'paymentMethod') && property_exists(safeGetProperty($result, 'paymentMethod'), 'card')) {
+            // Payment method card object
             $card = safeGetProperty($result, 'paymentMethod');
             $card = safeGetProperty($card, 'card');
             $cardType = safeGetProperty($card, 'brand') ?? safeGetProperty($card, 'cardType') ?? safeGetProperty($card, 'type') ?? 'Unknown';
@@ -313,12 +325,23 @@ try {
         }
 
         // Use card information from request if available (from tokenization response)
-        if (isset($data['card_info'])) {
-            $cardInfo = $data['card_info'];
-            
-            // Log the card info for debugging
+        $cardInfo = null;
+        if (isset($data['card_details'])) {
+            $cardInfo = $data['card_details'];
             $logger->info(
-                'Card info from request',
+                'Card details from request',
+                [
+                    'card_details' => $cardInfo,
+                    'current_card_type' => $cardType,
+                    'current_card_last4' => $cardLast4,
+                ],
+                'system'
+            );
+        } elseif (isset($data['card_info'])) {
+            // Backward compatibility
+            $cardInfo = $data['card_info'];
+            $logger->info(
+                'Card info from request (legacy)',
                 [
                     'card_info' => $cardInfo,
                     'current_card_type' => $cardType,
@@ -326,7 +349,9 @@ try {
                 ],
                 'system'
             );
-            
+        }
+        
+        if ($cardInfo) {
             // Also log to error_log for immediate debugging
             error_log('Card info from request: ' . json_encode($cardInfo));
             
@@ -344,7 +369,7 @@ try {
                 $cardExpYear = $cardInfo['exp_year'];
             }
         } else {
-            error_log('No card_info found in request data');
+            error_log('No card details found in request data');
         }
 
         // Log the final card information that will be stored

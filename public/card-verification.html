@@ -206,6 +206,10 @@
                 padding: 25px;
                 border-radius: 24px;
             }
+            
+
+            
+
         }
     </style>
 </head>
@@ -302,7 +306,6 @@
                     throw new Error('Invalid token response');
                 }
 
-                // Store the app_id for Drop-In UI initialization
                 this.appId = tokenData.data.accessToken;
                 this.environment = tokenData.data.environment;
 
@@ -335,7 +338,21 @@
                     // Set up event listeners
                     this.verificationForm.on('token-success', (resp) => {
                         console.log('✅ Card tokenized successfully for verification');
+                        console.log('Token response structure:', Object.keys(resp));
                         this.processVerification(resp);
+                    });
+                    
+                    // Listen for card number changes to capture card type
+                    this.verificationForm.on('card-number-change', (event) => {
+                        console.log('Card number change event:', event);
+                        if (event.detail && event.detail.cardNumber) {
+                            console.log('Card number entered:', event.detail.cardNumber.substring(0, 6) + '******');
+                        }
+                    });
+                    
+                    // Listen for card type detection
+                    this.verificationForm.on('card-type-change', (event) => {
+                        console.log('Card type change event:', event);
                     });
 
                     this.verificationForm.on('token-error', (resp) => {
@@ -354,6 +371,8 @@
                         this.showError(errorMessage);
                     });
 
+
+
                     this.verificationForm.ready(() => {
                         console.log('✅ GP-API verification form ready');
                         this.isInitialized = true;
@@ -367,11 +386,32 @@
 
             async processVerification(tokenResponse) {
                 try {
+                    console.log('Full token response:', JSON.stringify(tokenResponse, null, 2));
+                    
                     const verificationData = {
                         payment_token: tokenResponse.paymentReference,
                         verification_type: 'basic', // Basic verification
                         currency: 'USD' // Required field for verification
                     };
+
+                    // Extract card details from GP-API token response
+                    if (tokenResponse.details && tokenResponse.details.card) {
+                        const cardDetails = tokenResponse.details.card;
+                        console.log('Card details from token response:', JSON.stringify(cardDetails, null, 2));
+                        
+                        verificationData.card_details = {
+                            type: cardDetails.type || cardDetails.brand,
+                            last4: cardDetails.last4 || cardDetails.lastFourDigits,
+                            exp_month: cardDetails.expMonth,
+                            exp_year: cardDetails.expYear
+                        };
+                        console.log('Card details extracted:', verificationData.card_details);
+                    } else {
+                        console.warn('No card details found in token response. Available properties:', Object.keys(tokenResponse));
+                        if (tokenResponse.details) {
+                            console.log('Details object:', JSON.stringify(tokenResponse.details, null, 2));
+                        }
+                    }
 
                     console.log('Processing verification...', verificationData);
 
@@ -397,6 +437,8 @@
                     this.showError('Verification processing failed: ' + error.message);
                 }
             }
+
+
 
             showSuccess(data) {
                 const container = document.getElementById('result-container');

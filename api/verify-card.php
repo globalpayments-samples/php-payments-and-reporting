@@ -162,6 +162,47 @@ function performVerification(string $accessToken, array $config, array $requestD
             ->withIdempotencyKey($reference)
             ->execute();
         
+        // Extract card information with comprehensive fallback logic (same as payment processing)
+        $cardType = 'Unknown';
+        $cardLast4 = null;
+        $cardExpMonth = '';
+        $cardExpYear = '';
+
+        // Try multiple possible locations for card data - based on actual GP-API response structure
+        if (property_exists($response, 'cardType') && property_exists($response, 'cardLast4')) {
+            // Direct properties on response object (as seen in logs)
+            $cardType = $response->cardType ?? 'Unknown';
+            $cardLast4 = $response->cardLast4 ?? null;
+        } elseif (property_exists($response, 'cardDetails')) {
+            // Card details object (as seen in logs)
+            $cardDetails = $response->cardDetails;
+            $cardType = $cardDetails->brand ?? $cardDetails->cardType ?? $cardDetails->type ?? 'Unknown';
+            $cardLast4 = $cardDetails->maskedNumberLast4 ?? $cardDetails->lastFourDigits ?? $cardDetails->last4 ?? $cardDetails->maskedNumber ?? null;
+            $cardExpMonth = $cardDetails->cardExpMonth ?? $cardDetails->expMonth ?? $cardDetails->expiryMonth ?? '';
+            $cardExpYear = $cardDetails->cardExpYear ?? $cardDetails->expYear ?? $cardDetails->expiryYear ?? '';
+        } elseif (property_exists($response, 'paymentMethod') && property_exists($response->paymentMethod, 'card')) {
+            // Payment method card object
+            $card = $response->paymentMethod->card;
+            $cardType = $card->brand ?? $card->cardType ?? $card->type ?? 'Unknown';
+            $cardLast4 = $card->maskedNumberLast4 ?? $card->lastFourDigits ?? $card->last4 ?? $card->maskedNumber ?? null;
+            $cardExpMonth = $card->expMonth ?? $card->expiryMonth ?? '';
+            $cardExpYear = $card->expYear ?? $card->expiryYear ?? '';
+        } elseif (property_exists($response, 'card')) {
+            // Direct card property
+            $card = $response->card;
+            $cardType = $card->brand ?? $card->cardType ?? $card->type ?? 'Unknown';
+            $cardLast4 = $card->maskedNumberLast4 ?? $card->lastFourDigits ?? $card->last4 ?? $card->maskedNumber ?? null;
+            $cardExpMonth = $card->expMonth ?? $card->expiryMonth ?? '';
+            $cardExpYear = $card->expYear ?? $card->expiryYear ?? '';
+        }
+        
+        // Log the extracted card information
+        error_log('Extracted card info - Type: ' . $cardType . ', Last4: ' . $cardLast4);
+
+        // Ensure variables are set with default values
+        $cardType = $cardType ?? 'Unknown';
+        $cardLast4 = $cardLast4 ?? null;
+        
         // Convert SDK response to array format
         $result = [
             'id' => $response->transactionReference->transactionId,
@@ -174,14 +215,27 @@ function performVerification(string $accessToken, array $config, array $requestD
                 'message' => $response->responseMessage,
                 'entry_mode' => 'ECOM',
                 'card' => [
-                    'brand' => $response->paymentMethod->card->brand ?? null,
-                    'masked_number_last4' => $response->paymentMethod->card->maskedNumberLast4 ?? null
+                    'brand' => $cardType,
+                    'masked_number_last4' => $cardLast4
                 ]
             ],
             'action' => [
                 'result_code' => $response->responseCode === 'SUCCESS' ? 'SUCCESS' : 'FAILED'
             ]
         ];
+        
+        // Debug logging for GP-API response
+        error_log('GP-API Response - Full response: ' . json_encode($response));
+        error_log('GP-API Response - paymentMethod: ' . json_encode($response->paymentMethod));
+        error_log('GP-API Response - card: ' . json_encode($response->paymentMethod->card ?? 'NO_CARD'));
+        error_log('GP-API Response - brand: ' . ($response->paymentMethod->card->brand ?? 'NO_BRAND'));
+        error_log('GP-API Response - maskedNumberLast4: ' . ($response->paymentMethod->card->maskedNumberLast4 ?? 'NO_LAST4'));
+        
+        // Try to get more card information from the payment method
+        if (isset($response->paymentMethod) && isset($response->paymentMethod->card)) {
+            $card = $response->paymentMethod->card;
+            error_log('GP-API Card object properties: ' . implode(', ', get_object_vars($card)));
+        }
         
         return $result;
         
@@ -256,6 +310,26 @@ try {
         exit;
     }
 
+    // Use card details from GP-API response if available
+    $cardType = 'Unknown';
+    $cardLast4 = $verificationResult['payment_method']['card']['masked_number_last4'] ?? null;
+    
+    // Debug logging
+    error_log('Verification request data: ' . json_encode($data));
+    error_log('Card details from request: ' . json_encode($data['card_details'] ?? 'NOT_FOUND'));
+    error_log('Verification result: ' . json_encode($verificationResult));
+    
+    // Check if card details were provided in the request
+    if (!empty($data['card_details'])) {
+        $cardType = $data['card_details']['type'] ?? 'Unknown';
+        $cardLast4 = $data['card_details']['last4'] ?? $cardLast4;
+        error_log('Using card details from request - Type: ' . $cardType . ', Last4: ' . $cardLast4);
+    } else {
+        // Fallback to API response if available
+        $cardType = $verificationResult['payment_method']['card']['brand'] ?? 'Unknown';
+        error_log('Using card details from API response - Type: ' . $cardType);
+    }
+
     // Record the transaction for dashboard display
     try {
         $reporter = new TransactionReporter();
@@ -268,10 +342,10 @@ try {
             'type' => 'verification',
             'timestamp' => date('c'),
             'card' => [
-                'type' => $verificationResult['payment_method']['card']['brand'] ?? 'Unknown',
-                'last4' => $verificationResult['payment_method']['card']['masked_number_last4'] ?? null,
-                'exp_month' => '',
-                'exp_year' => ''
+                'type' => $cardType,
+                'last4' => $cardLast4,
+                'exp_month' => $data['card_details']['exp_month'] ?? '',
+                'exp_year' => $data['card_details']['exp_year'] ?? ''
             ],
             'response' => [
                 'code' => $verificationResult['payment_method']['result'] ?? 'SUCCESS',
