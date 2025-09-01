@@ -47,10 +47,11 @@ try {
     $config = new GpApiConfig();
     $config->appId = $_ENV['GP_API_APP_ID'];
     $config->appKey = $_ENV['GP_API_APP_KEY'];
-    $config->environment = $_ENV['GP_API_ENVIRONMENT'] === 'production' 
+    $config->environment = ($_ENV['GP_API_ENVIRONMENT'] === 'production') 
         ? Environment::PRODUCTION 
         : Environment::TEST;
     $config->channel = Channel::CardNotPresent;
+    // Set permissions for tokenization and potential verification
     $config->permissions = ['PMT_POST_Create_Single'];
     
     ServicesContainer::configureService($config);

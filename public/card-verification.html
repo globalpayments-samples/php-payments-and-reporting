@@ -395,22 +395,19 @@
                     };
 
                     // Extract card details from GP-API token response
-                    if (tokenResponse.details && tokenResponse.details.card) {
-                        const cardDetails = tokenResponse.details.card;
+                    if (tokenResponse.details) {
+                        const cardDetails = tokenResponse.details;
                         console.log('Card details from token response:', JSON.stringify(cardDetails, null, 2));
                         
                         verificationData.card_details = {
-                            type: cardDetails.type || cardDetails.brand,
-                            last4: cardDetails.last4 || cardDetails.lastFourDigits,
-                            exp_month: cardDetails.expMonth,
-                            exp_year: cardDetails.expYear
+                            type: cardDetails.cardType || cardDetails.brand,
+                            last4: cardDetails.cardLast4 || cardDetails.last4,
+                            exp_month: cardDetails.expiryMonth || cardDetails.expMonth,
+                            exp_year: cardDetails.expiryYear || cardDetails.expYear
                         };
                         console.log('Card details extracted:', verificationData.card_details);
                     } else {
                         console.warn('No card details found in token response. Available properties:', Object.keys(tokenResponse));
-                        if (tokenResponse.details) {
-                            console.log('Details object:', JSON.stringify(tokenResponse.details, null, 2));
-                        }
                     }
 
                     console.log('Processing verification...', verificationData);
@@ -474,16 +471,48 @@
             showError(message) {
                 const container = document.getElementById('result-container');
                 container.className = 'result-container result-error';
-                container.innerHTML = `
-                    <div class="result-header">
-                        <span>❌</span>
-                        <span>Verification Failed</span>
-                    </div>
-                    <p>${message}</p>
-                    <div class="result-details">
-                        Please check your card information and try again. Remember to use test card numbers in sandbox mode.
-                    </div>
-                `;
+                
+                // Check if this is a permissions issue
+                const isPermissionsIssue = message.includes('not enabled') || 
+                                         message.includes('TRN_POST_Verify') || 
+                                         message.includes('permissions') ||
+                                         message.includes('Global Payments support');
+                
+                let errorContent = '';
+                if (isPermissionsIssue) {
+                    errorContent = `
+                        <div class="result-header">
+                            <span>⚠️</span>
+                            <span>Account Configuration Required</span>
+                        </div>
+                        <p><strong>Card verification is not enabled for this account.</strong></p>
+                        <div class="result-details">
+                            <p>This is a configuration issue with your Global Payments account:</p>
+                            <ul style="list-style: disc; margin-left: 20px; margin-top: 10px;">
+                                <li>Your Global Payments account settings need <strong>verification processing</strong> enabled in the portal</li>
+                                <li>This is configured in your GP-API account dashboard, not at the app level</li>
+                                <li>Contact <strong>Global Payments support</strong> to enable verification permissions</li>
+                            </ul>
+                            <p style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.7); border-radius: 8px;">
+                                <strong>Alternative:</strong> Try the <a href="payment.html" style="color: #262AFF;">Payment Processing</a> 
+                                page which uses different permissions that are already enabled.
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    errorContent = `
+                        <div class="result-header">
+                            <span>❌</span>
+                            <span>Verification Failed</span>
+                        </div>
+                        <p>${message}</p>
+                        <div class="result-details">
+                            Please check your card information and try again. Remember to use test card numbers in sandbox mode.
+                        </div>
+                    `;
+                }
+                
+                container.innerHTML = errorContent;
                 container.style.display = 'block';
                 container.scrollIntoView({ behavior: 'smooth' });
             }

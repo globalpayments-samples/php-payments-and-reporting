@@ -78,7 +78,7 @@ function loadEnvironmentAndToken(): array
         ? Environment::PRODUCTION 
         : Environment::TEST;
     $sdkConfig->channel = Channel::CardNotPresent;
-    // Let SDK use all available permissions
+    // Use account defaults from GP portal
     $sdkConfig->country = $config['country'];
     
     ServicesContainer::configureService($sdkConfig);
@@ -138,17 +138,31 @@ function performVerification(string $accessToken, array $config, array $requestD
     $sdkConfig = new GpApiConfig();
     $sdkConfig->appId = $config['app_id'];
     $sdkConfig->appKey = $config['app_key'];
-    $sdkConfig->environment = $config['environment'] === 'production' 
+    $sdkConfig->environment = ($config['environment'] === 'production') 
         ? Environment::PRODUCTION 
         : Environment::TEST;
     $sdkConfig->channel = Channel::CardNotPresent;
     $sdkConfig->country = $config['country'];
     
+    // Set account ID if available (required for some verification operations)
+    if (!empty($_ENV['GP_API_ACCOUNT_ID'])) {
+        $sdkConfig->accessTokenInfo = new \GlobalPayments\Api\Entities\GpApi\AccessTokenInfo();
+        $sdkConfig->accessTokenInfo->transactionProcessingAccountId = $_ENV['GP_API_ACCOUNT_ID'];
+    }
+    
     ServicesContainer::configureService($sdkConfig);
     
-    // Create payment method from token
-    $paymentMethod = new \GlobalPayments\Api\PaymentMethods\CreditCardData();
-    $paymentMethod->token = $requestData['payment_token'];
+    // Create payment method from token - handle different token types
+    $paymentToken = $requestData['payment_token'];
+    
+    // Check if this is a GP-API payment token format (starts with PMT_ or TKN_)
+    if (strpos($paymentToken, 'PMT_') === 0 || strpos($paymentToken, 'TKN_') === 0) {
+        $paymentMethod = new \GlobalPayments\Api\PaymentMethods\CreditCardData();
+        $paymentMethod->token = $paymentToken;
+    } else {
+        // This might be a legacy format or different token type
+        throw new Exception('Invalid token format. Expected GP-API payment token starting with PMT_ or TKN_');
+    }
     
     // Generate a stable reference for idempotency and tracing
     $reference = 'VER_' . date('YmdHis') . '_' . bin2hex(random_bytes(4));
@@ -168,40 +182,23 @@ function performVerification(string $accessToken, array $config, array $requestD
         $cardExpMonth = '';
         $cardExpYear = '';
 
-        // Try multiple possible locations for card data - based on actual GP-API response structure
-        if (property_exists($response, 'cardType') && property_exists($response, 'cardLast4')) {
-            // Direct properties on response object (as seen in logs)
-            $cardType = $response->cardType ?? 'Unknown';
-            $cardLast4 = $response->cardLast4 ?? null;
-        } elseif (property_exists($response, 'cardDetails')) {
-            // Card details object (as seen in logs)
-            $cardDetails = $response->cardDetails;
-            $cardType = $cardDetails->brand ?? $cardDetails->cardType ?? $cardDetails->type ?? 'Unknown';
-            $cardLast4 = $cardDetails->maskedNumberLast4 ?? $cardDetails->lastFourDigits ?? $cardDetails->last4 ?? $cardDetails->maskedNumber ?? null;
-            $cardExpMonth = $cardDetails->cardExpMonth ?? $cardDetails->expMonth ?? $cardDetails->expiryMonth ?? '';
-            $cardExpYear = $cardDetails->cardExpYear ?? $cardDetails->expYear ?? $cardDetails->expiryYear ?? '';
-        } elseif (property_exists($response, 'paymentMethod') && property_exists($response->paymentMethod, 'card')) {
-            // Payment method card object
-            $card = $response->paymentMethod->card;
-            $cardType = $card->brand ?? $card->cardType ?? $card->type ?? 'Unknown';
-            $cardLast4 = $card->maskedNumberLast4 ?? $card->lastFourDigits ?? $card->last4 ?? $card->maskedNumber ?? null;
-            $cardExpMonth = $card->expMonth ?? $card->expiryMonth ?? '';
-            $cardExpYear = $card->expYear ?? $card->expiryYear ?? '';
-        } elseif (property_exists($response, 'card')) {
-            // Direct card property
-            $card = $response->card;
-            $cardType = $card->brand ?? $card->cardType ?? $card->type ?? 'Unknown';
-            $cardLast4 = $card->maskedNumberLast4 ?? $card->lastFourDigits ?? $card->last4 ?? $card->maskedNumber ?? null;
-            $cardExpMonth = $card->expMonth ?? $card->expiryMonth ?? '';
-            $cardExpYear = $card->expYear ?? $card->expiryYear ?? '';
+        // For verification responses, card info is usually from the request data, not the API response
+        // Use card info from request if provided
+        if (!empty($requestData['card_details'])) {
+            $cardDetails = $requestData['card_details'];
+            $cardType = $cardDetails['type'] ?? 'Unknown';
+            $cardLast4 = $cardDetails['last4'] ?? null;
+            $cardExpMonth = $cardDetails['exp_month'] ?? '';
+            $cardExpYear = $cardDetails['exp_year'] ?? '';
+            
+            error_log('Using card details from request - Type: ' . $cardType . ', Last4: ' . $cardLast4);
+        } else {
+            // Fallback to default values
+            $cardType = 'Unknown';
+            $cardLast4 = null;
+            $cardExpMonth = '';
+            $cardExpYear = '';
         }
-        
-        // Log the extracted card information
-        error_log('Extracted card info - Type: ' . $cardType . ', Last4: ' . $cardLast4);
-
-        // Ensure variables are set with default values
-        $cardType = $cardType ?? 'Unknown';
-        $cardLast4 = $cardLast4 ?? null;
         
         // Convert SDK response to array format
         $result = [
@@ -224,27 +221,23 @@ function performVerification(string $accessToken, array $config, array $requestD
             ]
         ];
         
-        // Debug logging for GP-API response
-        error_log('GP-API Response - Full response: ' . json_encode($response));
-        error_log('GP-API Response - paymentMethod: ' . json_encode($response->paymentMethod));
-        error_log('GP-API Response - card: ' . json_encode($response->paymentMethod->card ?? 'NO_CARD'));
-        error_log('GP-API Response - brand: ' . ($response->paymentMethod->card->brand ?? 'NO_BRAND'));
-        error_log('GP-API Response - maskedNumberLast4: ' . ($response->paymentMethod->card->maskedNumberLast4 ?? 'NO_LAST4'));
-        
-        // Try to get more card information from the payment method
-        if (isset($response->paymentMethod) && isset($response->paymentMethod->card)) {
-            $card = $response->paymentMethod->card;
-            error_log('GP-API Card object properties: ' . implode(', ', get_object_vars($card)));
-        }
+        // Debug logging for GP-API verification response
+        error_log('GP-API Verification Response - Transaction ID: ' . ($response->transactionReference->transactionId ?? 'NO_ID'));
+        error_log('GP-API Verification Response - Status: ' . ($response->responseCode ?? 'NO_CODE'));
+        error_log('GP-API Verification Response - Message: ' . ($response->responseMessage ?? 'NO_MESSAGE'));
         
         return $result;
         
     } catch (Exception $e) {
         
-        // Check if it's a permissions issue
+        // Check if it's a permissions or account configuration issue
         if (strpos($e->getMessage(), 'Merchant configuration does not exist') !== false || 
-            strpos($e->getMessage(), 'action_type - VERIFY') !== false) {
-            throw new Exception('Card verification is not enabled for this account. Please contact your administrator to enable verification permissions.');
+            strpos($e->getMessage(), 'action_type - VERIFY') !== false ||
+            strpos($e->getMessage(), 'INVALID_REQUEST_DATA') !== false ||
+            strpos($e->getMessage(), 'contains unexpected data') !== false ||
+            strpos($e->getMessage(), 'TRN_POST_Verify') !== false ||
+            strpos($e->getMessage(), 'not present in App') !== false) {
+            throw new Exception('Card verification is not enabled for this account. Your Global Payments account settings need verification processing enabled in the portal. Please contact Global Payments support to enable verification permissions.');
         }
         
         throw new Exception('Verification failed: ' . $e->getMessage());
