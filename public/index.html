@@ -302,33 +302,195 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
             .features-grid {
                 grid-template-columns: 1fr;
+                gap: 20px;
             }
             
             .container {
-                margin: 10px;
+                margin: 10px auto;
+                max-width: calc(100% - 20px);
             }
             
             .main-content {
-                padding: 25px;
-                margin: 10px;
+                padding: 25px 20px;
+                margin: 15px;
                 border-radius: 24px;
             }
             
             .header {
-                padding: 30px 20px;
+                padding: 25px 20px;
                 margin: 10px 10px 0 10px;
                 border-radius: 24px;
             }
             
             .header h1 {
-                font-size: 2em;
+                font-size: 2.2em;
+                line-height: 1.1;
+            }
+            
+            .header p {
+                font-size: 1.2em;
+                margin-bottom: 20px;
+            }
+            
+            .gp-logo {
+                height: 120px;
+                max-width: 100%;
+            }
+            
+            .badges {
+                gap: 10px;
+                justify-content: center;
+            }
+            
+            .badge {
+                padding: 10px 18px;
+                font-size: 0.95em;
+                white-space: nowrap;
+            }
+            
+            .feature-card {
+                padding: 25px 20px;
+                border-radius: 24px;
+            }
+            
+            .feature-card h3 {
+                font-size: 1.4em;
+                margin-bottom: 12px;
+            }
+            
+            .feature-card p {
+                font-size: 0.95em;
+                margin-bottom: 15px;
+            }
+            
+            .feature-button {
+                padding: 12px 20px;
+                font-size: 15px;
+                border-radius: 24px;
+            }
+            
+            .info-section {
+                padding: 25px 20px;
+                border-radius: 24px;
+                margin-bottom: 25px;
+            }
+            
+            .info-section h2 {
+                font-size: 1.6em;
+                margin-bottom: 15px;
+            }
+            
+            .quick-start {
+                padding: 20px;
+                border-radius: 24px;
+            }
+            
+            .quick-start h3 {
+                font-size: 1.3em;
+                margin-bottom: 12px;
+            }
+            
+            .quick-start ol {
+                padding-left: 18px;
+            }
+            
+            .quick-start li {
+                margin-bottom: 10px;
+                font-size: 0.95em;
+            }
+            
+            .test-cards-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .test-card-item {
+                padding: 10px;
+                font-size: 0.9em;
             }
             
             .footer {
+                padding: 25px 20px;
                 margin: 0 10px 10px 10px;
                 border-radius: 24px;
+            }
+            
+            .footer p {
+                font-size: 0.95em;
+                margin-bottom: 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                margin: 5px auto;
+            }
+            
+            .header {
+                padding: 20px 15px;
+                margin: 5px 5px 0 5px;
+                border-radius: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.9em;
+            }
+            
+            .header p {
+                font-size: 1.1em;
+            }
+            
+            .gp-logo {
+                height: 100px;
+            }
+            
+            .main-content {
+                padding: 20px 15px;
+                margin: 10px 5px;
+                border-radius: 20px;
+            }
+            
+            .feature-card {
+                padding: 20px 15px;
+                border-radius: 20px;
+            }
+            
+            .info-section {
+                padding: 20px 15px;
+                border-radius: 20px;
+            }
+            
+            .quick-start {
+                padding: 15px;
+                border-radius: 20px;
+            }
+            
+            .footer {
+                padding: 20px 15px;
+                margin: 0 5px 5px 5px;
+                border-radius: 20px;
+            }
+            
+            .badges {
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .badge {
+                padding: 8px 15px;
+                font-size: 0.9em;
+                width: fit-content;
             }
         }
     </style>

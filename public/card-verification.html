@@ -36,6 +36,7 @@
             padding: 30px;
             text-align: center;
             border-radius: 36px;
+            border: 3px solid white;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
             margin-bottom: 20px;
         }
@@ -193,23 +194,112 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
             .container {
-                margin: 10px;
+                margin: 10px auto;
+                max-width: calc(100% - 20px);
             }
             
             .header {
+                padding: 20px 15px;
                 border-radius: 24px;
+                margin-bottom: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
                 margin-bottom: 10px;
             }
             
-            .form-container {
-                padding: 25px;
-                border-radius: 24px;
+            .header p {
+                font-size: 1em;
+                margin-bottom: 15px;
             }
             
-
+            .header div[style*="margin-top"] a {
+                display: block !important;
+                margin: 5px 0 !important;
+                text-align: center;
+                font-size: 14px !important;
+                padding: 12px 20px !important;
+            }
             
-
+            .form-container {
+                padding: 20px;
+                border-radius: 24px;
+                margin: 15px;
+            }
+            
+            .info-panel {
+                padding: 20px;
+                border-radius: 24px;
+                margin-bottom: 20px;
+            }
+            
+            .info-panel h3 {
+                font-size: 1.2em;
+                margin-bottom: 12px;
+            }
+            
+            .info-panel p {
+                font-size: 0.95em;
+            }
+            
+            .info-panel li {
+                padding: 10px 12px;
+                margin-bottom: 10px;
+                border-radius: 10px;
+            }
+            
+            .verification-container {
+                padding: 20px;
+                border-radius: 24px;
+                margin: 20px 0;
+            }
+            
+            .result-container {
+                padding: 15px;
+                border-radius: 24px;
+                margin-top: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                margin: 5px auto;
+            }
+            
+            .header {
+                padding: 15px 10px;
+                border-radius: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.6em;
+            }
+            
+            .form-container {
+                padding: 15px;
+                border-radius: 20px;
+                margin: 10px;
+            }
+            
+            .info-panel {
+                padding: 15px;
+                border-radius: 20px;
+            }
+            
+            .info-panel li {
+                padding: 8px 10px;
+                font-size: 0.9em;
+            }
         }
     </style>
 </head>
@@ -219,9 +309,9 @@
             <h1>🔐 Card Verification</h1>
             <p>Secure card validation without charges - Already on it.</p>
             <div style="margin-top: 20px;">
-                <a href="index.html" style="display: inline-block; padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px;">🏠 Home</a>
-                <a href="payment.html" style="display: inline-block; padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px;">💳 Payment</a>
-                <a href="dashboard.html" style="display: inline-block; padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px;">📊 Dashboard</a>
+                <a href="index.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">🏠 Home</a>
+                <a href="payment.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">💳 Payment</a>
+                <a href="dashboard.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">📊 Dashboard</a>
             </div>
         </div>
 

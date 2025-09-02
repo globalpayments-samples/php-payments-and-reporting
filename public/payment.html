@@ -36,6 +36,7 @@
             padding: 30px;
             text-align: center;
             border-radius: 36px;
+            border: 3px solid white;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
             margin-bottom: 20px;
         }
@@ -290,22 +291,130 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
             .form-row {
                 flex-direction: column;
             }
             
             .container {
-                margin: 10px;
+                margin: 10px auto;
+                max-width: calc(100% - 20px);
             }
             
             .header {
+                padding: 20px 15px;
                 border-radius: 24px;
+                margin-bottom: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
                 margin-bottom: 10px;
             }
             
+            .header p {
+                font-size: 1em;
+                margin-bottom: 15px;
+            }
+            
+            .header div[style*="margin-top"] {
+                margin-top: 15px !important;
+            }
+            
+            .header div[style*="margin-top"] a {
+                background: white !important;
+                color: #262AFF !important;
+                display: block !important;
+                margin: 5px auto !important;
+                text-align: center;
+                font-size: 14px !important;
+                padding: 12px 20px !important;
+                max-width: 200px;
+                border-radius: 36px !important;
+            }
+            
             .form-container {
-                padding: 25px;
+                padding: 20px;
                 border-radius: 24px;
+                margin: 15px;
+            }
+            
+            .form-section {
+                padding: 20px;
+                border-radius: 24px;
+                margin-bottom: 20px;
+            }
+            
+            .form-section h3 {
+                font-size: 1.1em;
+                margin-bottom: 15px;
+            }
+            
+            .form-group input,
+            .form-group select {
+                padding: 12px;
+                font-size: 16px;
+                border-radius: 24px;
+            }
+            
+            .payment-button {
+                padding: 15px 25px;
+                font-size: 16px;
+                border-radius: 24px;
+            }
+            
+            #card-form-container {
+                padding: 20px;
+                border-radius: 24px;
+            }
+            
+            .test-cards {
+                padding: 20px;
+                border-radius: 24px;
+            }
+            
+            .result-container {
+                padding: 15px;
+                border-radius: 24px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                margin: 5px auto;
+            }
+            
+            .header {
+                padding: 15px 10px;
+                border-radius: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.6em;
+            }
+            
+            .form-container {
+                padding: 15px;
+                border-radius: 20px;
+                margin: 10px;
+            }
+            
+            .form-section {
+                padding: 15px;
+                border-radius: 20px;
+            }
+            
+            .form-group input,
+            .form-group select {
+                padding: 10px;
+                border-radius: 20px;
             }
         }
     </style>
