@@ -85,12 +85,13 @@ body {
 
 .btn-secondary {
     background: var(--gp-white);
-    color: var(--gp-black);
-    border: 2px solid var(--gp-border);
+    color: var(--gp-blue);
+    border: none;
+    font-weight: 600;
 }
 
 .btn-secondary:hover {
-    border-color: var(--gp-blue);
+    background: rgba(38, 42, 255, 0.1);
     color: var(--gp-blue);
 }
 

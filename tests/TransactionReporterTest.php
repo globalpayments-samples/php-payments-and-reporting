@@ -378,7 +378,8 @@ class TransactionReporterTest extends TestCase
         $this->reporter->recordTransaction($testTransaction);
         
         // Retrieve local transactions
-        $transactions = $this->reporter->getLocalTransactions();
+        $result = $this->reporter->getLocalTransactions();
+        $transactions = $result['data']['transactions'] ?? [];
         
         $this->assertIsArray($transactions);
         // We should have at least our test transaction
@@ -413,7 +414,8 @@ class TransactionReporterTest extends TestCase
         $this->reporter->recordTransaction($testTransaction);
         
         // Test date filtering for the specific test date
-        $transactions = $this->reporter->getLocalTransactions($testDate, $testDate, 10);
+        $result = $this->reporter->getLocalTransactions($testDate, $testDate, 10);
+        $transactions = $result['data']['transactions'] ?? [];
         
         $this->assertIsArray($transactions);
         
@@ -430,7 +432,8 @@ class TransactionReporterTest extends TestCase
         
         if (!$found) {
             // Debug information
-            $allTransactions = $this->reporter->getLocalTransactions();
+            $allResult = $this->reporter->getLocalTransactions();
+            $allTransactions = $allResult['data']['transactions'] ?? [];
             $this->fail('Date-filtered transaction not found. Transaction IDs found: ' . 
                        implode(', ', $transactionIds) . '. Total transactions: ' . count($allTransactions));
         }
