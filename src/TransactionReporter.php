@@ -696,7 +696,11 @@ class TransactionReporter
                 '/^400[0-9]$/',      // 4000-4009
                 '/^500[0-9]$/',      // 5000-5009
                 '/^ORDER-/',
-                '/^WEB_/'
+                '/^WEB_/',
+                '/^987654321$/',     // Common test ID
+                '/^123456789$/',     // Common test ID
+                '/^TEST123$/',       // Common test ID
+                '/^[0-9]{3,4}$/',    // Simple numeric test IDs like 1001, 2002, etc.
             ];
 
             foreach ($testPatterns as $pattern) {
@@ -873,7 +877,12 @@ class TransactionReporter
                     '/^300[0-9]$/',      // 3000-3009
                     '/^400[0-9]$/',      // 4000-4009
                     '/^500[0-9]$/',      // 5000-5009
-                    '/^WEB_/'
+                    '/^WEB_/',
+                    '/^ORDER-/',
+                    '/^987654321$/',     // Common test ID
+                    '/^123456789$/',     // Common test ID
+                    '/^TEST123$/',       // Common test ID
+                    '/^[0-9]{3,4}$/',    // Simple numeric test IDs like 1001, 2002, etc.
                 ];
 
                 foreach ($testPatterns as $pattern) {
