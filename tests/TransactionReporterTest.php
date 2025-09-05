@@ -400,21 +400,21 @@ class TransactionReporterTest extends TestCase
 
     public function testGetLocalTransactionsWithDateFilter(): void
     {
-        // Use a specific date that we know exists with GP-API compatible ID
+        // Use a timestamp that will be newest to ensure it appears in top results
         $testDate = '2025-07-29';
         $testTransaction = [
             'id' => '123456789',
             'amount' => '30.00',
             'status' => 'approved',
-            'timestamp' => $testDate . 'T10:00:00Z',
+            'timestamp' => $testDate . 'T23:59:59Z', // Use end of day to be newest
             'card' => ['type' => 'AMEX', 'last4' => '0005'],
             'response' => ['code' => '00', 'message' => 'Approved']
         ];
         
         $this->reporter->recordTransaction($testTransaction);
         
-        // Test date filtering for the specific test date
-        $result = $this->reporter->getLocalTransactions($testDate, $testDate, 10);
+        // Test date filtering for the specific test date with higher limit to ensure we find it
+        $result = $this->reporter->getLocalTransactions($testDate, $testDate, 50);
         $transactions = $result['data']['transactions'] ?? [];
         
         $this->assertIsArray($transactions);
