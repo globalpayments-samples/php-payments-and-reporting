@@ -152,15 +152,8 @@
                     let url = '/api/transactions-api.php';
                     const params = new URLSearchParams();
                     
-                    const startDate = document.getElementById('start-date').value;
-                    const endDate = document.getElementById('end-date').value;
-                    
-                    // Only add date filters if user has specified them
-                    if (startDate && endDate) {
-                        params.append('start_date', startDate);
-                        params.append('end_date', endDate);
-                    }
-                    
+                    // Always load all transactions for client-side filtering
+                    // Remove server-side date filtering to get complete dataset
                     params.append('limit', '100');
                     // Add cache buster to prevent browser caching
                     params.append('_t', Date.now());
@@ -175,8 +168,18 @@
                     if (data.success) {
                         this.allTransactions = data.data.transactions || [];
                         this.filteredTransactions = [...this.allTransactions];
-                        this.updateStats();
-                        this.renderTransactions();
+                        
+                        // Apply any existing filters after loading
+                        const startDate = document.getElementById('start-date').value;
+                        const endDate = document.getElementById('end-date').value;
+                        const statusFilter = document.getElementById('status-filter').value;
+                        
+                        if (startDate || endDate || statusFilter) {
+                            this.applyFilters();
+                        } else {
+                            this.updateStats();
+                            this.renderTransactions();
+                        }
                         
                         
                         // Remove any existing notices
@@ -382,7 +385,13 @@
             }
 
             applyFilters() {
+                console.log('applyFilters called');
                 const statusFilter = document.getElementById('status-filter').value;
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
+                
+                console.log('Filter values:', { statusFilter, startDate, endDate });
+                console.log('All transactions count:', this.allTransactions.length);
                 
                 this.filteredTransactions = this.allTransactions.filter(transaction => {
                     // Status filter
@@ -390,8 +399,40 @@
                         return false;
                     }
                     
+                    // Date range filter
+                    if (startDate || endDate) {
+                        const transactionDateString = transaction.time_created || transaction.timestamp;
+                        if (!transactionDateString) {
+                            return false; // Skip transactions without dates
+                        }
+                        
+                        const transactionDate = new Date(transactionDateString);
+                        
+                        // Check if date parsing was successful
+                        if (isNaN(transactionDate.getTime())) {
+                            return false;
+                        }
+                        
+                        // Get the transaction date in YYYY-MM-DD format for comparison
+                        const transactionDateOnly = transactionDate.toISOString().split('T')[0];
+                        
+                        if (startDate) {
+                            if (transactionDateOnly < startDate) {
+                                return false;
+                            }
+                        }
+                        
+                        if (endDate) {
+                            if (transactionDateOnly > endDate) {
+                                return false;
+                            }
+                        }
+                    }
+                    
                     return true;
                 });
+
+                console.log('Filtered transactions count:', this.filteredTransactions.length);
 
                 this.currentPage = 1;
                 this.updateStats();
@@ -721,7 +762,13 @@
             clearDateRange() {
                 document.getElementById('start-date').value = '';
                 document.getElementById('end-date').value = '';
-                this.loadTransactions();
+                document.getElementById('status-filter').value = '';
+                // Reset to show all transactions
+                this.filteredTransactions = [...this.allTransactions];
+                this.currentPage = 1;
+                this.updateStats();
+                this.renderTransactions();
+                this.showFilterStatus();
             }
 
             formatExactTimestamp(timestamp) {
@@ -928,15 +975,27 @@
         });
 
         function refreshTransactions() {
-            dashboard.loadTransactions();
+            if (dashboard) {
+                dashboard.loadTransactions();
+            } else {
+                console.error('Dashboard not yet initialized');
+            }
         }
 
         function applyFilters() {
-            dashboard.applyFilters();
+            if (dashboard) {
+                dashboard.applyFilters();
+            } else {
+                console.error('Dashboard not yet initialized');
+            }
         }
 
         function searchTransactions() {
-            dashboard.searchTransactions();
+            if (dashboard) {
+                dashboard.searchTransactions();
+            } else {
+                console.error('Dashboard not yet initialized');
+            }
         }
     </script>
 </body>
