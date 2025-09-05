@@ -30,7 +30,7 @@ A comprehensive card verification and payment processing solution built with GP-
 - **Security First**: Input validation, secure tokenization, and error handling
 - **Production Ready**: Proper logging, monitoring, and deployment configuration
 
-## Quick Start
+## Quick Start Linux/MacOS
 
 ### Prerequisites
 - PHP 8.0 or higher
@@ -65,6 +65,55 @@ A comprehensive card verification and payment processing solution built with GP-
    ```
    http://localhost:8000
    ```
+
+## Quick Start Windows
+
+For Windows users who need to set up the complete development environment:
+
+### Prerequisites Installation
+
+1. **Install PHP 8.0+:**
+   - Download from [php.net/downloads](https://www.php.net/downloads.php)
+   - Choose "Thread Safe" version for Windows
+   - Extract to `C:\php` (or your preferred location)
+   - Add `C:\php` to your Windows PATH environment variable
+
+2. **Install Composer:**
+   - Download from [getcomposer.org](https://getcomposer.org/download/)
+   - Run the Windows installer (Composer-Setup.exe)
+   - This will automatically add Composer to your PATH
+
+3. **Verify Installation:**
+   ```powershell
+   php --version
+   composer --version
+   ```
+
+### Project Setup
+
+1. **Clone and setup:**
+   ```powershell
+   git clone <repository-url>
+   cd card-authentication
+   composer install
+   ```
+
+2. **Configure environment:**
+   ```powershell
+   Copy-Item .env.example .env
+   # Edit .env file with your GP-API credentials using notepad or your preferred editor
+   notepad .env
+   ```
+
+3. **Start development server:**
+   ```powershell
+   php -S localhost:8000 router.php
+   ```
+
+4. **Test the setup:**
+   - Navigate to http://localhost:8000
+   - Run tests: `composer test`
+   - Check logs: `Get-Content logs\*.log -Tail 10`
 
 ## Project Structure
 
