@@ -18,7 +18,7 @@ declare(strict_types=1);
  * @link      https://github.com/globalpayments
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once '/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
@@ -67,8 +67,6 @@ try {
     echo json_encode([
         'success' => true,
         'data' => [
-            'appId' => $appId,
-            'environment' => $environment,
             'apiVersion' => 'v1',
             'supportedCardTypes' => [
                 'visa',
