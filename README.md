@@ -119,7 +119,7 @@ For Windows users who need to set up the complete development environment:
 
 ```
 card-authentication/
-├── docs/                           # Documentation
+├── docs/                          # Documentation
 │   ├── API.md                     # API documentation
 │   ├── DEPLOYMENT.md              # Deployment guide
 │   └── ARCHITECTURE.md            # System architecture
@@ -128,6 +128,7 @@ card-authentication/
 │   ├── card-verification.html     # Card verification interface
 │   ├── payment.html               # Payment processing interface
 │   ├── dashboard.html             # Transaction monitoring dashboard
+│   ├── assets/                    # Static assets
 │   └── css/                       # Stylesheets
 │       ├── index.css
 │       └── dashboard.css
@@ -139,19 +140,17 @@ card-authentication/
 │   ├── config.php                 # SDK configuration
 │   ├── verify-card.php            # Card verification endpoint
 │   ├── process-payment.php        # Payment processing endpoint
+│   ├── get-access-token.php       # Access token endpoint
 │   └── transactions-api.php       # Transaction data API
 ├── tests/                         # PHPUnit tests
 │   ├── TransactionReporterTest.php
 │   └── TransactionReporterIntegrationTest.php
-├── tools/                         # Development and debugging tools
-│   ├── debug-payment.php          # System diagnostics
-│   └── test-payment.php           # Environment setup checker
-├── logs/                          # Application logs (gitignored)
-├── vendor/                        # Composer dependencies
 ├── .env.example                   # Environment configuration template
 ├── composer.json                  # PHP dependencies and scripts
 ├── phpunit.xml                    # Test configuration
 ├── router.php                     # Development server router
+├── docker-compose.yml             # Docker configuration
+├── Dockerfile                     # Docker build configuration
 └── README.md                      # This file
 ```
 
@@ -188,9 +187,6 @@ card-authentication/
    ```bash
    # Run tests to ensure everything is working
    composer test
-   
-   # Check system requirements
-   php tools/test-payment.php
    ```
 
 ## Configuration
@@ -310,8 +306,6 @@ Current test coverage:
 - **17 test cases** with **128 assertions**
 - **100% pass rate**
 - Coverage includes unit tests, integration tests, and edge cases
-
-For detailed testing information, see [TESTING.md](TESTING.md).
 
 ## Security
 
@@ -433,7 +427,6 @@ Common issues and solutions:
 - Check the [documentation](docs/)
 - Review the [test results](test-results.xml)
 - Examine application logs in the `logs/` directory
-- Use the debug tools in the `tools/` directory
 
 ## License
 
