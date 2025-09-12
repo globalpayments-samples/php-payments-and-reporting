@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Payments Integration</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Inter", "DM Sans", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #262AFF 0%, #1B1EC6 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 36px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #262AFF 0%, #1B1EC6 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 20px 0 20px;
+            border-radius: 36px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        .gp-logo {
+            height: 180px;
+            width: auto;
+            max-width: 800px;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
+        }
+
+        .header h1 {
+            font-size: 3.2em;
+            margin-bottom: 0.4em;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.4em;
+                line-height: 1.2;
+            }
+            
+            .header p {
+                font-size: 1.2em;
+                margin-bottom: 25px;
+                max-width: 90%;
+            }
+            
+            .gp-logo {
+                height: 130px;
+                max-width: 600px;
+            }
+            
+            .header-logo {
+                margin-bottom: 30px;
+            }
+            
+            .badges {
+                gap: 15px;
+            }
+            
+            .badge {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+        }
+
+        .header p {
+            font-size: 1.4em;
+            opacity: 0.95;
+            margin-bottom: 30px;
+            line-height: 1.4;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .badges {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 500;
+            border: none;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+            background: white;
+            margin: 20px;
+            border-radius: 36px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .feature-card {
+            background: #fafafa;
+            border: 2px solid #e0e0e0;
+            border-radius: 36px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            border-color: #262AFF;
+        }
+
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .feature-card p {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .feature-button {
+            background: linear-gradient(90deg, #262AFF 0%, #1B1EC6 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 36px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .feature-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(38, 42, 255, 0.3);
+        }
+
+        .feature-button.secondary {
+            background: linear-gradient(90deg, #6c757d 0%, #495057 100%);
+        }
+
+        .info-section {
+            background: #f8f9fa;
+            border-radius: 36px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .info-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .test-cards {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .test-cards h4 {
+            color: #1976d2;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .test-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .test-card-item {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+
+        .test-card-item strong {
+            color: #1976d2;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .quick-start {
+            background: linear-gradient(135deg, #262AFF 0%, #1B1EC6 100%);
+            color: white;
+            border-radius: 36px;
+            padding: 25px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .quick-start h3 {
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .quick-start ol {
+            text-align: left;
+            max-width: 600px;
+            margin: 0 auto;
+            padding-left: 20px;
+        }
+
+        .quick-start li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .footer {
+            background: linear-gradient(135deg, #262AFF 0%, #1B1EC6 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            margin: 0 20px 20px 20px;
+            border-radius: 36px;
+            box-shadow: 0 10px 40px rgba(38, 42, 255, 0.15);
+        }
+
+        .footer p {
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: underline;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: underline;
+            text-decoration-thickness: 2px;
+        }
+
+        .test-cards-link:hover {
+            background: rgba(255,255,255,0.3) !important;
+            border-color: rgba(255,255,255,0.5) !important;
+            text-decoration: underline !important;
+            text-decoration-thickness: 2px !important;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .container {
+                margin: 10px auto;
+                max-width: calc(100% - 20px);
+            }
+            
+            .main-content {
+                padding: 25px 20px;
+                margin: 15px;
+                border-radius: 24px;
+            }
+            
+            .header {
+                padding: 25px 20px;
+                margin: 10px 10px 0 10px;
+                border-radius: 24px;
+            }
+            
+            .header h1 {
+                font-size: 2.2em;
+                line-height: 1.1;
+            }
+            
+            .header p {
+                font-size: 1.2em;
+                margin-bottom: 20px;
+            }
+            
+            .gp-logo {
+                height: 120px;
+                max-width: 100%;
+            }
+            
+            .badges {
+                gap: 10px;
+                justify-content: center;
+            }
+            
+            .badge {
+                padding: 10px 18px;
+                font-size: 0.95em;
+                white-space: nowrap;
+            }
+            
+            .feature-card {
+                padding: 25px 20px;
+                border-radius: 24px;
+            }
+            
+            .feature-card h3 {
+                font-size: 1.4em;
+                margin-bottom: 12px;
+            }
+            
+            .feature-card p {
+                font-size: 0.95em;
+                margin-bottom: 15px;
+            }
+            
+            .feature-button {
+                padding: 12px 20px;
+                font-size: 15px;
+                border-radius: 24px;
+            }
+            
+            .info-section {
+                padding: 25px 20px;
+                border-radius: 24px;
+                margin-bottom: 25px;
+            }
+            
+            .info-section h2 {
+                font-size: 1.6em;
+                margin-bottom: 15px;
+            }
+            
+            .quick-start {
+                padding: 20px;
+                border-radius: 24px;
+            }
+            
+            .quick-start h3 {
+                font-size: 1.3em;
+                margin-bottom: 12px;
+            }
+            
+            .quick-start ol {
+                padding-left: 18px;
+            }
+            
+            .quick-start li {
+                margin-bottom: 10px;
+                font-size: 0.95em;
+            }
+            
+            .test-cards-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .test-card-item {
+                padding: 10px;
+                font-size: 0.9em;
+            }
+            
+            .footer {
+                padding: 25px 20px;
+                margin: 0 10px 10px 10px;
+                border-radius: 24px;
+            }
+            
+            .footer p {
+                font-size: 0.95em;
+                margin-bottom: 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                margin: 5px auto;
+            }
+            
+            .header {
+                padding: 20px 15px;
+                margin: 5px 5px 0 5px;
+                border-radius: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.9em;
+            }
+            
+            .header p {
+                font-size: 1.1em;
+            }
+            
+            .gp-logo {
+                height: 100px;
+            }
+            
+            .main-content {
+                padding: 20px 15px;
+                margin: 10px 5px;
+                border-radius: 20px;
+            }
+            
+            .feature-card {
+                padding: 20px 15px;
+                border-radius: 20px;
+            }
+            
+            .info-section {
+                padding: 20px 15px;
+                border-radius: 20px;
+            }
+            
+            .quick-start {
+                padding: 15px;
+                border-radius: 20px;
+            }
+            
+            .footer {
+                padding: 20px 15px;
+                margin: 0 5px 5px 5px;
+                border-radius: 20px;
+            }
+            
+            .badges {
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .badge {
+                padding: 8px 15px;
+                font-size: 0.9em;
+                width: fit-content;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-logo">
+                <img src="assets/images/gpguide_logo_3.png" alt="Global Payments" class="gp-logo">
+            </div>
+            <h1>Payment Integration Platform</h1>
+            <p>Complete card verification and payment processing solution</p>
+            <div class="badges">
+                <span class="badge">🔒 PCI Compliant</span>
+                <span class="badge">📊 Full Dashboard</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="quick-start">
+                <h3>🚀 Quick Start Guide</h3>
+                <ol>
+                    <li><strong>Card Verification:</strong> Test card validation without charges</li>
+                    <li><strong>Payment Processing:</strong> Process real sandbox transactions</li>
+                    <li><strong>View Results:</strong> Monitor all transactions in the dashboard</li>
+                    <li><strong>Use Test Cards:</strong> Provided below for safe testing</li>
+                </ol>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card" onclick="window.location.href='card-verification.html'">
+                    <span class="feature-icon">🔐</span>
+                    <h3>Card Verification</h3>
+                    <p>Validate credit cards without processing charges. Test AVS, CVV, and full verification with various validation levels.</p>
+                    <a href="card-verification.html" class="feature-button">Start Verification</a>
+                </div>
+
+                <div class="feature-card" onclick="window.location.href='payment.html'">
+                    <span class="feature-icon">💳</span>
+                    <h3>Payment Processing</h3>
+                    <p>Process real sandbox payments using Heartland's secure tokenization system. Test complete payment workflows.</p>
+                    <a href="payment.html" class="feature-button">Process Payment</a>
+                </div>
+
+                <div class="feature-card" onclick="window.location.href='dashboard.html'">
+                    <span class="feature-icon">📊</span>
+                    <h3>Transaction Dashboard</h3>
+                    <p>Monitor, search, and analyze all verification and payment transactions with detailed reporting and export capabilities.</p>
+                    <a href="dashboard.html" class="feature-button secondary">View Dashboard</a>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2>🧪 Test Card Information</h2>
+                <p>Access comprehensive test card numbers and testing guidelines for sandbox development.</p>
+                
+                <div style="background: linear-gradient(135deg, #262AFF 0%, #1B1EC6 100%); border-radius: 16px; padding: 30px; text-align: center; color: white; margin: 25px 0;">
+                    <div style="font-size: 2.5em; margin-bottom: 15px;">💳</div>
+                    <h3 style="margin-bottom: 15px; font-size: 1.5em;">Official Global Payments Test Cards</h3>
+                    <p style="margin-bottom: 25px; opacity: 0.9; line-height: 1.6;">
+                        Access the complete collection of test card numbers, including special test scenarios, 
+                        decline codes, and certification requirements directly from Global Payments developer portal.
+                    </p>
+                    <a href="https://developer.heartlandpaymentsystems.com/Certification/Testing" 
+                       target="_blank" 
+                       class="test-cards-link"
+                       style="display: inline-block; background: rgba(255,255,255,0.2); color: white; text-decoration: underline; padding: 12px 24px; border-radius: 8px; font-weight: 500; font-size: 16px; border: 1px solid rgba(255,255,255,0.3); transition: all 0.3s ease;">
+                        📖 View Official Test Cards
+                    </a>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2>📚 Integration Features</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <div>
+                        <h4 style="color: #4285f4; margin-bottom: 10px;">🔐 Security Features</h4>
+                        <ul style="color: #666; line-height: 1.6; padding-left: 20px;">
+                            <li>PCI-compliant tokenization</li>
+                            <li>Secure iframe integration</li>
+                            <li>Address Verification Service (AVS)</li>
+                            <li>CVV verification</li>
+                            <li>3D Secure support</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 style="color: #4285f4; margin-bottom: 10px;">⚡ Performance Features</h4>
+                        <ul style="color: #666; line-height: 1.6; padding-left: 20px;">
+                            <li>Real-time card validation</li>
+                            <li>Instant tokenization</li>
+                            <li>Responsive design</li>
+                            <li>Mobile optimized</li>
+                            <li>Fast transaction processing</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 style="color: #4285f4; margin-bottom: 10px;">📊 Monitoring Features</h4>
+                        <ul style="color: #666; line-height: 1.6; padding-left: 20px;">
+                            <li>Complete transaction dashboard</li>
+                            <li>Real-time status updates</li>
+                            <li>Export capabilities (CSV)</li>
+                            <li>Advanced filtering</li>
+                            <li>Detailed transaction logs</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Powered by Global Payments</p>
+            <p>Sandbox Environment</p>
+            <p style="margin-top: 15px;">
+                <a href="https://developer.globalpay.com/" target="_blank">Developer Documentation</a> • 
+                <a href="https://developer.globalpay.com/" target="_blank">Global Payments API</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactive elements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click handlers for feature cards
+            const featureCards = document.querySelectorAll('.feature-card');
+            featureCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+
+            // Add copy functionality for test card numbers
+            const testCardItems = document.querySelectorAll('.test-card-item');
+            testCardItems.forEach(item => {
+                item.style.cursor = 'pointer';
+                item.title = 'Click to copy card number';
+                
+                item.addEventListener('click', function() {
+                    const cardNumber = this.textContent.trim().split('\n')[1];
+                    navigator.clipboard.writeText(cardNumber).then(() => {
+                        const originalBg = this.style.background;
+                        this.style.background = 'rgba(76, 175, 80, 0.3)';
+                        setTimeout(() => {
+                            this.style.background = originalBg;
+                        }, 1000);
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

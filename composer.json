@@ -31,9 +31,13 @@
     },
     "scripts": {
         "serve": "php -S localhost:8000",
-        "test": "phpunit",
+        "test": "phpunit --colors=always",
+        "test:unit": "phpunit --colors=always --testdox",
+        "test:coverage": "phpunit --colors=always --coverage-html coverage-html --coverage-text",
+        "test:filter": "phpunit --colors=always --filter",
         "lint": "phpcs --standard=PSR12 src/",
-        "fix": "phpcbf --standard=PSR12 src/"
+        "lint:fix": "phpcbf --standard=PSR12 src/",
+        "quality": ["@lint", "@test"]
     },
     "config": {
         "process-timeout": 0,

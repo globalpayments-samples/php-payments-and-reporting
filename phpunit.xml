@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         verbose="true"
+         testdox="true"
+         stopOnFailure="false"
+         processIsolation="false"
+         backupGlobals="false"
+         cacheResult="false">
+    
+    <testsuites>
+        <testsuite name="Unit Tests">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+    
+    <coverage>
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+        <exclude>
+            <file>src/ErrorHandler.php</file>
+        </exclude>
+        <report>
+            <text outputFile="php://stdout" showUncoveredFiles="true"/>
+            <html outputDirectory="coverage-html"/>
+        </report>
+    </coverage>
+    
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="PHPUNIT_RUNNING" value="1"/>
+        <!-- Load test environment variables -->
+        <env name="SECRET_API_KEY" value="skapi_cert_test_key"/>
+    </php>
+    
+    <logging>
+        <junit outputFile="test-results.xml"/>
+    </logging>
+</phpunit>

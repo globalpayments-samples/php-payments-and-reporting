@@ -4,7 +4,7 @@
 # This script provides an easy way to start the development server
 # with proper environment setup and error checking.
 
-set -e  # Exit on any error
+set -Eeuo pipefail  # Exit on error, undefined var, and fail pipelines
 
 # Colors for output
 RED='\033[0;31m'
@@ -12,6 +12,10 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Ensure we run from the project root (script's directory)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 # Configuration
 DEFAULT_PORT=8000
@@ -63,11 +67,16 @@ check_requirements() {
     # Check required PHP extensions
     REQUIRED_EXTENSIONS=("curl" "dom" "openssl" "json" "mbstring" "fileinfo" "intl")
     for ext in "${REQUIRED_EXTENSIONS[@]}"; do
-        if php -m | grep -qi "$ext"; then
+        if php -r "exit(extension_loaded('$ext') ? 0 : 1);" 2>/dev/null; then
             echo -e "${GREEN}✅ PHP extension: $ext${NC}"
         else
-            echo -e "${RED}❌ Missing PHP extension: $ext${NC}"
-            exit 1
+            # json may be built-in in newer PHP; double-check via json_encode
+            if [ "$ext" = "json" ] && php -r "exit(function_exists('json_encode') ? 0 : 1);" 2>/dev/null; then
+                echo -e "${GREEN}✅ PHP extension: json (built-in)${NC}"
+            else
+                echo -e "${RED}❌ Missing PHP extension: $ext${NC}"
+                exit 1
+            fi
         fi
     done
     
@@ -103,9 +112,9 @@ check_environment() {
     
     if [ ! -f "$ENV_FILE" ]; then
         echo -e "${YELLOW}⚠️  Environment file $ENV_FILE not found${NC}"
-        if [ -f ".env.sample" ]; then
-            echo -e "${BLUE}📋 Creating $ENV_FILE from .env.sample...${NC}"
-            cp .env.sample "$ENV_FILE"
+        if [ -f ".env.example" ]; then
+            echo -e "${BLUE}📋 Creating $ENV_FILE from .env.example...${NC}"
+            cp .env.example "$ENV_FILE"
             echo -e "${YELLOW}⚠️  Please update $ENV_FILE with your API credentials${NC}"
         else
             echo -e "${RED}❌ No environment template found${NC}"
@@ -118,16 +127,16 @@ check_environment() {
     # Check for required environment variables
     source "$ENV_FILE"
     
-    if [ -z "$PUBLIC_API_KEY" ] || [ "$PUBLIC_API_KEY" = "pkapi_cert_your_public_key_here" ]; then
-        echo -e "${YELLOW}⚠️  PUBLIC_API_KEY not configured${NC}"
+    if [ -z "${GP_API_APP_ID:-}" ]; then
+        echo -e "${YELLOW}⚠️  GP_API_APP_ID not configured${NC}"
     else
-        echo -e "${GREEN}✅ PUBLIC_API_KEY configured${NC}"
+        echo -e "${GREEN}✅ GP_API_APP_ID configured${NC}"
     fi
     
-    if [ -z "$SECRET_API_KEY" ] || [ "$SECRET_API_KEY" = "skapi_cert_your_secret_key_here" ]; then
-        echo -e "${YELLOW}⚠️  SECRET_API_KEY not configured${NC}"
+    if [ -z "${GP_API_APP_KEY:-}" ]; then
+        echo -e "${YELLOW}⚠️  GP_API_APP_KEY not configured${NC}"
     else
-        echo -e "${GREEN}✅ SECRET_API_KEY configured${NC}"
+        echo -e "${GREEN}✅ GP_API_APP_KEY configured${NC}"
     fi
 }
 
@@ -154,8 +163,9 @@ run_tests() {
 start_server() {
     echo -e "${BLUE}🚀 Starting development server...${NC}"
     echo -e "${GREEN}Server running at: http://${HOST}:${PORT}${NC}"
-    echo -e "${GREEN}API Configuration: http://${HOST}:${PORT}/config.php${NC}"
-    echo -e "${GREEN}Verification API: http://${HOST}:${PORT}/verify-card.php${NC}"
+    echo -e "${GREEN}API Configuration: http://${HOST}:${PORT}/api/config.php${NC}"
+    echo -e "${GREEN}Verification API: http://${HOST}:${PORT}/api/verify-card.php${NC}"
+    echo -e "${GREEN}Public UI: http://${HOST}:${PORT}/public/index.html${NC}"
     echo ""
     echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}"
     echo ""
@@ -163,28 +173,35 @@ start_server() {
     # Create logs directory if it doesn't exist
     mkdir -p logs
     
-    # Export environment variables for PHP
-    export $(grep -v '^#' "$ENV_FILE" | xargs)
-    
     if [ "$DEV_MODE" = true ]; then
         echo -e "${BLUE}📱 Development mode: Auto-reload enabled${NC}"
         # In development mode, we could add file watchers here
     fi
     
-    # Start PHP built-in server
+    # Start PHP built-in server with router
     if [ "$SHOW_LOGS" = true ]; then
-        php -S "${HOST}:${PORT}" -t . 2>&1 | tee logs/server.log
+        php -S "${HOST}:${PORT}" -t . router.php 2>&1 | tee logs/server.log
     else
-        php -S "${HOST}:${PORT}" -t .
+        php -S "${HOST}:${PORT}" -t . router.php
     fi
 }
 
 kill_existing_server() {
-    # Kill any existing PHP server on the port
-    if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null ; then
-        echo -e "${YELLOW}⚠️  Port $PORT is in use, attempting to free it...${NC}"
-        lsof -ti:$PORT | xargs kill -9 2>/dev/null || true
-        sleep 2
+    # Kill any existing PHP server on the port (lsof or fuser)
+    if command -v lsof >/dev/null 2>&1; then
+        if lsof -Pi :"$PORT" -sTCP:LISTEN -t >/dev/null ; then
+            echo -e "${YELLOW}⚠️  Port $PORT is in use, attempting to free it (lsof)...${NC}"
+            lsof -ti:"$PORT" | xargs kill -9 2>/dev/null || true
+            sleep 2
+        fi
+    elif command -v fuser >/dev/null 2>&1; then
+        if fuser -n tcp "$PORT" >/dev/null 2>&1; then
+            echo -e "${YELLOW}⚠️  Port $PORT is in use, attempting to free it (fuser)...${NC}"
+            fuser -k -n tcp "$PORT" >/dev/null 2>&1 || true
+            sleep 2
+        fi
+    else
+        echo -e "${YELLOW}⚠️  Neither lsof nor fuser is available. If the port is in use, the server may fail to start.${NC}"
     fi
 }
 

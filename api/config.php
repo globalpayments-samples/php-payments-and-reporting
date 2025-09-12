@@ -18,7 +18,7 @@ declare(strict_types=1);
  * @link      https://github.com/globalpayments
  */
 
-require_once 'vendor/autoload.php';
+require_once '/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
@@ -50,28 +50,23 @@ try {
     }
 
     // Load environment variables from .env file
-    $dotenv = Dotenv::createImmutable(__DIR__);
+    $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->load();
 
     // Validate required environment variables
-    $publicApiKey = $_ENV['PUBLIC_API_KEY'] ?? null;
+    $appId = $_ENV['GP_API_APP_ID'] ?? null;
+    $appKey = $_ENV['GP_API_APP_KEY'] ?? null;
+    $environment = $_ENV['GP_API_ENVIRONMENT'] ?? 'sandbox';
     
-    if (empty($publicApiKey)) {
-        throw new Exception('PUBLIC_API_KEY not configured');
+    if (empty($appId) || empty($appKey)) {
+        throw new Exception('GP-API credentials not configured');
     }
 
-    // Determine environment based on API key
-    $environment = 'production';
-    if (strpos($publicApiKey, '_cert_') !== false || strpos($publicApiKey, '_test_') !== false) {
-        $environment = 'sandbox';
-    }
-
-    // Return configuration data
+    // For JavaScript SDK, we need to provide public configuration
+    // Note: Never expose the appKey to the frontend
     echo json_encode([
         'success' => true,
         'data' => [
-            'publicApiKey' => $publicApiKey,
-            'environment' => $environment,
             'apiVersion' => 'v1',
             'supportedCardTypes' => [
                 'visa',

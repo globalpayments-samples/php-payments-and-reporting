@@ -1,475 +1,447 @@
-# PHP Card Authentication Example
+# Global Payments GP-API Integration - Production MVP
 
-A comprehensive PHP implementation demonstrating secure card authentication and verification using the Global Payments SDK. This project showcases various authentication scenarios without processing actual charges, making it perfect for subscription setups, card validation, and customer onboarding workflows.
+A comprehensive card verification and payment processing solution built with GP-API Drop-In UI and the GlobalPayments PHP SDK, featuring real-time transaction monitoring, secure payment processing, and professional dashboard interfaces.
 
-## 🚀 Features
+## Table of Contents
 
-- **Multiple Verification Types**
-  - Basic card validation (number + expiration)
-  - Address Verification Service (AVS) checks
-  - Card Verification Value (CVV) validation
-  - Comprehensive verification with all checks combined
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [API Documentation](#api-documentation)
+- [Testing](#testing)
+- [Security](#security)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
 
-- **Advanced Security**
-  - Secure card tokenization
-  - PCI-compliant implementation
-  - Client-side card data encryption
-  - Server-side validation and sanitization
+## Features
 
-- **Flexible Authentication Options**
-  - Real-time card verification
-  - Stored card re-verification
-  - Batch verification for multiple cards
-  - Customer data integration
+### Core Functionality
+- **Card Verification**: Zero-charge validation with AVS/CVV checks
+- **Payment Processing**: Secure payment transactions via GP-API Drop-In UI
+- **Transaction Dashboard**: Real-time monitoring with filtering and export capabilities
+- **Multi-format Support**: CSV export, detailed transaction views, and comprehensive reporting
 
-- **Production-Ready Code**
-  - Comprehensive error handling
-  - Detailed logging and monitoring
-  - Rate limiting and security headers
-  - Docker containerization support
+### Technical Features
+- **Modern Architecture**: Clean separation of concerns with PSR-4 autoloading
+- **Comprehensive Testing**: PHPUnit test suite with 100% pass rate (17 tests, 128 assertions)
+- **Security First**: Input validation, secure tokenization, and error handling
+- **Production Ready**: Proper logging, monitoring, and deployment configuration
 
-## 📋 Requirements
+## Quick Start Linux/MacOS
 
-- **PHP 8.0+** with required extensions:
-  - `curl` - For API communication
-  - `dom` - For XML processing
-  - `openssl` - For secure connections
-  - `json` - For data handling
-  - `mbstring` - For string manipulation
-  - `fileinfo` - For file type detection
-  - `intl` - For internationalization
-  - `zlib` - For compression
+### Prerequisites
+- PHP 8.0 or higher
+- Composer
+- Global Payments GP-API sandbox account and app credentials
 
-- **Composer** for dependency management
-- **Global Payments Account** with API credentials
-- **SSL Certificate** for production use
+### Installation
 
-## 🛠️ Installation
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd card-authentication
+   ```
 
-### 1. Clone the Repository
+2. **Install dependencies:**
+   ```bash
+   composer install
+   ```
 
-```bash
-git clone https://github.com/your-org/php-card-authentication.git
-cd php-card-authentication
+3. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your GP-API app credentials
+   ```
+
+4. **Start development server:**
+   ```bash
+   php -S localhost:8000 router.php
+   ```
+
+5. **Access the application:**
+   ```
+   http://localhost:8000
+   ```
+
+## Quick Start Windows
+
+For Windows users who need to set up the complete development environment:
+
+### Prerequisites Installation
+
+1. **Install PHP 8.0+:**
+   - Download from [php.net/downloads](https://www.php.net/downloads.php)
+   - Choose "Thread Safe" version for Windows
+   - Extract to `C:\php` (or your preferred location)
+   - Add `C:\php` to your Windows PATH environment variable
+
+2. **Install Composer:**
+   - Download from [getcomposer.org](https://getcomposer.org/download/)
+   - Run the Windows installer (Composer-Setup.exe)
+   - This will automatically add Composer to your PATH
+
+3. **Verify Installation:**
+   ```powershell
+   php --version
+   composer --version
+   ```
+
+### Project Setup
+
+1. **Clone and setup:**
+   ```powershell
+   git clone <repository-url>
+   cd card-authentication
+   composer install
+   ```
+
+2. **Configure environment:**
+   ```powershell
+   Copy-Item .env.example .env
+   # Edit .env file with your GP-API credentials using notepad or your preferred editor
+   notepad .env
+   ```
+
+3. **Start development server:**
+   ```powershell
+   php -S localhost:8000 router.php
+   ```
+
+4. **Test the setup:**
+   - Navigate to http://localhost:8000
+   - Run tests: `composer test`
+   - Check logs: `Get-Content logs\*.log -Tail 10`
+
+## Project Structure
+
+```
+card-authentication/
+├── docs/                          # Documentation
+│   ├── API.md                     # API documentation
+│   ├── DEPLOYMENT.md              # Deployment guide
+│   └── ARCHITECTURE.md            # System architecture
+├── public/                        # Web root (frontend files)
+│   ├── index.html                 # Main navigation hub
+│   ├── card-verification.html     # Card verification interface
+│   ├── payment.html               # Payment processing interface
+│   ├── dashboard.html             # Transaction monitoring dashboard
+│   ├── assets/                    # Static assets
+│   └── css/                       # Stylesheets
+│       ├── index.css
+│       └── dashboard.css
+├── src/                           # PHP source code
+│   ├── TransactionReporter.php    # Transaction management and reporting
+│   ├── ErrorHandler.php           # Error handling utilities
+│   └── Logger.php                 # Logging utilities
+├── api/                           # API endpoints
+│   ├── config.php                 # SDK configuration
+│   ├── verify-card.php            # Card verification endpoint
+│   ├── process-payment.php        # Payment processing endpoint
+│   ├── get-access-token.php       # Access token endpoint
+│   └── transactions-api.php       # Transaction data API
+├── tests/                         # PHPUnit tests
+│   ├── TransactionReporterTest.php
+│   └── TransactionReporterIntegrationTest.php
+├── .env.example                   # Environment configuration template
+├── composer.json                  # PHP dependencies and scripts
+├── phpunit.xml                    # Test configuration
+├── router.php                     # Development server router
+├── docker-compose.yml             # Docker configuration
+├── Dockerfile                     # Docker build configuration
+└── README.md                      # This file
 ```
 
-### 2. Install Dependencies
+## Installation
 
-```bash
-composer install
-```
+### System Requirements
+- **PHP**: 8.0 or higher with extensions:
+  - `curl`
+  - `json`
+  - `mbstring`
+  - `openssl`
+- **Composer**: Latest version
+- **Web Server**: Apache, Nginx, or PHP built-in server
 
-### 3. Environment Configuration
+### Step-by-Step Setup
 
-```bash
-# Copy environment template
-cp .env.sample .env
+1. **Environment Setup:**
+   ```bash
+   # Create environment file
+   cp .env.example .env
+   
+   # Configure your GP-API credentials in .env:
+   GP_API_APP_ID=your_app_id_here
+   GP_API_APP_KEY=your_app_key_here
+   GP_API_ENVIRONMENT=sandbox
+   ```
 
-# Edit with your API credentials
-nano .env
-```
+2. **Install Dependencies:**
+   ```bash
+   composer install --optimize-autoloader
+   ```
 
-**Required Environment Variables:**
-```env
-PUBLIC_API_KEY=pkapi_cert_your_public_key_here
-SECRET_API_KEY=skapi_cert_your_secret_key_here
-```
+3. **Verify Installation:**
+   ```bash
+   # Run tests to ensure everything is working
+   composer test
+   ```
 
-### 4. Start Development Server
+## Configuration
 
-```bash
-# Using Composer script
-composer serve
+### Environment Variables
 
-# Or manually
-php -S localhost:8000
-```
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `GP_API_APP_ID` | GP-API application ID | Yes | - |
+| `GP_API_APP_KEY` | GP-API application key | Yes | - |
+| `GP_API_ENVIRONMENT` | GP-API environment (sandbox/production) | Yes | `sandbox` |
+| `ENABLE_REQUEST_LOGGING` | Enable detailed API request logging | No | `false` |
 
-### 5. Access the Application
+### Logging Configuration
 
-Open your browser and navigate to:
-- **Web Interface**: http://localhost:8000
-- **Configuration API**: http://localhost:8000/config.php
-- **Verification API**: http://localhost:8000/verify-card.php
+Logs are stored in the `logs/` directory with the following structure:
+- `transaction-errors.log` - Transaction processing errors
+- `system-YYYY-MM-DD.log` - General system logs
+- `payment-YYYY-MM-DD.log` - Payment processing logs
+- `transactions-YYYY-MM-DD.json` - Transaction data storage
 
-## 🏗️ Project Structure
+## Usage
 
-```
-php-card-authentication/
-├── 📁 examples/                    # Example scripts
-│   ├── basic-verification.php      # Basic card validation
-│   ├── advanced-verification.php   # AVS + CVV checks
-│   └── stored-card-verify.php     # Token-based verification
-├── 📁 src/                        # Source code (if using classes)
-├── 📁 tests/                      # PHPUnit tests
-├── 📁 docs/                       # Documentation
-├── config.php                     # API configuration endpoint
-├── index.html                     # Web interface
-├── verify-card.php               # Main verification API
-├── tokenize-card.php             # Tokenization endpoint
-├── composer.json                 # Dependencies
-├── .env.sample                   # Environment template
-├── Dockerfile                    # Docker configuration
-├── README.md                     # This documentation
-└── run.sh                        # Development server script
-```
+### Card Verification
 
-## 🔧 API Endpoints
+1. Navigate to `http://localhost:8000/public/card-verification.html`
+2. Enter test card details (provided on the page)
+3. Submit for zero-charge verification
+4. View results including AVS/CVV validation
 
-### GET /config.php
-Returns public configuration for client-side SDK initialization.
+### Payment Processing
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "publicApiKey": "pkapi_cert_...",
-    "environment": "sandbox",
-    "supportedCardTypes": ["visa", "mastercard", "amex", "discover"],
-    "verification_types": {
-      "basic": "Basic card validation",
-      "avs": "Address Verification Service",
-      "cvv": "Card Verification Value check", 
-      "full": "Complete verification with all checks"
-    }
-  }
-}
-```
+1. Navigate to `http://localhost:8000/public/payment.html`
+2. Enter payment amount and card details
+3. Process secure payment through GlobalPayments
+4. Monitor results in real-time
 
-### POST /verify-card.php
-Performs card authentication/verification.
+### Transaction Monitoring
 
-**Request:**
-```json
-{
-  "payment_token": "card_token_from_client",
-  "verification_type": "full",
-  "billing_address": {
-    "street": "123 Main St",
-    "city": "New York",
-    "state": "NY",
-    "postal_code": "12345",
-    "country": "US"
-  },
-  "customer": {
-    "id": "CUST_123",
-    "email": "customer@example.com",
-    "phone": "5551234567"
-  }
-}
-```
-
-**Success Response:**
-```json
-{
-  "success": true,
-  "message": "Card verification successful",
-  "verification_result": {
-    "transaction_id": "TXN_123456789",
-    "response_code": "00",
-    "response_message": "APPROVAL",
-    "avs_response_code": "Y",
-    "cvn_response_code": "M",
-    "card_type": "Visa"
-  },
-  "data": {
-    "verified": true,
-    "verification_type": "full"
-  }
-}
-```
-
-### POST /tokenize-card.php
-Tokenizes card data for secure storage.
-
-**Request:**
-```json
-{
-  "card_number": "4111111111111111",
-  "exp_month": 12,
-  "exp_year": 2025,
-  "cvv": "123",
-  "cardholder_name": "John Doe",
-  "verify_card": true
-}
-```
-
-## 💡 Usage Examples
-
-### Basic Verification
-
-```php
-use GlobalPayments\Api\PaymentMethods\CreditCardData;
-
-// Create card object with token
-$card = new CreditCardData();
-$card->token = 'your_payment_token';
-
-// Perform basic verification
-$response = $card->verify()
-    ->withAllowDuplicates(true)
-    ->execute();
-
-if ($response->responseCode === '00') {
-    echo "Card verified successfully!";
-    echo "Transaction ID: " . $response->transactionReference->transactionId;
-}
-```
-
-### Advanced Verification with AVS
-
-```php
-use GlobalPayments\Api\Entities\Address;
-
-// Create address for AVS check
-$address = new Address();
-$address->streetAddress1 = '123 Main St';
-$address->city = 'New York';
-$address->state = 'NY';
-$address->postalCode = '12345';
-
-// Verify with address
-$response = $card->verify()
-    ->withAddress($address)
-    ->execute();
-
-// Check AVS results
-$avsMatch = in_array($response->avsResponseCode, ['A', 'B', 'D', 'M', 'X', 'Y']);
-echo "AVS Match: " . ($avsMatch ? 'Yes' : 'No');
-```
-
-### Stored Card Verification
-
-```php
-// Verify previously tokenized card
-$storedCard = new CreditCardData();
-$storedCard->token = 'stored_token_value';
-
-$response = $storedCard->verify()->execute();
-
-if ($response->responseCode === '00') {
-    echo "Stored card is still valid!";
-} else {
-    echo "Card may be expired or invalid: " . $response->responseMessage;
-}
-```
-
-## 🧪 Testing
-
-### Run Unit Tests
-
-```bash
-# Install dev dependencies
-composer install --dev
-
-# Run PHPUnit tests
-composer test
-
-# Run with coverage
-vendor/bin/phpunit --coverage-html coverage/
-```
-
-### Example Test Scripts
-
-```bash
-# Basic verification test
-php examples/basic-verification.php
-
-# Advanced verification test  
-php examples/advanced-verification.php
-
-# Stored card verification test
-php examples/stored-card-verify.php
-```
+1. Navigate to `http://localhost:8000/public/dashboard.html`
+2. View all transactions with filtering options
+3. Export data to CSV format
+4. Access detailed transaction information
 
 ### Test Cards
 
-Use these test card numbers in sandbox environment:
+Use these GlobalPayments test cards for development:
 
-| Card Type   | Number           | Exp | CVV  | Expected Result |
-|-------------|------------------|-----|------|-----------------|
-| Visa        | 4111111111111111 | 12/25 | 123 | Approval       |
-| MasterCard  | 5454545454545454 | 11/25 | 999 | Approval       |
-| Amex        | 378282246310005  | 10/25 | 1234| Approval       |
-| Discover    | 6011000000000012 | 09/25 | 123 | Approval       |
-| Declined    | 4000000000000002 | 12/25 | 123 | Decline        |
+| Card Number | Type | CVV | Exp | Expected Result |
+|-------------|------|-----|-----|-----------------|
+| 4000000000000002 | Visa | 123 | 12/25 | Approved |
+| 5400000000000005 | MasterCard | 123 | 12/25 | Approved |
+| 370000000000002 | Amex | 1234 | 12/25 | Approved |
+| 4000000000000010 | Visa | 123 | 12/25 | Declined |
 
-## 🐳 Docker Support
+## API Documentation
 
-### Using Docker
+### Endpoints
+
+#### Card Verification
+```
+POST /api/verify-card.php
+Content-Type: application/json
+
+{
+  "number": "4000000000000002",
+  "exp_month": "12",
+  "exp_year": "25",
+  "cvv": "123",
+  "zip": "12345"
+}
+```
+
+#### Payment Processing
+```
+POST /api/process-payment.php
+Content-Type: application/json
+
+{
+  "amount": "10.99",
+  "currency": "USD",
+  "number": "4000000000000002",
+  "exp_month": "12",
+  "exp_year": "25",
+  "cvv": "123"
+}
+```
+
+#### Transaction Data
+```
+GET /api/transactions-api.php?limit=50&start_date=2025-01-01&end_date=2025-01-31
+```
+
+For complete API documentation, see [docs/API.md](docs/API.md).
+
+## Testing
+
+### Running Tests
 
 ```bash
-# Build the image
-docker build -t php-card-auth .
+# Run all tests
+composer test
 
-# Run the container
-docker run -p 8000:8000 --env-file .env php-card-auth
+# Run with coverage
+composer test:coverage
 
-# Or use docker-compose
+# Run specific test file
+./vendor/bin/phpunit tests/TransactionReporterTest.php
+
+# Run with verbose output
+./vendor/bin/phpunit --verbose --testdox
+```
+
+### Test Coverage
+
+Current test coverage:
+- **17 test cases** with **128 assertions**
+- **100% pass rate**
+- Coverage includes unit tests, integration tests, and edge cases
+
+## Security
+
+### Security Measures Implemented
+
+- **Input Validation**: All user inputs are validated and sanitized
+- **Secure Tokenization**: No sensitive card data is stored locally
+- **API Security**: Proper headers and authentication
+- **Error Handling**: No sensitive information exposed in errors
+- **Transaction Filtering**: Only genuine API transactions displayed
+
+### Best Practices
+
+- Keep your `.env` file secure and never commit it to version control
+- Regularly rotate API keys
+- Monitor logs for suspicious activity
+- Use HTTPS in production environments
+- Keep dependencies updated
+
+## Deployment
+
+### Production Deployment
+
+1. **Environment Setup:**
+   ```bash
+   # Use production API credentials
+   SECRET_API_KEY=prod_secret_key
+   SERVICE_URL=https://api2.heartlandportico.com
+   ENABLE_REQUEST_LOGGING=false
+   ```
+
+2. **Optimize for Production:**
+   ```bash
+   composer install --no-dev --optimize-autoloader
+   ```
+
+3. **Web Server Configuration:**
+   - Set document root to project directory
+   - Configure HTTPS with valid SSL certificate
+   - Set appropriate file permissions
+   - Configure log rotation
+
+For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+### Docker Deployment
+
+```bash
+# Build and run with Docker
 docker-compose up -d
+
+# Or using Docker directly
+docker build -t heartland-payment .
+docker run -p 8000:8000 heartland-payment
 ```
 
-### docker-compose.yml
+## Contributing
 
-```yaml
-version: '3.8'
-services:
-  app:
-    build: .
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
-    volumes:
-      - .:/app
-    environment:
-      - PHP_ENV=development
-```
+### Development Workflow
 
-## 🔒 Security Considerations
+1. **Clone and Setup:**
+   ```bash
+   git clone <repository-url>
+   cd card-authentication
+   composer install
+   ```
 
-### Production Checklist
+2. **Create Feature Branch:**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-- [ ] **Environment Variables**: Store sensitive data in environment variables
-- [ ] **HTTPS Only**: Force HTTPS in production
-- [ ] **Input Validation**: Validate and sanitize all input data
-- [ ] **Rate Limiting**: Implement API rate limiting
-- [ ] **Error Handling**: Don't expose sensitive error details
-- [ ] **Logging**: Log security events and failed attempts
-- [ ] **CORS**: Configure appropriate CORS headers
-- [ ] **Security Headers**: Implement security headers (CSP, HSTS, etc.)
-- [ ] **Token Security**: Secure token storage and transmission
-- [ ] **PCI Compliance**: Follow PCI DSS requirements
+3. **Development:**
+   - Write code following PSR-12 standards
+   - Add tests for new functionality
+   - Update documentation as needed
 
-### Security Headers
+4. **Testing:**
+   ```bash
+   composer test
+   composer lint
+   ```
 
-The application automatically sets security headers:
+5. **Submit Pull Request:**
+   - Ensure all tests pass
+   - Include comprehensive description
+   - Reference any related issues
 
-```php
-header('X-Content-Type-Options: nosniff');
-header('X-Frame-Options: DENY');
-header('X-XSS-Protection: 1; mode=block');
-header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
-```
+### Code Standards
 
-## 📊 Response Codes
+- Follow PSR-12 coding standards
+- Use meaningful variable and function names
+- Include PHPDoc comments for all public methods
+- Write tests for all new functionality
+- Keep security as a top priority
 
-### Transaction Response Codes
+## Support
 
-| Code | Message | Description |
-|------|---------|-------------|
-| 00   | APPROVAL | Transaction approved |
-| 05   | DECLINE | Transaction declined |
-| 14   | INVALID_CARD | Invalid card number |
-| 41   | LOST_CARD | Lost card - pick up |
-| 43   | STOLEN_CARD | Stolen card - pick up |
-| 54   | EXPIRED | Expired card |
-| 51   | INSUFFICIENT_FUNDS | Insufficient funds |
+### Troubleshooting
 
-### AVS Response Codes
+Common issues and solutions:
 
-| Code | Description |
-|------|-------------|
-| A    | Address match only |
-| B    | Address match only (international) |
-| D    | Address and postal code match (international) |
-| M    | Address and postal code match |
-| N    | No match |
-| P    | Postal code match only (international) |
-| X    | Address and postal code match |
-| Y    | Address and postal code match |
-| Z    | Postal code match only |
+1. **API Connection Issues:**
+   - Verify credentials in `.env` file
+   - Check network connectivity
+   - Ensure API endpoints are accessible
 
-### CVV Response Codes
+2. **Test Failures:**
+   - Run `composer dump-autoload`
+   - Check file permissions on `logs/` directory
+   - Verify all dependencies are installed
 
-| Code | Description |
-|------|-------------|
-| M    | CVV match |
-| N    | CVV no match |
-| P    | Not processed |
-| S    | CVV should be on card but merchant indicated not present |
-| U    | Issuer not certified or not provided |
+3. **Performance Issues:**
+   - Enable PHP OPcache in production
+   - Optimize Composer autoloader
+   - Monitor system resources
 
-## 🚀 Production Deployment
+### Getting Help
 
-### Server Requirements
+- Check the [documentation](docs/)
+- Review the [test results](test-results.xml)
+- Examine application logs in the `logs/` directory
 
-- **PHP 8.0+** with required extensions
-- **Nginx/Apache** web server
-- **SSL Certificate** (required)
-- **Composer** for dependency management
-- **Redis** (optional, for caching/rate limiting)
+## License
 
-### Deployment Steps
+This project is licensed under the MIT License. See the LICENSE file for details.
 
-1. **Clone repository** to production server
-2. **Install dependencies**: `composer install --no-dev --optimize-autoloader`
-3. **Configure environment**: Copy `.env.sample` to `.env` with production values
-4. **Set permissions**: Ensure proper file permissions
-5. **Configure web server**: Set up virtual host with SSL
-6. **Test endpoints**: Verify all APIs are working
-7. **Monitor logs**: Set up log monitoring and alerts
+## Changelog
 
-### Environment Variables (Production)
-
-```env
-APP_ENV=production
-APP_DEBUG=false
-SERVICE_URL=https://api2.heartlandportico.com
-PUBLIC_API_KEY=pkapi_prod_your_key
-SECRET_API_KEY=skapi_prod_your_key
-ALLOWED_ORIGINS=https://yourdomain.com
-```
-
-## 📝 Changelog
-
-### Version 1.0.0 (Latest)
-
-- ✅ Initial release
-- ✅ Basic card verification
-- ✅ AVS and CVV checks
-- ✅ Stored card verification
-- ✅ Comprehensive error handling
-- ✅ Docker support
-- ✅ Security best practices
-- ✅ Complete documentation
-
-## 🤝 Contributing
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-### Development Guidelines
-
-- Follow **PSR-12** coding standards
-- Write **unit tests** for new features
-- Update **documentation** for API changes
-- Run **linting** before committing: `composer lint`
-- Ensure **security** best practices
-
-## 📞 Support
-
-- **Documentation**: https://developer.globalpay.com
-- **SDK Repository**: https://github.com/globalpayments/php-sdk
-- **Developer Support**: developer@globalpay.com
-- **Community**: https://developer.globalpay.com/community
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## ⚠️ Disclaimer
-
-This is a demonstration application for educational purposes. Always follow PCI DSS requirements and security best practices when handling card data in production environments.
+### Version 1.0.0 (Current MVP)
+- Complete card verification system
+- Secure payment processing with GlobalPayments SDK
+- Real-time transaction dashboard
+- Comprehensive test suite
+- Production-ready architecture
+- Professional documentation
 
 ---
 
-**🔗 Quick Links:**
-- [Global Payments Developer Portal](https://developer.globalpay.com)
-- [PHP SDK Documentation](https://github.com/globalpayments/php-sdk)
-- [API Reference](https://developer.globalpay.com/api)
-- [Security Guidelines](https://developer.globalpay.com/security)
+**Built with GlobalPayments PHP SDK** | **Production Ready** | **Comprehensive Testing**

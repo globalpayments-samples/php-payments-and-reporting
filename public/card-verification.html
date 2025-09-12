@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Verification - Global Payments</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "DM Sans", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #262AFF 0%, #1B1EC6 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: transparent;
+            border-radius: 36px;
+            overflow: visible;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #262AFF 0%, #1B1EC6 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 36px;
+            border: 3px solid white;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 0.5em;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .form-container {
+            padding: 40px;
+            background: white;
+            border-radius: 36px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border: 2px solid #262AFF;
+            box-shadow: 0 8px 25px rgba(38, 42, 255, 0.15);
+            padding: 30px;
+            margin-bottom: 25px;
+            border-radius: 36px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #262AFF 0%, #1B1EC6 100%);
+        }
+
+        .info-panel h3 {
+            color: #262AFF;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-panel p {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            font-size: 1.05em;
+        }
+
+        .info-panel ul {
+            margin-left: 0;
+            padding-left: 0;
+            list-style: none;
+            color: #333;
+        }
+
+        .info-panel li {
+            margin-bottom: 12px;
+            padding: 12px 16px;
+            background: rgba(38, 42, 255, 0.05);
+            border-radius: 12px;
+            border-left: 4px solid #262AFF;
+            transition: all 0.2s ease;
+        }
+
+        .info-panel li:hover {
+            background: rgba(38, 42, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        .info-panel li strong {
+            color: #262AFF;
+            font-weight: 600;
+        }
+
+        .verification-container {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border: 2px solid rgba(38, 42, 255, 0.15);
+            border-radius: 36px;
+            padding: 30px;
+            margin: 25px 0;
+            box-shadow: 0 4px 15px rgba(38, 42, 255, 0.1);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .verification-container:hover {
+            border-color: rgba(38, 42, 255, 0.25);
+            box-shadow: 0 8px 25px rgba(38, 42, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .verification-container::before {
+            content: '🔐';
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 18px;
+            opacity: 0.6;
+        }
+
+
+        .result-container {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 36px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-success {
+            background: #e8f5e8;
+            border: 2px solid #4caf50;
+            color: #2e7d32;
+        }
+
+        .result-error {
+            background: #ffebee;
+            border: 2px solid #f44336;
+            color: #c62828;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .result-details {
+            background: rgba(255,255,255,0.5);
+            padding: 15px;
+            border-radius: 36px;
+            margin-top: 15px;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                margin: 10px auto;
+                max-width: calc(100% - 20px);
+            }
+            
+            .header {
+                padding: 20px 15px;
+                border-radius: 24px;
+                margin-bottom: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+                margin-bottom: 10px;
+            }
+            
+            .header p {
+                font-size: 1em;
+                margin-bottom: 15px;
+            }
+            
+            .header div[style*="margin-top"] a {
+                display: block !important;
+                margin: 5px 0 !important;
+                text-align: center;
+                font-size: 14px !important;
+                padding: 12px 20px !important;
+            }
+            
+            .form-container {
+                padding: 20px;
+                border-radius: 24px;
+                margin: 15px;
+            }
+            
+            .info-panel {
+                padding: 20px;
+                border-radius: 24px;
+                margin-bottom: 20px;
+            }
+            
+            .info-panel h3 {
+                font-size: 1.2em;
+                margin-bottom: 12px;
+            }
+            
+            .info-panel p {
+                font-size: 0.95em;
+            }
+            
+            .info-panel li {
+                padding: 10px 12px;
+                margin-bottom: 10px;
+                border-radius: 10px;
+            }
+            
+            .verification-container {
+                padding: 20px;
+                border-radius: 24px;
+                margin: 20px 0;
+            }
+            
+            .result-container {
+                padding: 15px;
+                border-radius: 24px;
+                margin-top: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                margin: 5px auto;
+            }
+            
+            .header {
+                padding: 15px 10px;
+                border-radius: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.6em;
+            }
+            
+            .form-container {
+                padding: 15px;
+                border-radius: 20px;
+                margin: 10px;
+            }
+            
+            .info-panel {
+                padding: 15px;
+                border-radius: 20px;
+            }
+            
+            .info-panel li {
+                padding: 8px 10px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Card Verification</h1>
+            <p>Secure card validation without charges - Already on it.</p>
+            <div style="margin-top: 20px;">
+                <a href="index.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">🏠 Home</a>
+                <a href="payment.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">💳 Payment</a>
+                <a href="dashboard.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">📊 Dashboard</a>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <div class="info-panel">
+                <h3>🔐 What is Card Verification?</h3>
+                <p>Card verification validates your credit card information without processing any charges. This is perfect for:</p>
+                <ul>
+                    <li><strong>Testing card validity</strong> - Ensure the card number and expiry date are correct</li>
+                    <li><strong>Address verification (AVS)</strong> - Verify billing address matches the card</li>
+                    <li><strong>CVV validation</strong> - Confirm the security code on the back of the card</li>
+                    <li><strong>Safe testing</strong> - No money will be charged to your card</li>
+                </ul>
+            </div>
+
+            <div class="verification-container">
+                <div id="card-verification-form"></div>
+            </div>
+
+            <div class="result-container" id="result-container">
+            </div>
+        </div>
+    </div>
+
+    <script src="https://js.globalpay.com/4.1.11/globalpayments.js"></script>
+    <script>
+        class CardVerificationProcessor {
+            constructor() {
+                this.verificationForm = null;
+                this.isInitialized = false;
+                this.init();
+            }
+
+            async init() {
+                try {
+                    await this.waitForSDK();
+                    await this.loadConfiguration();
+                    this.initializeVerificationForm();
+                    console.log('✅ Card Verification Processor initialized');
+                } catch (error) {
+                    console.error('❌ Initialization failed:', error);
+                    this.showError('Failed to initialize verification system: ' + error.message);
+                }
+            }
+
+            waitForSDK() {
+                return new Promise((resolve, reject) => {
+                    if (typeof GlobalPayments !== 'undefined') {
+                        resolve();
+                        return;
+                    }
+
+                    let attempts = 0;
+                    const maxAttempts = 30;
+                    const checkInterval = setInterval(() => {
+                        attempts++;
+                        if (typeof GlobalPayments !== 'undefined') {
+                            clearInterval(checkInterval);
+                            resolve();
+                        } else if (attempts >= maxAttempts) {
+                            clearInterval(checkInterval);
+                            reject(new Error('GP-API SDK failed to load'));
+                        }
+                    }, 100);
+                });
+            }
+
+            async loadConfiguration() {
+                const response = await fetch('/api/get-access-token.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Access token failed: ${response.status}`);
+                }
+                
+                const tokenData = await response.json();
+                if (!tokenData.success) {
+                    throw new Error('Invalid token response');
+                }
+
+                this.appId = tokenData.data.accessToken;
+                this.environment = tokenData.data.environment;
+
+                console.log('✅ GP-API configured with access token:', tokenData.data.environment);
+            }
+
+            initializeVerificationForm() {
+                try {
+                    console.log('Initializing verification form...');
+                    console.log('GlobalPayments object:', GlobalPayments);
+                    
+                    // Configure GP-API
+                    console.log('🔧 Configuring GlobalPayments with:', {
+                        accessToken: this.appId.substring(0, 10) + '...',
+                        apiVersion: '2021-03-22',
+                        env: this.environment
+                    });
+                    
+                    GlobalPayments.configure({
+                        accessToken: this.appId,
+                        apiVersion: '2021-03-22',
+                        env: this.environment
+                    });
+
+                    // Initialize GP-API credit card form for verification
+                    this.verificationForm = GlobalPayments.creditCard.form('#card-verification-form', {
+                        style: 'gp-default'
+                    });
+
+                    // Set up event listeners
+                    this.verificationForm.on('token-success', (resp) => {
+                        console.log('✅ Card tokenized successfully for verification');
+                        console.log('Token response structure:', Object.keys(resp));
+                        this.processVerification(resp);
+                    });
+                    
+                    // Listen for card number changes to capture card type
+                    this.verificationForm.on('card-number-change', (event) => {
+                        console.log('Card number change event:', event);
+                        if (event.detail && event.detail.cardNumber) {
+                            console.log('Card number entered:', event.detail.cardNumber.substring(0, 6) + '******');
+                        }
+                    });
+                    
+                    // Listen for card type detection
+                    this.verificationForm.on('card-type-change', (event) => {
+                        console.log('Card type change event:', event);
+                    });
+
+                    this.verificationForm.on('token-error', (resp) => {
+                        console.error('❌ Tokenization error:', resp);
+                        console.error('❌ Error details:', JSON.stringify(resp, null, 2));
+                        
+                        let errorMessage = 'Card tokenization failed: ';
+                        if (resp.reasons && resp.reasons.length > 0) {
+                            errorMessage += resp.reasons.map(reason => reason.message || reason).join(', ');
+                        } else if (resp.error && resp.error.message) {
+                            errorMessage += resp.error.message;
+                        } else {
+                            errorMessage += 'Unknown error - check console for details';
+                        }
+                        
+                        this.showError(errorMessage);
+                    });
+
+
+
+                    this.verificationForm.ready(() => {
+                        console.log('✅ GP-API verification form ready');
+                        this.isInitialized = true;
+                    });
+
+                } catch (error) {
+                    console.error('❌ Verification form initialization failed:', error);
+                    this.showError('Failed to initialize verification form: ' + error.message);
+                }
+            }
+
+            async processVerification(tokenResponse) {
+                try {
+                    console.log('Full token response:', JSON.stringify(tokenResponse, null, 2));
+                    
+                    const verificationData = {
+                        payment_token: tokenResponse.paymentReference,
+                        verification_type: 'basic', // Basic verification
+                        currency: 'USD' // Required field for verification
+                    };
+
+                    // Extract card details from GP-API token response
+                    if (tokenResponse.details) {
+                        const cardDetails = tokenResponse.details;
+                        console.log('Card details from token response:', JSON.stringify(cardDetails, null, 2));
+                        
+                        verificationData.card_details = {
+                            type: cardDetails.cardType || cardDetails.brand,
+                            last4: cardDetails.cardLast4 || cardDetails.last4,
+                            exp_month: cardDetails.expiryMonth || cardDetails.expMonth,
+                            exp_year: cardDetails.expiryYear || cardDetails.expYear
+                        };
+                        console.log('Card details extracted:', verificationData.card_details);
+                    } else {
+                        console.warn('No card details found in token response. Available properties:', Object.keys(tokenResponse));
+                    }
+
+                    console.log('Processing verification...', verificationData);
+
+                    const response = await fetch('/api/verify-card.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(verificationData)
+                    });
+
+                    const result = await response.json();
+                    console.log('Verification response:', result);
+
+                    if (result.success) {
+                        this.showSuccess(result);
+                    } else {
+                        this.showError('Verification failed: ' + (result.message || 'Unknown error occurred'));
+                    }
+
+                } catch (error) {
+                    console.error('❌ Verification processing error:', error);
+                    this.showError('Verification processing failed: ' + error.message);
+                }
+            }
+
+
+
+            showSuccess(data) {
+                const container = document.getElementById('result-container');
+                container.className = 'result-container result-success';
+                
+                // Extract card details from GP-API response
+                const verificationResult = data.verification_result;
+                const paymentMethod = verificationResult.payment_method || {};
+                const card = paymentMethod.card || {};
+                const action = verificationResult.action || {};
+                
+                container.innerHTML = `
+                    <div class="result-header">
+                        <span>✅</span>
+                        <span>Card Verification Successful!</span>
+                    </div>
+                    <p>Your card has been verified successfully without any charges.</p>
+                    <div class="result-details">
+                        <strong>Verification Details:</strong><br>
+                        Card Type: ${card.brand || 'N/A'}<br>
+                        Last Four Digits: ${card.masked_number_last4 || 'N/A'}<br>
+                        Status: ${verificationResult.status || 'Verified'}<br>
+                        Result Code: ${action.result_code || 'SUCCESS'}<br>
+                        Verification ID: ${verificationResult.id || 'N/A'}<br>
+                        Reference: ${verificationResult.reference || 'N/A'}<br>
+                        Processed: ${new Date().toLocaleString()}
+                    </div>
+                `;
+                container.style.display = 'block';
+                container.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            showError(message) {
+                const container = document.getElementById('result-container');
+                container.className = 'result-container result-error';
+                
+                // Check if this is a permissions issue
+                const isPermissionsIssue = message.includes('not enabled') || 
+                                         message.includes('TRN_POST_Verify') || 
+                                         message.includes('permissions') ||
+                                         message.includes('Global Payments support');
+                
+                let errorContent = '';
+                if (isPermissionsIssue) {
+                    errorContent = `
+                        <div class="result-header">
+                            <span>⚠️</span>
+                            <span>Account Configuration Required</span>
+                        </div>
+                        <p><strong>Card verification is not enabled for this account.</strong></p>
+                        <div class="result-details">
+                            <p>This is a configuration issue with your Global Payments account:</p>
+                            <ul style="list-style: disc; margin-left: 20px; margin-top: 10px;">
+                                <li>Your Global Payments account settings need <strong>verification processing</strong> enabled in the portal</li>
+                                <li>This is configured in your GP-API account dashboard, not at the app level</li>
+                                <li>Contact <strong>Global Payments support</strong> to enable verification permissions</li>
+                            </ul>
+                            <p style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.7); border-radius: 8px;">
+                                <strong>Alternative:</strong> Try the <a href="payment.html" style="color: #262AFF;">Payment Processing</a> 
+                                page which uses different permissions that are already enabled.
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    errorContent = `
+                        <div class="result-header">
+                            <span>❌</span>
+                            <span>Verification Failed</span>
+                        </div>
+                        <p>${message}</p>
+                        <div class="result-details">
+                            Please check your card information and try again. Remember to use test card numbers in sandbox mode.
+                        </div>
+                    `;
+                }
+                
+                container.innerHTML = errorContent;
+                container.style.display = 'block';
+                container.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            new CardVerificationProcessor();
+        });
+    </script>
+</body>
+</html>

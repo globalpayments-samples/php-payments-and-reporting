@@ -3,7 +3,7 @@
 # Environment and secrets
 .env
 .env.*
-!.env.sample
+!.env.example
 
 # Dependencies
 /vendor/
@@ -16,6 +16,7 @@ composer.lock
 *.swp
 *.swo
 *~
+.claude
 .project
 .buildpath
 .settings/
@@ -47,10 +48,12 @@ Desktop.ini
 
 # Test coverage and reports
 /coverage/
+/coverage-html/
 /build/
 /reports/
 clover.xml
 junit.xml
+test-results.xml
 
 # Docker related
 .docker/
@@ -249,3 +252,4 @@ runtime/
 # Build artifacts
 build/
 dist/
+
