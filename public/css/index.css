@@ -266,6 +266,8 @@ body {
     min-height: 120px;
 }
 
+.credit-card-card-expiration, .credit-card-card-cvv { margin: 0 !important; }
+
 .verify-button {
     /* Styles for SDK-generated submit button if needed */
 }

@@ -1,447 +1,312 @@
-# Global Payments GP-API Integration - Production MVP
+# Go Payments API v0.1
 
-A comprehensive card verification and payment processing solution built with GP-API Drop-In UI and the GlobalPayments PHP SDK, featuring real-time transaction monitoring, secure payment processing, and professional dashboard interfaces.
+A Go-based payment processing system with Global Payments GP-API integration, featuring card verification, payment processing, and transaction reporting.
 
-## Table of Contents
+## Overview
 
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [API Documentation](#api-documentation)
-- [Testing](#testing)
-- [Security](#security)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
+This is a complete payment processing system built in Go, featuring secure card tokenization, payment processing, and transaction management through Global Payments' GP-API.
 
-## Features
+### Key Features
 
-### Core Functionality
 - **Card Verification**: Zero-charge validation with AVS/CVV checks
-- **Payment Processing**: Secure payment transactions via GP-API Drop-In UI
-- **Transaction Dashboard**: Real-time monitoring with filtering and export capabilities
-- **Multi-format Support**: CSV export, detailed transaction views, and comprehensive reporting
-
-### Technical Features
-- **Modern Architecture**: Clean separation of concerns with PSR-4 autoloading
-- **Comprehensive Testing**: PHPUnit test suite with 100% pass rate (17 tests, 128 assertions)
-- **Security First**: Input validation, secure tokenization, and error handling
-- **Production Ready**: Proper logging, monitoring, and deployment configuration
-
-## Quick Start Linux/MacOS
-
-### Prerequisites
-- PHP 8.0 or higher
-- Composer
-- Global Payments GP-API sandbox account and app credentials
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd card-authentication
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   composer install
-   ```
-
-3. **Configure environment:**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your GP-API app credentials
-   ```
-
-4. **Start development server:**
-   ```bash
-   php -S localhost:8000 router.php
-   ```
-
-5. **Access the application:**
-   ```
-   http://localhost:8000
-   ```
-
-## Quick Start Windows
-
-For Windows users who need to set up the complete development environment:
-
-### Prerequisites Installation
-
-1. **Install PHP 8.0+:**
-   - Download from [php.net/downloads](https://www.php.net/downloads.php)
-   - Choose "Thread Safe" version for Windows
-   - Extract to `C:\php` (or your preferred location)
-   - Add `C:\php` to your Windows PATH environment variable
-
-2. **Install Composer:**
-   - Download from [getcomposer.org](https://getcomposer.org/download/)
-   - Run the Windows installer (Composer-Setup.exe)
-   - This will automatically add Composer to your PATH
-
-3. **Verify Installation:**
-   ```powershell
-   php --version
-   composer --version
-   ```
-
-### Project Setup
-
-1. **Clone and setup:**
-   ```powershell
-   git clone <repository-url>
-   cd card-authentication
-   composer install
-   ```
-
-2. **Configure environment:**
-   ```powershell
-   Copy-Item .env.example .env
-   # Edit .env file with your GP-API credentials using notepad or your preferred editor
-   notepad .env
-   ```
-
-3. **Start development server:**
-   ```powershell
-   php -S localhost:8000 router.php
-   ```
-
-4. **Test the setup:**
-   - Navigate to http://localhost:8000
-   - Run tests: `composer test`
-   - Check logs: `Get-Content logs\*.log -Tail 10`
+- **Payment Processing**: Secure payment transactions via GP-API tokenization
+- **Transaction Dashboard**: Real-time monitoring with filtering capabilities
+- **Modern Architecture**: Clean Go codebase with structured error handling
+- **Security First**: Input validation, secure tokenization, and structured logging
+- **Web Interface**: Responsive HTML frontend with real-time feedback
 
 ## Project Structure
 
 ```
-card-authentication/
-├── docs/                          # Documentation
-│   ├── API.md                     # API documentation
-│   ├── DEPLOYMENT.md              # Deployment guide
-│   └── ARCHITECTURE.md            # System architecture
-├── public/                        # Web root (frontend files)
-│   ├── index.html                 # Main navigation hub
-│   ├── card-verification.html     # Card verification interface
-│   ├── payment.html               # Payment processing interface
-│   ├── dashboard.html             # Transaction monitoring dashboard
-│   ├── assets/                    # Static assets
-│   └── css/                       # Stylesheets
-│       ├── index.css
-│       └── dashboard.css
-├── src/                           # PHP source code
-│   ├── TransactionReporter.php    # Transaction management and reporting
-│   ├── ErrorHandler.php           # Error handling utilities
-│   └── Logger.php                 # Logging utilities
-├── api/                           # API endpoints
-│   ├── config.php                 # SDK configuration
-│   ├── verify-card.php            # Card verification endpoint
-│   ├── process-payment.php        # Payment processing endpoint
-│   ├── get-access-token.php       # Access token endpoint
-│   └── transactions-api.php       # Transaction data API
-├── tests/                         # PHPUnit tests
-│   ├── TransactionReporterTest.php
-│   └── TransactionReporterIntegrationTest.php
-├── .env.example                   # Environment configuration template
-├── composer.json                  # PHP dependencies and scripts
-├── phpunit.xml                    # Test configuration
-├── router.php                     # Development server router
-├── docker-compose.yml             # Docker configuration
-├── Dockerfile                     # Docker build configuration
-└── README.md                      # This file
+go-payments-api/
+├── cmd/
+│   └── server/                 # Application entry point
+│       └── main.go
+├── internal/                   # Private application code
+│   ├── api/
+│   │   └── handlers/          # HTTP request handlers
+│   ├── config/               # Configuration management
+│   ├── errors/               # Error handling
+│   └── logger/               # Structured logging
+├── public/                   # Static frontend files
+│   ├── *.html                # Web interface pages
+│   ├── assets/               # Static assets
+│   └── css/                  # Stylesheets
+├── tests/                    # Test files
+│   ├── integration/          # Integration tests
+│   └── unit/                # Unit tests
+├── go.mod                    # Go module definition
+├── go.sum                    # Go module checksums
+├── Dockerfile                # Docker build configuration
+├── docker-compose.yml        # Docker Compose setup
+└── README.md                 # This file
 ```
 
-## Installation
+## Quick Start
 
-### System Requirements
-- **PHP**: 8.0 or higher with extensions:
-  - `curl`
-  - `json`
-  - `mbstring`
-  - `openssl`
-- **Composer**: Latest version
-- **Web Server**: Apache, Nginx, or PHP built-in server
+### Prerequisites
 
-### Step-by-Step Setup
+- Go 1.21 or higher
+- Docker and Docker Compose (optional)
+- Global Payments API credentials
 
-1. **Environment Setup:**
-   ```bash
-   # Create environment file
-   cp .env.example .env
-   
-   # Configure your GP-API credentials in .env:
-   GP_API_APP_ID=your_app_id_here
-   GP_API_APP_KEY=your_app_key_here
-   GP_API_ENVIRONMENT=sandbox
-   ```
+### Environment Configuration
 
-2. **Install Dependencies:**
-   ```bash
-   composer install --optimize-autoloader
-   ```
+Create a `.env` file in the project root:
 
-3. **Verify Installation:**
-   ```bash
-   # Run tests to ensure everything is working
-   composer test
-   ```
+```env
+# GP-API Configuration (Required)
+GP_API_APP_ID=your_app_id_here
+GP_API_APP_KEY=your_app_key_here
+GP_API_ENVIRONMENT=sandbox
+GP_API_COUNTRY=US
+GP_API_CURRENCY=USD
+GP_API_MERCHANT_ID=your_merchant_id
 
-## Configuration
+# Application Configuration
+APP_ENV=development
+APP_PORT=8000
 
-### Environment Variables
+# Logging Configuration
+ENABLE_REQUEST_LOGGING=false
+LOG_LEVEL=info
+LOG_DIRECTORY=logs
+```
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `GP_API_APP_ID` | GP-API application ID | Yes | - |
-| `GP_API_APP_KEY` | GP-API application key | Yes | - |
-| `GP_API_ENVIRONMENT` | GP-API environment (sandbox/production) | Yes | `sandbox` |
-| `ENABLE_REQUEST_LOGGING` | Enable detailed API request logging | No | `false` |
+### Running Locally
 
-### Logging Configuration
+```bash
+# Install dependencies
+go mod download
 
-Logs are stored in the `logs/` directory with the following structure:
-- `transaction-errors.log` - Transaction processing errors
-- `system-YYYY-MM-DD.log` - General system logs
-- `payment-YYYY-MM-DD.log` - Payment processing logs
-- `transactions-YYYY-MM-DD.json` - Transaction data storage
+# Run the application
+go run cmd/server/main.go
+```
 
-## Usage
+The application will be available at `http://localhost:8000`
+
+### Running with Docker
+
+```bash
+# Build and run with Docker Compose
+docker-compose up --build
+
+# Or build and run manually
+docker build -t go-payments-api .
+docker run -p 8000:8000 --env-file .env go-payments-api
+```
+
+## API Endpoints
+
+### Health & Monitoring
+
+- `GET /health` - Basic health check
+- `GET /ready` - Readiness check including dependencies
+- `GET /metrics` - Prometheus metrics
+
+### Configuration
+
+- `GET /api/config` - Get public configuration for client-side SDK
 
 ### Card Verification
 
-1. Navigate to `http://localhost:8000/public/card-verification.html`
-2. Enter test card details (provided on the page)
-3. Submit for zero-charge verification
-4. View results including AVS/CVV validation
+- `POST /api/verify-card` - Verify card without processing payment
+
+```json
+{
+  "payment_token": "token_from_drop_in_ui",
+  "cvv": "123",
+  "address": {
+    "street": "123 Main St",
+    "city": "New York",
+    "postal_code": "10001",
+    "country": "US"
+  }
+}
+```
 
 ### Payment Processing
 
-1. Navigate to `http://localhost:8000/public/payment.html`
-2. Enter payment amount and card details
-3. Process secure payment through GlobalPayments
-4. Monitor results in real-time
+- `POST /api/process-payment` - Process payment transaction
 
-### Transaction Monitoring
-
-1. Navigate to `http://localhost:8000/public/dashboard.html`
-2. View all transactions with filtering options
-3. Export data to CSV format
-4. Access detailed transaction information
-
-### Test Cards
-
-Use these GlobalPayments test cards for development:
-
-| Card Number | Type | CVV | Exp | Expected Result |
-|-------------|------|-----|-----|-----------------|
-| 4000000000000002 | Visa | 123 | 12/25 | Approved |
-| 5400000000000005 | MasterCard | 123 | 12/25 | Approved |
-| 370000000000002 | Amex | 1234 | 12/25 | Approved |
-| 4000000000000010 | Visa | 123 | 12/25 | Declined |
-
-## API Documentation
-
-### Endpoints
-
-#### Card Verification
-```
-POST /api/verify-card.php
-Content-Type: application/json
-
+```json
 {
-  "number": "4000000000000002",
-  "exp_month": "12",
-  "exp_year": "25",
-  "cvv": "123",
-  "zip": "12345"
-}
-```
-
-#### Payment Processing
-```
-POST /api/process-payment.php
-Content-Type: application/json
-
-{
-  "amount": "10.99",
+  "payment_token": "token_from_drop_in_ui",
+  "amount": 99.99,
   "currency": "USD",
-  "number": "4000000000000002",
-  "exp_month": "12",
-  "exp_year": "25",
-  "cvv": "123"
+  "description": "Test payment",
+  "order_id": "ORDER_123"
 }
 ```
 
-#### Transaction Data
-```
-GET /api/transactions-api.php?limit=50&start_date=2025-01-01&end_date=2025-01-31
-```
+### Transaction Reporting
 
-For complete API documentation, see [docs/API.md](docs/API.md).
+- `GET /api/transactions` - Get transaction list with filtering
+- `GET /api/transactions/:id` - Get specific transaction details
 
-## Testing
+Query parameters for transaction list:
+- `start_date` - Filter by start date (YYYY-MM-DD)
+- `end_date` - Filter by end date (YYYY-MM-DD)
+- `status` - Filter by transaction status
+- `limit` - Number of results (1-100, default: 25)
+- `page` - Page number (default: 1)
+
+### Frontend Pages
+
+- `/` or `/index.html` - Main landing page
+- `/card-verification.html` - Card verification interface
+- `/payment.html` - Payment processing interface
+- `/dashboard.html` - Transaction dashboard
+
+## Development
 
 ### Running Tests
 
 ```bash
 # Run all tests
-composer test
+go test ./...
 
-# Run with coverage
-composer test:coverage
+# Run tests with coverage
+go test -cover ./...
 
-# Run specific test file
-./vendor/bin/phpunit tests/TransactionReporterTest.php
-
-# Run with verbose output
-./vendor/bin/phpunit --verbose --testdox
+# Run specific test package
+go test ./tests/unit/...
 ```
 
-### Test Coverage
+### Code Quality
 
-Current test coverage:
-- **17 test cases** with **128 assertions**
-- **100% pass rate**
-- Coverage includes unit tests, integration tests, and edge cases
+```bash
+# Format code
+go fmt ./...
+
+# Run linter (requires golangci-lint)
+golangci-lint run
+
+# Vet code
+go vet ./...
+```
+
+### Building
+
+```bash
+# Build for current platform
+go build -o bin/server cmd/server/main.go
+
+# Build for Linux (production)
+GOOS=linux GOARCH=amd64 go build -o bin/server-linux cmd/server/main.go
+```
+
+## Configuration
+
+The application supports configuration via environment variables and `.env` files. See the `internal/config` package for all available options.
+
+### Required Configuration
+
+- `GP_API_APP_ID` - Global Payments Application ID
+- `GP_API_APP_KEY` - Global Payments Application Key
+
+### Optional Configuration
+
+- `GP_API_ENVIRONMENT` - Environment (sandbox/production, default: sandbox)
+- `GP_API_COUNTRY` - Processing country (default: US)
+- `GP_API_CURRENCY` - Default currency (default: USD)
+- `APP_ENV` - Application environment (default: development)
+- `APP_PORT` - Server port (default: 8000)
+- `LOG_LEVEL` - Logging level (debug/info/warning/error/critical, default: info)
+
+## Performance
+
+Built with Go for efficient performance and concurrent request handling. The application provides:
+
+- Fast API response times
+- Low memory footprint
+- Native concurrency support
+- Quick startup times
 
 ## Security
 
-### Security Measures Implemented
+The application implements comprehensive security measures:
 
-- **Input Validation**: All user inputs are validated and sanitized
-- **Secure Tokenization**: No sensitive card data is stored locally
-- **API Security**: Proper headers and authentication
-- **Error Handling**: No sensitive information exposed in errors
-- **Transaction Filtering**: Only genuine API transactions displayed
+- Input validation and sanitization
+- Rate limiting (100 requests/minute per IP)
+- Security headers (HSTS, CSP, etc.)
+- Structured error responses without sensitive data exposure
+- Request/response logging with sensitive data filtering
 
-### Best Practices
+## Monitoring & Observability
 
-- Keep your `.env` file secure and never commit it to version control
-- Regularly rotate API keys
-- Monitor logs for suspicious activity
-- Use HTTPS in production environments
-- Keep dependencies updated
+- Structured JSON logging with multiple channels
+- Prometheus metrics for monitoring
+- Health checks for load balancer integration
+- Request tracing and performance monitoring
 
 ## Deployment
 
-### Production Deployment
+### Docker Production Deployment
 
-1. **Environment Setup:**
-   ```bash
-   # Use production API credentials
-   SECRET_API_KEY=prod_secret_key
-   SERVICE_URL=https://api2.heartlandportico.com
-   ENABLE_REQUEST_LOGGING=false
-   ```
-
-2. **Optimize for Production:**
-   ```bash
-   composer install --no-dev --optimize-autoloader
-   ```
-
-3. **Web Server Configuration:**
-   - Set document root to project directory
-   - Configure HTTPS with valid SSL certificate
-   - Set appropriate file permissions
-   - Configure log rotation
-
-For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
-
-### Docker Deployment
+The included `Dockerfile` uses multi-stage builds for optimized production images:
 
 ```bash
-# Build and run with Docker
-docker-compose up -d
+# Build production image
+docker build -t go-payments-api:latest .
 
-# Or using Docker directly
-docker build -t heartland-payment .
-docker run -p 8000:8000 heartland-payment
+# Run in production
+docker run -d \
+  --name go-payments-api \
+  -p 8000:8000 \
+  --env-file .env \
+  --restart unless-stopped \
+  go-payments-api:latest
 ```
+
+### Kubernetes Deployment
+
+Example Kubernetes manifests are available in the `docs/` directory.
+
+## Roadmap
+
+### v0.1 (Current Release)
+- ✅ Card verification with AVS/CVV validation
+- ✅ Payment processing with GP-API tokenization
+- ✅ Transaction dashboard with basic filtering
+- ✅ Web interface with responsive design
+- ✅ Docker containerization
+- ✅ Comprehensive logging and error handling
+
+### Future Releases
+- Enhanced transaction reporting with CSV export
+- Advanced filtering and search capabilities
+- Webhook notifications for transaction events
+- Multi-currency support
+- Enhanced security features
+- Performance monitoring and metrics
 
 ## Contributing
 
-### Development Workflow
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make changes with appropriate tests
+4. Run the test suite (`go test ./...`)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
-1. **Clone and Setup:**
-   ```bash
-   git clone <repository-url>
-   cd card-authentication
-   composer install
-   ```
+### Development Guidelines
 
-2. **Create Feature Branch:**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-3. **Development:**
-   - Write code following PSR-12 standards
-   - Add tests for new functionality
-   - Update documentation as needed
-
-4. **Testing:**
-   ```bash
-   composer test
-   composer lint
-   ```
-
-5. **Submit Pull Request:**
-   - Ensure all tests pass
-   - Include comprehensive description
-   - Reference any related issues
-
-### Code Standards
-
-- Follow PSR-12 coding standards
-- Use meaningful variable and function names
-- Include PHPDoc comments for all public methods
-- Write tests for all new functionality
-- Keep security as a top priority
-
-## Support
-
-### Troubleshooting
-
-Common issues and solutions:
-
-1. **API Connection Issues:**
-   - Verify credentials in `.env` file
-   - Check network connectivity
-   - Ensure API endpoints are accessible
-
-2. **Test Failures:**
-   - Run `composer dump-autoload`
-   - Check file permissions on `logs/` directory
-   - Verify all dependencies are installed
-
-3. **Performance Issues:**
-   - Enable PHP OPcache in production
-   - Optimize Composer autoloader
-   - Monitor system resources
-
-### Getting Help
-
-- Check the [documentation](docs/)
-- Review the [test results](test-results.xml)
-- Examine application logs in the `logs/` directory
+- Follow Go naming conventions and best practices
+- Add tests for new functionality
+- Update documentation for API changes
+- Ensure all tests pass before submitting PRs
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License. See LICENSE file for details.
 
-## Changelog
+## Support
 
-### Version 1.0.0 (Current MVP)
-- Complete card verification system
-- Secure payment processing with GlobalPayments SDK
-- Real-time transaction dashboard
-- Comprehensive test suite
-- Production-ready architecture
-- Professional documentation
+For issues and questions:
 
----
-
-**Built with GlobalPayments PHP SDK** | **Production Ready** | **Comprehensive Testing**
+1. Check existing issues on GitHub
+2. Create a new issue with detailed information
+3. Include relevant logs and configuration (without sensitive data)
+4. Use test/sandbox credentials when reporting issues

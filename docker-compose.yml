@@ -1,98 +1,90 @@
-# PHP Card Authentication - Docker Compose Configuration
-# This file provides a development environment for the card authentication system
-
+# Docker Compose for Go Payments API
 version: '3.8'
 
 services:
   # Main application service
-  app:
+  go-payments-api:
     build:
       context: .
       dockerfile: Dockerfile
-      target: development
-    container_name: php-card-auth-app
+    container_name: go-payments-api
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:
-      - .:/app
+      # Mount logs directory for development
       - ./logs:/app/logs
-      - /app/vendor  # Anonymous volume for vendor to prevent overwrites
     environment:
+      # GP-API Configuration
+      - GP_API_APP_ID=${GP_API_APP_ID}
+      - GP_API_APP_KEY=${GP_API_APP_KEY}
+      - GP_API_ENVIRONMENT=${GP_API_ENVIRONMENT:-sandbox}
+      - GP_API_COUNTRY=${GP_API_COUNTRY:-US}
+      - GP_API_CURRENCY=${GP_API_CURRENCY:-USD}
+      - GP_API_MERCHANT_ID=${GP_API_MERCHANT_ID}
+      
+      # Application Configuration
       - APP_ENV=${APP_ENV:-development}
-      - SECRET_API_KEY=${SECRET_API_KEY}
-      - DEVELOPER_ID=${DEVELOPER_ID:-000000}
-      - VERSION_NUMBER=${VERSION_NUMBER:-0000}
-      - SERVICE_URL=${SERVICE_URL:-https://cert.api2.heartlandportico.com}
+      - APP_PORT=${APP_PORT:-8000}
+      
+      # Logging Configuration
       - ENABLE_REQUEST_LOGGING=${ENABLE_REQUEST_LOGGING:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_DIRECTORY=${LOG_DIRECTORY:-logs}
     env_file:
       - .env
     networks:
-      - card-auth-network
+      - payments-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000/api/config.php"]
+      test: ["CMD", "/app/server", "--health-check"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    depends_on:
+      - prometheus
+      - grafana
 
-  # Production service (optional)
-  app-prod:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production
-    container_name: php-card-auth-app-prod
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: go-payments-prometheus
     ports:
-      - "${PROD_PORT:-8001}:8000"
-    environment:
-      - APP_ENV=production
-      - SECRET_API_KEY=${SECRET_API_KEY}
-      - DEVELOPER_ID=${DEVELOPER_ID:-000000}
-      - VERSION_NUMBER=${VERSION_NUMBER:-0000}
-      - SERVICE_URL=${SERVICE_URL:-https://cert.api2.heartlandportico.com}
-      - ENABLE_REQUEST_LOGGING=false
-    env_file:
-      - .env
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
     networks:
-      - card-auth-network
+      - payments-network
     restart: unless-stopped
-    profiles:
-      - production
-    volumes:
-      - ./logs:/app/logs
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000/api/config.php"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
-  # Testing service
-  tests:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    container_name: php-card-auth-tests
-    volumes:
-      - .:/app
+  # Grafana for metrics visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: go-payments-grafana
+    ports:
+      - "3000:3000"
     environment:
-      - APP_ENV=testing
-      - SECRET_API_KEY=skapi_cert_test_key
-      - DEVELOPER_ID=000000
-      - VERSION_NUMBER=0000
-      - SERVICE_URL=https://cert.api2.heartlandportico.com
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources
     networks:
-      - card-auth-network
-    profiles:
-      - testing
-    command: ["./vendor/bin/phpunit", "--colors=always", "--testdox"]
+      - payments-network
+    restart: unless-stopped
 
-# Custom network for service communication
 networks:
-  card-auth-network:
+  payments-network:
     driver: bridge
 
-# Development override example
-# Create docker-compose.override.yml for local development customizations
+volumes:
+  prometheus_data:
+  grafana_data:

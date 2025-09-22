@@ -156,24 +156,20 @@ body {
     background: var(--gp-white);
     border-radius: 36px;
     padding: 25px;
+    text-align: center;
     box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
 }
 
 .stat-card h3 {
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: 700;
     color: var(--gp-blue);
-    margin-bottom: 5px;
+    margin-bottom: 10px;
 }
 
 .stat-card p {
     color: var(--gp-gray);
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .transactions-table {
@@ -186,10 +182,12 @@ body {
 .table-header {
     background: var(--gp-blue);
     color: var(--gp-white);
-    padding: 20px 25px;
+    padding: 20px 30px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
 .table-header h3 {
@@ -361,7 +359,6 @@ th {
     cursor: not-allowed;
 }
 
-/* New Enhancement Styles */
 .quick-dates {
     display: flex;
     gap: 10px;
@@ -386,6 +383,12 @@ th {
     transform: translateY(-1px);
 }
 
+.btn-outline.active {
+    background: var(--gp-blue);
+    color: var(--gp-white);
+    box-shadow: 0 2px 4px rgba(38, 42, 255, 0.3);
+}
+
 .success-rate h3 {
     color: var(--gp-success);
 }
@@ -399,7 +402,6 @@ th {
     font-weight: 600;
 }
 
-/* Transaction type badges */
 .type-badge {
     padding: 4px 8px;
     border-radius: 6px;
@@ -423,7 +425,6 @@ th {
     color: white;
 }
 
-/* Amount display styles */
 .amount-display {
     font-weight: 600;
     color: #28a745;
@@ -433,33 +434,6 @@ th {
 .amount-na {
     color: #6c757d;
     font-style: italic;
-}
-
-/* Smooth transitions */
-.stat-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-}
-
-.table-controls {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-}
-
-.table-controls .btn-outline {
-    font-size: 0.8rem;
-    padding: 6px 12px;
-}
-
-/* Export button styling */
-.export-section {
-    display: flex;
-    align-items: center;
 }
 
 .btn-export {
@@ -485,16 +459,8 @@ th {
     box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
 }
 
-.btn-export:active {
-    transform: translateY(0);
-}
-
 .export-icon {
     font-size: 1.1em;
-}
-
-.export-text {
-    font-weight: 600;
 }
 
 .export-count {
@@ -505,335 +471,38 @@ th {
     font-weight: 500;
 }
 
-/* Loading animations */
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-.loading {
-    animation: pulse 1.5s ease-in-out infinite;
-}
-
-/* Timestamp styling */
-.timestamp {
-    cursor: help;
-    border-bottom: 1px dotted var(--gp-gray);
-}
-
-/* Export message animations */
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-@keyframes slideOut {
-    from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-}
-
 @media (max-width: 768px) {
-    body {
+    .dashboard-container {
         padding: 10px;
     }
     
-    .dashboard-container {
-        padding: 10px;
-        max-width: calc(100% - 20px);
-    }
-
     .header {
         padding: 20px 15px;
         border-radius: 20px;
-        margin-bottom: 20px;
     }
-
+    
     .header h1 {
         font-size: 1.8rem;
-        margin-bottom: 8px;
     }
     
-    .header p {
-        font-size: 1rem;
-        margin-bottom: 15px;
-    }
-
-    .header-actions {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-    }
-    
-    .header-actions .btn {
-        text-align: center;
-        justify-content: center;
-        padding: 12px 20px;
-    }
-    
-    .filters {
-        padding: 20px 15px;
-        border-radius: 20px;
-        margin-bottom: 20px;
-    }
-
     .filter-row {
         flex-direction: column;
         gap: 15px;
     }
     
-    .filter-group {
-        min-width: auto;
-    }
-    
-    .filter-group input,
-    .filter-group select {
-        font-size: 16px; /* Prevent zoom on iOS */
-        padding: 14px;
-        border-radius: 24px;
-    }
-
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 15px;
-        margin-bottom: 25px;
-    }
-    
-    .stat-card {
-        padding: 20px 15px;
-        border-radius: 20px;
-    }
-    
-    .stat-card h3 {
-        font-size: 1.8rem;
-    }
-
-    .quick-dates {
-        justify-content: center;
-        gap: 8px;
-    }
-    
-    .quick-dates .btn-outline {
-        padding: 8px 14px;
-        font-size: 0.85rem;
-        white-space: nowrap;
-    }
-    
-    .transactions-table {
-        border-radius: 20px;
-    }
-
-    .table-controls {
-        flex-direction: column;
-        gap: 12px;
-        margin-bottom: 15px;
-        align-items: stretch;
-    }
-
-    .export-section {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .btn-export {
-        width: 100%;
-        justify-content: center;
-        max-width: 280px;
-        margin: 0 auto;
-        padding: 12px 20px;
-    }
-
-    .search-input {
-        width: 100%;
-        font-size: 16px; /* Prevent zoom on iOS */
-        padding: 12px 15px;
-        border-radius: 8px;
-    }
-
-    .table-responsive {
-        font-size: 0.85rem;
-        border-radius: 0 0 20px 20px;
-    }
-
-    th, td {
-        padding: 10px 8px;
-        font-size: 0.8rem;
-    }
-    
-    th {
-        font-size: 0.75rem;
-    }
-    
-    .status-badge {
-        padding: 3px 8px;
-        font-size: 0.7rem;
-    }
-    
-    .type-badge {
-        padding: 3px 6px;
-        font-size: 0.7rem;
-    }
-    
-    .card-info {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 2px;
-    }
-    
-    .card-type {
-        font-size: 0.7rem;
-    }
-    
-    .response-info {
-        max-width: 120px;
-    }
-    
-    .response-info strong {
-        font-size: 0.75rem;
-    }
-    
-    .response-info span {
-        font-size: 0.7rem;
-    }
-    
-    .timestamp {
-        font-size: 0.75rem;
-    }
-    
-    .amount-display {
-        font-size: 0.8rem;
-    }
-    
-    .verify-badge {
-        font-size: 0.7rem;
-        padding: 3px 6px;
-    }
-    
-    .btn-secondary {
-        padding: 6px 12px;
-        font-size: 0.75rem;
-    }
-    
-    .pagination {
-        flex-wrap: wrap;
-        gap: 5px;
-        padding: 15px 10px;
-    }
-    
-    .pagination button {
-        padding: 6px 12px;
-        font-size: 0.8rem;
-        min-width: 35px;
-    }
-}
-
-@media (max-width: 480px) {
-    body {
-        padding: 5px;
-    }
-    
-    .dashboard-container {
-        padding: 5px;
-        max-width: 100%;
-    }
-    
-    .header {
-        padding: 15px 10px;
-        border-radius: 16px;
-    }
-    
-    .header h1 {
-        font-size: 1.6rem;
-    }
-    
-    .filters {
-        padding: 15px 10px;
-        border-radius: 16px;
-    }
-    
-    .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .stat-card {
-        padding: 15px 10px;
-        border-radius: 16px;
-        text-align: center;
-    }
-    
-    .transactions-table {
-        border-radius: 16px;
     }
     
     .table-header {
-        padding: 15px 10px;
         flex-direction: column;
         gap: 10px;
         align-items: stretch;
     }
     
-    .table-header h3 {
-        font-size: 1.1rem;
-        text-align: center;
-    }
-    
-    .table-responsive {
-        border-radius: 0 0 16px 16px;
-    }
-    
     th, td {
-        padding: 8px 4px;
-        font-size: 0.75rem;
-    }
-    
-    th {
-        font-size: 0.7rem;
-    }
-    
-    /* Hide less important columns on very small screens */
-    .table-responsive table th:nth-child(6),
-    .table-responsive table td:nth-child(6) {
-        display: none; /* Hide card column */
-    }
-    
-    .table-responsive table th:nth-child(7),
-    .table-responsive table td:nth-child(7) {
-        display: none; /* Hide response column */
-    }
-    
-    .quick-dates {
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .quick-dates .btn-outline {
-        width: 100%;
-        max-width: 200px;
-        margin: 0 auto;
-    }
-    
-    .btn-export {
-        max-width: 100%;
-        font-size: 0.85rem;
-    }
-    
-    .export-text {
-        display: none; /* Hide "Export" text, keep only icon and count */
-    }
-    
-    .export-count {
-        margin-left: 4px;
+        padding: 10px 8px;
+        font-size: 0.8rem;
     }
 }

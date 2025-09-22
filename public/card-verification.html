@@ -30,6 +30,10 @@
             overflow: visible;
         }
 
+        .credit-card-card-expiration, .credit-card-card-cvv { 
+            margin: 0 !important; 
+        }
+
         .header {
             background: linear-gradient(90deg, #262AFF 0%, #1B1EC6 100%);
             color: white;
@@ -148,7 +152,6 @@
             font-size: 18px;
             opacity: 0.6;
         }
-
 
         .result-container {
             margin-top: 30px;
@@ -309,9 +312,9 @@
             <h1>🔐 Card Verification</h1>
             <p>Secure card validation without charges - Already on it.</p>
             <div style="margin-top: 20px;">
-                <a href="index.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">🏠 Home</a>
-                <a href="payment.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">💳 Payment</a>
-                <a href="dashboard.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">📊 Dashboard</a>
+                <a href="/" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">🏠 Home</a>
+                <a href="/public/payment.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">💳 Payment</a>
+                <a href="/public/dashboard.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">📊 Dashboard</a>
             </div>
         </div>
 
@@ -340,6 +343,8 @@
     <script>
         class CardVerificationProcessor {
             constructor() {
+                this.appId = '';
+                this.environment = '';
                 this.verificationForm = null;
                 this.isInitialized = false;
                 this.init();
@@ -380,11 +385,41 @@
             }
 
             async loadConfiguration() {
-                const response = await fetch('/api/get-access-token.php', {
+                // First try to get a testing token (without PMT_POST_Create_Single permission)
+                console.log('🔄 Attempting to get testing token (no permissions)...');
+                
+                try {
+                    const testResponse = await fetch('/api/get-access-token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ for_testing: true })
+                    });
+                    
+                    if (testResponse.ok) {
+                        const testTokenData = await testResponse.json();
+                        if (testTokenData.success) {
+                            console.log('✅ Testing token generated successfully');
+                            this.appId = testTokenData.data.accessToken;
+                            this.environment = testTokenData.data.environment;
+                            console.log('✅ GP-API configured with testing token:', testTokenData.data.environment);
+                            return;
+                        }
+                    }
+                    console.log('⚠️ Testing token failed, falling back to regular token...');
+                } catch (error) {
+                    console.log('⚠️ Testing token error, falling back to regular token:', error.message);
+                }
+
+                // Fallback: try regular token with permissions
+                console.log('🔄 Attempting to get regular token (with permissions)...');
+                const response = await fetch('/api/get-access-token', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    body: JSON.stringify({ for_testing: false })
                 });
                 
                 if (!response.ok) {
@@ -399,7 +434,7 @@
                 this.appId = tokenData.data.accessToken;
                 this.environment = tokenData.data.environment;
 
-                console.log('✅ GP-API configured with access token:', tokenData.data.environment);
+                console.log('✅ GP-API configured with regular token:', tokenData.data.environment);
             }
 
             initializeVerificationForm() {
@@ -407,15 +442,15 @@
                     console.log('Initializing verification form...');
                     console.log('GlobalPayments object:', GlobalPayments);
                     
-                    // Configure GP-API
+                    // Configure GP-API with raw token (SDK handles Bearer internally)
                     console.log('🔧 Configuring GlobalPayments with:', {
-                        accessToken: this.appId.substring(0, 10) + '...',
+                        accessToken: this.appId.substring(0, 20) + '...',
                         apiVersion: '2021-03-22',
                         env: this.environment
                     });
                     
                     GlobalPayments.configure({
-                        accessToken: this.appId,
+                        accessToken: this.appId, // Raw token, SDK adds Bearer automatically
                         apiVersion: '2021-03-22',
                         env: this.environment
                     });
@@ -461,8 +496,6 @@
                         this.showError(errorMessage);
                     });
 
-
-
                     this.verificationForm.ready(() => {
                         console.log('✅ GP-API verification form ready');
                         this.isInitialized = true;
@@ -477,7 +510,7 @@
             async processVerification(tokenResponse) {
                 try {
                     console.log('Full token response:', JSON.stringify(tokenResponse, null, 2));
-                    
+
                     const verificationData = {
                         payment_token: tokenResponse.paymentReference,
                         verification_type: 'basic', // Basic verification
@@ -502,7 +535,7 @@
 
                     console.log('Processing verification...', verificationData);
 
-                    const response = await fetch('/api/verify-card.php', {
+                    const response = await fetch('/api/verify-card', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -524,8 +557,6 @@
                     this.showError('Verification processing failed: ' + error.message);
                 }
             }
-
-
 
             showSuccess(data) {
                 const container = document.getElementById('result-container');

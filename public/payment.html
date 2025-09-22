@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Payments Processing - Already on it.</title>
+    <title>Payment Processing - Global Payments</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
@@ -23,11 +23,15 @@
         }
 
         .container {
-            max-width: 600px;
+            max-width: 700px;
             margin: 20px auto;
             background: transparent;
             border-radius: 36px;
             overflow: visible;
+        }
+       
+        .credit-card-card-expiration, .credit-card-card-cvv { 
+            margin: 0 !important; 
         }
 
         .header {
@@ -59,85 +63,130 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
         }
 
-
-        .form-section {
-            margin-bottom: 30px;
+        .info-panel {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border: 2px solid #262AFF;
+            box-shadow: 0 8px 25px rgba(38, 42, 255, 0.15);
             padding: 30px;
-            background: linear-gradient(135deg, #ffffff 0%, #fafbff 100%);
-            border: 2px solid rgba(38, 42, 255, 0.1);
+            margin-bottom: 25px;
             border-radius: 36px;
-            box-shadow: 0 4px 20px rgba(38, 42, 255, 0.08);
-            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
 
-        .form-section:hover {
-            border-color: rgba(38, 42, 255, 0.2);
-            box-shadow: 0 8px 30px rgba(38, 42, 255, 0.12);
-            transform: translateY(-2px);
+        .info-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #262AFF 0%, #1B1EC6 100%);
         }
 
-        .form-section h3 {
-            margin-bottom: 20px;
-            color: #333;
-            font-size: 1.2em;
+        .info-panel h3 {
+            color: #262AFF;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .form-row {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            flex: 1;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
+        .info-panel p {
             color: #333;
-            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            font-size: 1.05em;
         }
 
-        .form-group input,
-        .form-group select {
+        .amount-input-container {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border: 2px solid rgba(38, 42, 255, 0.15);
+            border-radius: 36px;
+            padding: 25px;
+            margin: 25px 0;
+            box-shadow: 0 4px 15px rgba(38, 42, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .amount-input-container:hover {
+            border-color: rgba(38, 42, 255, 0.25);
+            box-shadow: 0 8px 25px rgba(38, 42, 255, 0.15);
+        }
+
+        .amount-input-container label {
+            display: block;
+            margin-bottom: 10px;
+            color: #262AFF;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .amount-input {
             width: 100%;
-            padding: 14px;
+            padding: 15px 20px;
             border: 2px solid #ddd;
             border-radius: 36px;
-            font-size: 16px;
+            font-size: 1.3em;
+            text-align: center;
             transition: all 0.3s ease;
-            background: white;
+            font-family: "DM Sans", sans-serif;
+            font-weight: 500;
         }
 
-        .form-group input:focus,
-        .form-group select:focus {
+        .amount-input:focus {
             outline: none;
             border-color: #262AFF;
             box-shadow: 0 0 0 3px rgba(38, 42, 255, 0.1);
         }
 
-        .form-group input::placeholder {
-            color: #999;
+        .quick-amounts {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
-        /* Card form styling */
-        #card-form-container {
+        .quick-amount-btn {
+            padding: 8px 16px;
+            border: 2px solid #262AFF;
+            background: white;
+            color: #262AFF;
+            border-radius: 36px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .quick-amount-btn:hover {
+            background: #262AFF;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .payment-container {
             background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
             border: 2px solid rgba(38, 42, 255, 0.15);
             border-radius: 36px;
             padding: 30px;
-            margin: 20px 0;
+            margin: 25px 0;
             box-shadow: 0 4px 15px rgba(38, 42, 255, 0.1);
             position: relative;
+            transition: all 0.3s ease;
         }
 
-        #card-form-container::before {
-            content: '🔒';
+        .payment-container:hover {
+            border-color: rgba(38, 42, 255, 0.25);
+            box-shadow: 0 8px 25px rgba(38, 42, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .payment-container::before {
+            content: '💳';
             position: absolute;
             top: 15px;
             right: 20px;
@@ -145,33 +194,31 @@
             opacity: 0.6;
         }
 
-        .payment-button {
+        .process-btn {
+            width: 100%;
+            padding: 18px;
             background: linear-gradient(90deg, #262AFF 0%, #1B1EC6 100%);
             color: white;
             border: none;
-            padding: 18px 30px;
             border-radius: 36px;
-            font-size: 18px;
+            font-size: 1.2em;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            width: 100%;
             margin-top: 20px;
-            position: relative;
         }
 
-        .payment-button:hover {
+        .process-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(38, 42, 255, 0.3);
         }
 
-        .payment-button:disabled {
-            opacity: 0.7;
+        .process-btn:disabled {
+            background: #ccc;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
         }
-
-
 
         .result-container {
             margin-top: 30px;
@@ -198,12 +245,6 @@
             color: #c62828;
         }
 
-        .result-decline {
-            background: #fff3e0;
-            border: 2px solid #ff9800;
-            color: #e65100;
-        }
-
         .result-header {
             display: flex;
             align-items: center;
@@ -222,81 +263,36 @@
             line-height: 1.5;
         }
 
-        .test-cards {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-            border: 2px solid #262AFF;
-            box-shadow: 0 8px 25px rgba(38, 42, 255, 0.15);
-            padding: 25px;
-            margin-bottom: 25px;
-            border-radius: 36px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .test-cards::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #262AFF 0%, #1B1EC6 100%);
-        }
-
-        .test-cards h4 {
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
             color: #262AFF;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
-        .test-cards ul {
-            margin-left: 0;
-            padding-left: 0;
-            list-style: none;
-            color: #333;
+        .loading.active {
+            display: block;
         }
 
-        .test-cards li {
-            margin-bottom: 12px;
-            padding: 12px 16px;
-            background: rgba(38, 42, 255, 0.05);
-            border-radius: 12px;
-            border-left: 4px solid #262AFF;
-            transition: all 0.2s ease;
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #262AFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
         }
 
-        .test-cards li:hover {
-            background: rgba(38, 42, 255, 0.1);
-            transform: translateX(4px);
-        }
-
-        .test-cards li strong {
-            color: #262AFF;
-            font-weight: 600;
-        }
-
-        .test-cards p {
-            margin-top: 15px;
-            padding: 12px 16px;
-            background: rgba(38, 42, 255, 0.05);
-            border-radius: 12px;
-            font-style: normal;
-            font-size: 0.9em;
-            color: #666;
-            border: 1px solid rgba(38, 42, 255, 0.1);
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         @media (max-width: 768px) {
             body {
                 padding: 10px;
-            }
-            
-            .form-row {
-                flex-direction: column;
             }
             
             .container {
@@ -320,20 +316,12 @@
                 margin-bottom: 15px;
             }
             
-            .header div[style*="margin-top"] {
-                margin-top: 15px !important;
-            }
-            
             .header div[style*="margin-top"] a {
-                background: white !important;
-                color: #262AFF !important;
                 display: block !important;
-                margin: 5px auto !important;
+                margin: 5px 0 !important;
                 text-align: center;
                 font-size: 14px !important;
                 padding: 12px 20px !important;
-                max-width: 200px;
-                border-radius: 36px !important;
             }
             
             .form-container {
@@ -342,43 +330,37 @@
                 margin: 15px;
             }
             
-            .form-section {
+            .info-panel {
                 padding: 20px;
                 border-radius: 24px;
                 margin-bottom: 20px;
             }
             
-            .form-section h3 {
-                font-size: 1.1em;
-                margin-bottom: 15px;
-            }
-            
-            .form-group input,
-            .form-group select {
-                padding: 12px;
-                font-size: 16px;
-                border-radius: 24px;
-            }
-            
-            .payment-button {
-                padding: 15px 25px;
-                font-size: 16px;
-                border-radius: 24px;
-            }
-            
-            #card-form-container {
+            .amount-input-container {
                 padding: 20px;
                 border-radius: 24px;
+                margin: 20px 0;
             }
             
-            .test-cards {
+            .payment-container {
                 padding: 20px;
                 border-radius: 24px;
+                margin: 20px 0;
             }
             
             .result-container {
                 padding: 15px;
                 border-radius: 24px;
+                margin-top: 20px;
+            }
+            
+            .quick-amounts {
+                gap: 8px;
+            }
+            
+            .quick-amount-btn {
+                padding: 6px 12px;
+                font-size: 0.8em;
             }
         }
         
@@ -406,14 +388,18 @@
                 margin: 10px;
             }
             
-            .form-section {
+            .info-panel {
                 padding: 15px;
                 border-radius: 20px;
             }
             
-            .form-group input,
-            .form-group select {
-                padding: 10px;
+            .amount-input-container {
+                padding: 15px;
+                border-radius: 20px;
+            }
+            
+            .payment-container {
+                padding: 15px;
                 border-radius: 20px;
             }
         }
@@ -422,112 +408,60 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>💳 Global Payments Processing</h1>
-            <p>Secure payments powered by Global Payments - Already on it.</p>
+            <h1>💳 Payment Processing</h1>
+            <p>Secure payment processing with Global Payments GP-API</p>
             <div style="margin-top: 20px;">
-                <a href="index.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">🏠 Home</a>
-                <a href="card-verification.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">🔐 Verification</a>
-                <a href="dashboard.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">📊 Dashboard</a>
+                <a href="/" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">🏠 Home</a>
+                <a href="/public/card-verification.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">🔐 Verify</a>
+                <a href="/public/dashboard.html" style="display: inline-block; padding: 8px 16px; background: white; color: #262AFF; text-decoration: none; border-radius: 36px; margin: 0 5px; font-size: 14px; font-weight: 600;">📊 Dashboard</a>
             </div>
         </div>
 
         <div class="form-container">
-            <div class="test-cards">
-                <h4>💡 Test Cards Reference</h4>
-                <p style="margin-bottom: 15px; font-size: 0.95em;">
-                    Use the official <strong>GlobalPayments Test Cards</strong> for testing different scenarios:
-                </p>
-                <div style="background: rgba(38, 42, 255, 0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(38, 42, 255, 0.1);">
-                    <a href="https://developer.globalpay.com/resources/test-cards" target="_blank" style="color: #262AFF; text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                        🔗 View All Test Cards
-                        <span style="font-size: 0.8em;">(opens in new tab)</span>
-                    </a>
-                    <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
-                        Includes approved, declined, 3D Secure, DCC, and other test scenarios for all card types.
-                    </p>
+            <div class="info-panel">
+                <h3>💳 Payment Processing</h3>
+                <p>Process secure payments using your credit card. In test mode, only approved test card numbers will work successfully.</p>
+                <div style="margin-top: 15px;">
+                    <strong>Global Payments Test Card Numbers:</strong><br>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; font-size: 0.9em;">
+                        <div style="padding: 8px; background: rgba(38, 42, 255, 0.05); border-radius: 8px;">
+                            <strong>Visa:</strong><br>
+                            4111 1111 1111 1111<br>
+                            4012 0010 3714 1112
+                        </div>
+                        <div style="padding: 8px; background: rgba(38, 42, 255, 0.05); border-radius: 8px;">
+                            <strong>Mastercard:</strong><br>
+                            5555 5555 5555 4444<br>
+                            5454 5454 5454 5454
+                        </div>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.85em; color: #666;">
+                        Use any future expiry date (e.g., 12/25) and any 3-digit CVV (e.g., 123)
+                    </div>
                 </div>
-                <div style="margin-top: 15px; padding: 12px; background: rgba(255, 152, 0, 0.05); border-radius: 8px; border-left: 4px solid #ff9800;">
-                    <strong>Quick Test Examples:</strong>
-                    <ul style="margin: 8px 0 0 20px; font-size: 0.9em;">
-                        <li><strong>Approved:</strong> 4263970000005262 (Visa)</li>
-                        <li><strong>Declined:</strong> 4000120000001154 (Visa)</li>
-                    </ul>
-                </div>
-                <p style="margin-top: 15px; font-size: 0.9em; color: #666;">
-                    Use any future expiry date and any 3-4 digit CVV for testing.
-                </p>
             </div>
 
-            <form id="payment-form">
-                <div class="form-section">
-                    <h3>💰 Payment Amount</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="amount">Amount (USD)</label>
-                            <input type="number" id="amount" name="amount" 
-                                   placeholder="10.00" min="0.01" step="0.01" required
-                                   value="10.00">
-                        </div>
-                        <div class="form-group">
-                            <label for="currency">Currency</label>
-                            <select id="currency" name="currency">
-                                <option value="USD" selected>USD - US Dollar</option>
-                            </select>
-                        </div>
-                    </div>
+            <div class="amount-input-container">
+                <label for="payment-amount">Payment Amount (USD)</label>
+                <input type="number" id="payment-amount" class="amount-input" placeholder="0.00" min="0.01" max="999999.99" step="0.01">
+                <div class="quick-amounts">
+                    <button class="quick-amount-btn" onclick="setAmount(1.00)">$1.00</button>
+                    <button class="quick-amount-btn" onclick="setAmount(5.00)">$5.00</button>
+                    <button class="quick-amount-btn" onclick="setAmount(10.00)">$10.00</button>
+                    <button class="quick-amount-btn" onclick="setAmount(25.00)">$25.00</button>
+                    <button class="quick-amount-btn" onclick="setAmount(100.00)">$100.00</button>
                 </div>
+            </div>
 
-                <div class="form-section">
-                    <h3>👤 Customer Information (Optional)</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="first-name">First Name</label>
-                            <input type="text" id="first-name" name="first-name" placeholder="John">
-                        </div>
-                        <div class="form-group">
-                            <label for="last-name">Last Name</label>
-                            <input type="text" id="last-name" name="last-name" placeholder="Doe">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="email">Email</label>
-                            <input type="email" id="email" name="email" placeholder="john.doe@example.com">
-                        </div>
-                        <div class="form-group">
-                            <label for="phone">Phone</label>
-                            <input type="tel" id="phone" name="phone" placeholder="(555) 123-4567">
-                        </div>
-                    </div>
-                </div>
+            <div class="payment-container">
+                <div id="payment-form"></div>
+                <button id="process-payment" class="process-btn" disabled>Process Payment</button>
+            </div>
 
-                <div class="form-section">
-                    <h3>📍 Billing Address (Optional)</h3>
-                    <div class="form-group">
-                        <label for="street">Street Address</label>
-                        <input type="text" id="street" name="street" placeholder="123 Main St">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="city">City</label>
-                            <input type="text" id="city" name="city" placeholder="New York">
-                        </div>
-                        <div class="form-group">
-                            <label for="state">State</label>
-                            <input type="text" id="state" name="state" placeholder="NY" maxlength="2">
-                        </div>
-                        <div class="form-group">
-                            <label for="postal-code">ZIP Code</label>
-                            <input type="text" id="postal-code" name="postal-code" placeholder="12345">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <h3>💳 Card Information</h3>
-                    <div id="card-form-container"></div>
-                </div>
-            </form>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                Processing payment...
+            </div>
 
             <div class="result-container" id="result-container">
             </div>
@@ -536,9 +470,29 @@
 
     <script src="https://js.globalpay.com/4.1.11/globalpayments.js"></script>
     <script>
-        class GPPaymentProcessor {
+        function setAmount(amount) {
+            document.getElementById('payment-amount').value = amount.toFixed(2);
+            updateProcessButton();
+        }
+
+        function updateProcessButton() {
+            const amount = parseFloat(document.getElementById('payment-amount').value);
+            const processBtn = document.getElementById('process-payment');
+            
+            if (amount && amount > 0 && processor.isInitialized) {
+                processBtn.disabled = false;
+                processBtn.textContent = `Process Payment ($${amount.toFixed(2)})`;
+            } else {
+                processBtn.disabled = true;
+                processBtn.textContent = 'Enter Amount to Continue';
+            }
+        }
+
+        class PaymentProcessor {
             constructor() {
-                this.cardForm = null;
+                this.appId = '';
+                this.environment = '';
+                this.paymentForm = null;
                 this.isInitialized = false;
                 this.init();
             }
@@ -547,9 +501,9 @@
                 try {
                     await this.waitForSDK();
                     await this.loadConfiguration();
+                    this.initializePaymentForm();
                     this.setupEventListeners();
-                    this.initializeCardForm();
-                    console.log('✅ GP-API Payment Processor initialized');
+                    console.log('✅ Payment Processor initialized');
                 } catch (error) {
                     console.error('❌ Initialization failed:', error);
                     this.showError('Failed to initialize payment system: ' + error.message);
@@ -579,7 +533,7 @@
             }
 
             async loadConfiguration() {
-                const response = await fetch('/api/get-access-token.php', {
+                const response = await fetch('/api/get-access-token', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -595,36 +549,43 @@
                     throw new Error('Invalid token response');
                 }
 
-                // Store the app_id for Drop-In UI initialization
                 this.appId = tokenData.data.accessToken;
                 this.environment = tokenData.data.environment;
 
                 console.log('✅ GP-API configured with access token:', tokenData.data.environment);
             }
 
-            initializeCardForm() {
+            initializePaymentForm() {
                 try {
-                    // Configure GP-API
+                    console.log('Initializing payment form...');
+                    
+                    // Configure GP-API with raw token (SDK handles Bearer internally)
                     GlobalPayments.configure({
-                        accessToken: this.appId,
+                        accessToken: this.appId, // Raw token, SDK adds Bearer automatically
                         apiVersion: '2021-03-22',
                         env: this.environment
                     });
 
-                    // Initialize GP-API credit card form
-                    this.cardForm = GlobalPayments.creditCard.form('#card-form-container', {
+                    console.log('🔧 GlobalPayments configured with:', {
+                        accessToken: this.appId.substring(0, 20) + '...',
+                        apiVersion: '2021-03-22',
+                        env: this.environment
+                    });
+
+                    // Initialize GP-API credit card form for payment
+                    this.paymentForm = GlobalPayments.creditCard.form('#payment-form', {
                         style: 'gp-default'
                     });
 
                     // Set up event listeners
-                    this.cardForm.on('token-success', (resp) => {
-                        console.log('✅ Card tokenized successfully');
+                    this.paymentForm.on('token-success', (resp) => {
+                        console.log('✅ Card tokenized successfully for payment');
                         this.processPayment(resp);
                     });
 
-                    this.cardForm.on('token-error', (resp) => {
+                    this.paymentForm.on('token-error', (resp) => {
                         console.error('❌ Tokenization error:', resp);
-                        console.error('❌ Error details:', JSON.stringify(resp, null, 2));
+                        this.hideLoading();
                         
                         let errorMessage = 'Card tokenization failed: ';
                         if (resp.reasons && resp.reasons.length > 0) {
@@ -636,160 +597,117 @@
                         }
                         
                         this.showError(errorMessage);
-                        this.hideLoading();
                     });
 
-                    this.cardForm.ready(() => {
-                        console.log('✅ GP-API credit card form ready');
+                    this.paymentForm.ready(() => {
+                        console.log('✅ GP-API payment form ready');
                         this.isInitialized = true;
+                        updateProcessButton();
                     });
 
                 } catch (error) {
-                    console.error('❌ Card form initialization failed:', error);
-                    this.showError('Failed to initialize card form: ' + error.message);
+                    console.error('❌ Payment form initialization failed:', error);
+                    this.showError('Failed to initialize payment form: ' + error.message);
                 }
             }
 
             setupEventListeners() {
-                // Remove form submit listener since Drop-In UI handles submission
-                // The payment will be triggered by the Drop-In UI's submit button
+                document.getElementById('payment-amount').addEventListener('input', updateProcessButton);
+                
+                document.getElementById('process-payment').addEventListener('click', () => {
+                    const amount = parseFloat(document.getElementById('payment-amount').value);
+                    if (amount && amount > 0) {
+                        this.initiatePayment();
+                    }
+                });
             }
 
-            async handlePaymentSubmit() {
-                if (!this.isInitialized) {
-                    this.showError('Payment system is not ready. Please wait and try again.');
-                    return;
-                }
-
-                // Validate amount
-                const amount = parseFloat(document.getElementById('amount').value);
+            initiatePayment() {
+                const amount = parseFloat(document.getElementById('payment-amount').value);
+                
                 if (!amount || amount <= 0) {
-                    this.showError('Please enter a valid payment amount.');
+                    this.showError('Please enter a valid payment amount');
                     return;
                 }
 
-                this.hideResult();
-
-                try {
-                    // Get the token from the card form
-                    this.cardForm.requestToken();
-                } catch (error) {
-                    console.error('❌ Token request failed:', error);
-                    this.showError('Failed to process payment: ' + error.message);
-                }
+                console.log(`Initiating payment for $${amount.toFixed(2)}`);
+                this.showLoading();
+                
+                // Request tokenization from GP-API
+                this.paymentForm.requestToken();
             }
 
             async processPayment(tokenResponse) {
                 try {
-                    const amount = parseFloat(document.getElementById('amount').value);
-                    const currency = document.getElementById('currency').value;
+                    const amount = parseFloat(document.getElementById('payment-amount').value);
                     
-                    // Log the full token response for debugging
-                    console.log('Token response:', tokenResponse);
-                    
+                    console.log('Full token response:', JSON.stringify(tokenResponse, null, 2));
+
                     const paymentData = {
                         payment_token: tokenResponse.paymentReference,
                         amount: amount,
-                        currency: currency
+                        currency: 'USD'
                     };
 
-                    // Add card information if available in token response
-                    if (tokenResponse.details && tokenResponse.details.card) {
+                    // Extract card details from GP-API token response
+                    if (tokenResponse.details) {
+                        const cardDetails = tokenResponse.details;
                         paymentData.card_details = {
-                            type: tokenResponse.details.card.type || tokenResponse.details.card.brand,
-                            last4: tokenResponse.details.card.last4 || tokenResponse.details.card.lastFourDigits,
-                            exp_month: tokenResponse.details.card.expMonth,
-                            exp_year: tokenResponse.details.card.expYear
-                        };
-                        console.log('Card details extracted:', paymentData.card_details);
-                    } else {
-                        console.warn('No card details found in token response:', tokenResponse);
-                    }
-
-                    // Add customer information if provided
-                    const firstName = document.getElementById('first-name').value.trim();
-                    const lastName = document.getElementById('last-name').value.trim();
-                    const email = document.getElementById('email').value.trim();
-                    const phone = document.getElementById('phone').value.trim();
-
-                    if (firstName || lastName || email || phone) {
-                        paymentData.customer = {
-                            first_name: firstName,
-                            last_name: lastName,
-                            email: email,
-                            phone: phone
-                        };
-                    }
-
-                    // Add billing address if provided
-                    const street = document.getElementById('street').value.trim();
-                    const city = document.getElementById('city').value.trim();
-                    const state = document.getElementById('state').value.trim();
-                    const postalCode = document.getElementById('postal-code').value.trim();
-
-                    if (street || city || state || postalCode) {
-                        paymentData.billing_address = {
-                            street: street,
-                            city: city,
-                            state: state,
-                            postal_code: postalCode,
-                            country: 'US'
+                            type: cardDetails.cardType || cardDetails.brand,
+                            last4: cardDetails.cardLast4 || cardDetails.last4,
+                            exp_month: cardDetails.expiryMonth || cardDetails.expMonth,
+                            exp_year: cardDetails.expiryYear || cardDetails.expYear
                         };
                     }
 
                     console.log('Processing payment...', paymentData);
 
-                    const response = await fetch('/api/process-payment.php', {
+                    const response = await fetch('/api/process-payment', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        // Add a unique client reference for idempotency and tracing
-                        body: JSON.stringify({
-                            ...paymentData,
-                            client_reference: 'WEB_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)
-                        })
+                        body: JSON.stringify(paymentData)
                     });
 
                     const result = await response.json();
                     console.log('Payment response:', result);
+                    
+                    this.hideLoading();
 
                     if (result.success) {
-                        this.showSuccess(result.data);
+                        this.showSuccess(result);
                     } else {
-                        // Extract and display the actual GP-API error code
-                        const errorCode = result.error?.code || 'UNKNOWN_ERROR';
-                        const errorDetails = result.error?.details || result.message || 'Unknown error occurred';
-                        const gpResponseCode = result.error?.gp_response_code;
-                        const gpResponseMessage = result.error?.gp_response_message;
-                        
-                        // Check if this is a decline vs other error
-                        const isDecline = ['DECLINED', 'CARD_DECLINED', 'INSUFFICIENT_FUNDS', 'CARD_EXPIRED', 'INVALID_CARD', 'CARD_NOT_SUPPORTED'].includes(errorCode);
-                        
-                        if (isDecline) {
-                            this.showDecline(errorDetails, gpResponseCode, gpResponseMessage);
-                        } else {
-                            let errorMessage = `Payment failed: ${errorDetails}`;
-                            if (gpResponseCode) {
-                                errorMessage += ` (GP-API Code: ${gpResponseCode})`;
-                            }
-                            this.showError(errorMessage);
-                        }
+                        this.showError('Payment failed: ' + (result.message || 'Unknown error occurred'));
                     }
 
                 } catch (error) {
                     console.error('❌ Payment processing error:', error);
-                    this.showError('Payment processing failed: ' + error.message);
-                } finally {
                     this.hideLoading();
+                    this.showError('Payment processing failed: ' + error.message);
                 }
             }
 
-            // Loading state is now handled by the Drop-In UI
+            showLoading() {
+                document.getElementById('loading').classList.add('active');
+                document.getElementById('process-payment').disabled = true;
+            }
+
+            hideLoading() {
+                document.getElementById('loading').classList.remove('active');
+                updateProcessButton();
+            }
 
             showSuccess(data) {
                 const container = document.getElementById('result-container');
                 container.className = 'result-container result-success';
+                
+                // Extract payment details from GP-API response
+                const paymentResult = data.payment_result;
+                const paymentMethod = paymentResult.payment_method || {};
+                const card = paymentMethod.card || {};
+                const action = paymentResult.action || {};
+                
                 container.innerHTML = `
                     <div class="result-header">
                         <span>✅</span>
@@ -797,21 +715,32 @@
                     </div>
                     <p>Your payment has been processed successfully.</p>
                     <div class="result-details">
-                        <strong>Transaction Details:</strong><br>
-                        Transaction ID: ${data.transaction_id}<br>
-                        Amount: $${data.amount} ${data.currency}<br>
-                        Status: ${data.status}<br>
-                        Authorization: ${data.authorization_code}<br>
-                        Processed: ${new Date(data.processed_at).toLocaleString()}
+                        <strong>Payment Details:</strong><br>
+                        Amount: $${(paymentResult.amount / 100).toFixed(2)} ${paymentResult.currency || 'USD'}<br>
+                        Card Type: ${card.brand || 'N/A'}<br>
+                        Last Four Digits: ${card.masked_number_last4 || 'N/A'}<br>
+                        Status: ${paymentResult.status || 'Approved'}<br>
+                        Result Code: ${action.result_code || 'SUCCESS'}<br>
+                        Authorization Code: ${paymentResult.authorization_code || 'N/A'}<br>
+                        Transaction ID: ${paymentResult.id || 'N/A'}<br>
+                        Reference: ${paymentResult.reference || 'N/A'}<br>
+                        Processed: ${new Date().toLocaleString()}
                     </div>
                 `;
                 container.style.display = 'block';
                 container.scrollIntoView({ behavior: 'smooth' });
+                
+                // Clear the amount field for next payment
+                setTimeout(() => {
+                    document.getElementById('payment-amount').value = '';
+                    updateProcessButton();
+                }, 3000);
             }
 
             showError(message) {
                 const container = document.getElementById('result-container');
                 container.className = 'result-container result-error';
+                
                 container.innerHTML = `
                     <div class="result-header">
                         <span>❌</span>
@@ -819,46 +748,18 @@
                     </div>
                     <p>${message}</p>
                     <div class="result-details">
-                        Please check your card information and try again. If the problem persists, contact support.
+                        Please check your payment information and try again. Remember to use test card numbers in sandbox mode.
                     </div>
                 `;
                 container.style.display = 'block';
                 container.scrollIntoView({ behavior: 'smooth' });
-            }
-
-            showDecline(declineMessage, gpResponseCode, gpResponseMessage) {
-                const container = document.getElementById('result-container');
-                container.className = 'result-container result-decline';
-                container.innerHTML = `
-                    <div class="result-header">
-                        <span>🚫</span>
-                        <span>Payment Declined</span>
-                    </div>
-                    <p><strong>${declineMessage}</strong></p>
-                    <div class="result-details">
-                        <strong>Decline Details:</strong><br>
-                        ${gpResponseCode ? `Response Code: ${gpResponseCode}<br>` : ''}
-                        ${gpResponseMessage ? `Message: ${gpResponseMessage}<br>` : ''}
-                        <br>
-                        <strong>What to do:</strong><br>
-                        • Check with your card issuer for the specific reason<br>
-                        • Verify your card information is correct<br>
-                        • Try a different payment method<br>
-                        • Contact your bank if you believe this is an error
-                    </div>
-                `;
-                container.style.display = 'block';
-                container.scrollIntoView({ behavior: 'smooth' });
-            }
-
-            hideResult() {
-                document.getElementById('result-container').style.display = 'none';
             }
         }
 
-        // Initialize when DOM is ready
+        // Initialize payment processor
+        let processor;
         document.addEventListener('DOMContentLoaded', () => {
-            new GPPaymentProcessor();
+            processor = new PaymentProcessor();
         });
     </script>
 </body>

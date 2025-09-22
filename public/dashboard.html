@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="/public/css/dashboard.css">
 </head>
 <body>
     <div class="dashboard-container">
@@ -15,9 +15,9 @@
             <h1>📊 Transaction Dashboard</h1>
             <p>Monitor and analyze your Global Payments transactions</p>
             <div class="header-actions">
-                <a href="index.html" class="btn btn-secondary">🏠 Home</a>
-                <a href="card-verification.html" class="btn btn-secondary">🔐 Verification</a>
-                <a href="payment.html" class="btn btn-secondary">💳 Payment</a>
+                <a href="/" class="btn btn-secondary">🏠 Home</a>
+                <a href="/public/card-verification.html" class="btn btn-secondary">🔐 Verification</a>
+                <a href="/public/payment.html" class="btn btn-secondary">💳 Payment</a>
                 <button class="btn btn-primary" onclick="refreshTransactions()">🔄 Refresh</button>
             </div>
         </div>
@@ -135,63 +135,32 @@
             }
 
             setDefaultDates() {
-                // Don't set default dates - let the API use its optimized recent transaction logic
-                // Users can set date filters manually if they need specific date ranges
                 document.getElementById('start-date').value = '';
                 document.getElementById('end-date').value = '';
             }
 
             setupEventListeners() {
-                // Manual refresh only - no automatic refresh
+                // Auto-apply filters when values change
+                document.getElementById('status-filter').addEventListener('change', () => this.applyFilters());
+                document.getElementById('start-date').addEventListener('change', () => this.applyFilters());
+                document.getElementById('end-date').addEventListener('change', () => this.applyFilters());
             }
 
             async loadTransactions() {
                 try {
                     this.showLoading();
                     
-                    let url = '/api/transactions-api.php';
-                    const params = new URLSearchParams();
-                    
-                    // Always load all transactions for client-side filtering
-                    // Remove server-side date filtering to get complete dataset
-                    params.append('limit', '100');
-                    // Add cache buster to prevent browser caching
-                    params.append('_t', Date.now());
-                    
-                    if (params.toString()) {
-                        url += '?' + params.toString();
-                    }
-                    
-                    const response = await fetch(url);
+                    const response = await fetch('/api/transactions');
                     const data = await response.json();
 
                     if (data.success) {
-                        this.allTransactions = data.data.transactions || [];
+                        this.allTransactions = data.transactions || [];
                         this.filteredTransactions = [...this.allTransactions];
-                        
-                        // Apply any existing filters after loading
-                        const startDate = document.getElementById('start-date').value;
-                        const endDate = document.getElementById('end-date').value;
-                        const statusFilter = document.getElementById('status-filter').value;
-                        
-                        if (startDate || endDate || statusFilter) {
-                            this.applyFilters();
-                        } else {
-                            this.updateStats();
-                            this.renderTransactions();
-                        }
-                        
-                        
-                        // Remove any existing notices
-                        const existingNotice = document.getElementById('demo-notice');
-                        if (existingNotice) {
-                            existingNotice.remove();
-                        }
+                        this.updateStats();
+                        this.renderTransactions();
                     } else {
-                        // Handle API errors - show proper error message
                         this.showApiError(data.message || 'Failed to load transactions');
                     }
-
                 } catch (error) {
                     this.showError('Failed to load transactions: ' + error.message);
                 }
@@ -201,7 +170,7 @@
                 const tbody = document.getElementById('transactions-body');
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="loading">
+                        <td colspan="8" class="loading">
                             <div class="spinner"></div>
                             <p>Loading transactions...</p>
                         </td>
@@ -213,277 +182,14 @@
                 const tbody = document.getElementById('transactions-body');
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="error">
+                        <td colspan="8" class="error">
                             <strong>Error:</strong> ${message}
                         </td>
                     </tr>
                 `;
             }
 
-            updateStats() {
-                const transactions = this.filteredTransactions;
-                const approved = transactions.filter(t => t.status === 'approved').length;
-                const declined = transactions.filter(t => t.status === 'declined').length;
-                const successRate = transactions.length > 0 ? Math.round((approved / transactions.length) * 100) : 0;
-
-                document.getElementById('total-transactions').textContent = transactions.length;
-                document.getElementById('approved-transactions').textContent = approved;
-                document.getElementById('declined-transactions').textContent = declined;
-                document.getElementById('success-rate').textContent = successRate + '%';
-                
-                // Update export count
-                const exportCount = document.getElementById('export-count');
-                if (exportCount) {
-                    exportCount.textContent = `(${transactions.length})`;
-                }
-            }
-
-            getTransactionTypeBadge(transaction) {
-                const type = transaction.type || 'verification';
-                
-                if (type === 'payment') {
-                    return '<span class="type-badge type-payment">💳 Payment</span>';
-                } else if (type === 'verification') {
-                    return '<span class="type-badge type-verification">🔐 Verify</span>';
-                } else {
-                    return '<span class="type-badge type-unknown">❓ Unknown</span>';
-                }
-            }
-
-            getAmountDisplay(transaction) {
-                if (transaction.amount === 'VERIFY' || transaction.type === 'verification') {
-                    return '<span class="verify-badge">VERIFY</span>';
-                } else if (transaction.amount && transaction.amount !== '0.00') {
-                    const amount = parseFloat(transaction.amount);
-                    const currency = transaction.currency || 'USD';
-                    return `<span class="amount-display">$${amount.toFixed(2)} ${currency}</span>`;
-                } else {
-                    return '<span class="amount-na">N/A</span>';
-                }
-            }
-
-            renderTransactions() {
-                const tbody = document.getElementById('transactions-body');
-                
-                if (this.filteredTransactions.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="7" class="empty-state">
-                                <h3>No transactions found</h3>
-                                <p>Perform some card authentications using the <a href="index.html" style="color: var(--gp-blue);">authentication interface</a> to see transactions here.</p>
-                                <p style="margin-top: 10px; font-size: 0.9em; color: var(--gp-gray);">
-                                    Use Global Payments test cards from the <a href="https://developer.globalpay.com/resources/test-cards" target="_blank" style="color: var(--gp-blue);">test cards documentation</a>.
-                                </p>
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-
-                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-                const endIndex = startIndex + this.itemsPerPage;
-                const paginatedTransactions = this.filteredTransactions.slice(startIndex, endIndex);
-
-                tbody.innerHTML = paginatedTransactions.map(transaction => `
-                    <tr>
-                        <td>
-                            <strong>${transaction.id || 'N/A'}</strong>
-                        </td>
-                        <td>
-                            ${this.getTransactionTypeBadge(transaction)}
-                        </td>
-                        <td>
-                            ${transaction.timestamp ? 
-                                `<span title="${transaction.timestamp}" class="timestamp">${dashboard.formatExactTimestamp(transaction.timestamp)}</span>` : 
-                                'N/A'
-                            }
-                        </td>
-                        <td>
-                            <span class="status-badge status-${transaction.status}">
-                                ${transaction.status}
-                            </span>
-                        </td>
-                        <td>
-                            ${this.getAmountDisplay(transaction)}
-                        </td>
-                        <td>
-                            <div class="card-info">
-                                <span class="card-type">${transaction.card.type || 'N/A'}</span>
-                                <span>${transaction.card.last4 ? '****' + transaction.card.last4 : 'Card Info Unavailable'}</span>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="response-info">
-                                <strong style="font-family: monospace; color: var(--gp-blue);">
-                                    ${transaction.response.code || 'N/A'}
-                                </strong>
-                                <br>
-                                <span style="color: var(--gp-gray); font-size: 0.85em;">
-                                    ${(transaction.response.message || 'N/A').substring(0, 35)}${(transaction.response.message || '').length > 35 ? '...' : ''}
-                                </span>
-                            </div>
-                        </td>
-                        <td>
-                            <button class="btn btn-secondary" onclick="dashboard.viewDetails('${transaction.id}')">
-                                View Details
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
-
-                this.renderPagination();
-            }
-
-            renderPagination() {
-                const totalPages = Math.ceil(this.filteredTransactions.length / this.itemsPerPage);
-                const pagination = document.getElementById('pagination');
-                
-                if (totalPages <= 1) {
-                    pagination.innerHTML = '';
-                    return;
-                }
-
-                let paginationHTML = '';
-                
-                // Previous button
-                paginationHTML += `
-                    <button ${this.currentPage === 1 ? 'disabled' : ''} 
-                            onclick="dashboard.goToPage(${this.currentPage - 1})">
-                        Previous
-                    </button>
-                `;
-
-                // Page numbers
-                for (let i = 1; i <= totalPages; i++) {
-                    if (i === this.currentPage || i === 1 || i === totalPages || 
-                        (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
-                        paginationHTML += `
-                            <button class="${i === this.currentPage ? 'active' : ''}" 
-                                    onclick="dashboard.goToPage(${i})">
-                                ${i}
-                            </button>
-                        `;
-                    } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
-                        paginationHTML += '<span>...</span>';
-                    }
-                }
-
-                // Next button
-                paginationHTML += `
-                    <button ${this.currentPage === totalPages ? 'disabled' : ''} 
-                            onclick="dashboard.goToPage(${this.currentPage + 1})">
-                        Next
-                    </button>
-                `;
-
-                pagination.innerHTML = paginationHTML;
-            }
-
-            goToPage(page) {
-                this.currentPage = page;
-                this.renderTransactions();
-            }
-
-            applyFilters() {
-                console.log('applyFilters called');
-                const statusFilter = document.getElementById('status-filter').value;
-                const startDate = document.getElementById('start-date').value;
-                const endDate = document.getElementById('end-date').value;
-                
-                console.log('Filter values:', { statusFilter, startDate, endDate });
-                console.log('All transactions count:', this.allTransactions.length);
-                
-                this.filteredTransactions = this.allTransactions.filter(transaction => {
-                    // Status filter
-                    if (statusFilter && transaction.status !== statusFilter) {
-                        return false;
-                    }
-                    
-                    // Date range filter
-                    if (startDate || endDate) {
-                        const transactionDateString = transaction.time_created || transaction.timestamp;
-                        if (!transactionDateString) {
-                            return false; // Skip transactions without dates
-                        }
-                        
-                        const transactionDate = new Date(transactionDateString);
-                        
-                        // Check if date parsing was successful
-                        if (isNaN(transactionDate.getTime())) {
-                            return false;
-                        }
-                        
-                        // Get the transaction date in YYYY-MM-DD format for comparison
-                        const transactionDateOnly = transactionDate.toISOString().split('T')[0];
-                        
-                        if (startDate) {
-                            if (transactionDateOnly < startDate) {
-                                return false;
-                            }
-                        }
-                        
-                        if (endDate) {
-                            if (transactionDateOnly > endDate) {
-                                return false;
-                            }
-                        }
-                    }
-                    
-                    return true;
-                });
-
-                console.log('Filtered transactions count:', this.filteredTransactions.length);
-
-                this.currentPage = 1;
-                this.updateStats();
-                this.renderTransactions();
-                
-                // Show filter applied indicator
-                this.showFilterStatus();
-            }
-
-            searchTransactions() {
-                const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
-                
-                if (!searchTerm) {
-                    // If search is empty, show all transactions
-                    this.filteredTransactions = [...this.allTransactions];
-                } else {
-                    this.filteredTransactions = this.allTransactions.filter(transaction => {
-                        // Search in transaction ID (exact and partial match)
-                        if (transaction.id && 
-                            (transaction.id.toLowerCase() === searchTerm || 
-                             transaction.id.toLowerCase().includes(searchTerm))) {
-                            return true;
-                        }
-                        
-                        // Search in reference number
-                        if (transaction.reference && transaction.reference.toLowerCase().includes(searchTerm)) {
-                            return true;
-                        }
-                        
-                        // Search in card last4
-                        if (transaction.card.last4 && transaction.card.last4.includes(searchTerm)) {
-                            return true;
-                        }
-                        
-                        // Search in response message
-                        if (transaction.response.message && 
-                            transaction.response.message.toLowerCase().includes(searchTerm)) {
-                            return true;
-                        }
-                        
-                        return false;
-                    });
-                }
-
-                this.currentPage = 1;
-                this.updateStats();
-                this.renderTransactions();
-            }
-
             showApiError(message) {
-                // Remove any existing notices
                 const existingNotice = document.getElementById('api-error-notice');
                 if (existingNotice) {
                     existingNotice.remove();
@@ -504,7 +210,7 @@
                 notice.innerHTML = `
                     <span style="font-size: 1.1em;">⚠️ Unable to Load Transactions</span><br>
                     <span style="font-size: 0.9em; opacity: 0.9;">
-                        ${message}. Please ensure your Global Payments credentials are properly configured.
+                        ${message}. Dashboard functionality available when transactions are processed.
                     </span>
                 `;
 
@@ -513,457 +219,343 @@
                 header.parentNode.insertBefore(notice, header.nextSibling);
             }
 
+            updateStats() {
+                const transactions = this.filteredTransactions;
+                const approved = transactions.filter(t => t.status === 'approved').length;
+                const declined = transactions.filter(t => t.status === 'declined').length;
+                const successRate = transactions.length > 0 ? ((approved / transactions.length) * 100).toFixed(1) : 0;
 
-            async viewDetails(transactionId) {
-                try {
-                    const response = await fetch(`/api/transactions-api.php?transaction_id=${transactionId}`);
-                    const data = await response.json();
-
-                    if (data.success) {
-                        const transaction = data.data;
-                        this.showTransactionModal(transaction);
-                    } else {
-                        alert('Failed to load transaction details: ' + data.message);
-                    }
-                } catch (error) {
-                    alert('Error loading transaction details: ' + error.message);
-                }
+                document.getElementById('total-transactions').textContent = transactions.length;
+                document.getElementById('approved-transactions').textContent = approved;
+                document.getElementById('declined-transactions').textContent = declined;
+                document.getElementById('success-rate').textContent = successRate + '%';
+                document.getElementById('export-count').textContent = `(${transactions.length})`;
             }
 
-            showTransactionModal(transaction) {
-                // Remove existing modal if any
-                const existingModal = document.getElementById('transaction-modal');
-                if (existingModal) {
-                    existingModal.remove();
+            renderTransactions() {
+                const tbody = document.getElementById('transactions-body');
+                
+                if (this.filteredTransactions.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="empty-state">
+                                <h3>No transactions found</h3>
+                                <p>Perform card verifications or payments to see transactions here.</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
                 }
 
-                const modal = document.createElement('div');
-                modal.id = 'transaction-modal';
-                modal.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0, 0, 0, 0.5);
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    z-index: 1000;
-                `;
+                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+                const endIndex = startIndex + this.itemsPerPage;
+                const paginatedTransactions = this.filteredTransactions.slice(startIndex, endIndex);
 
-                modal.innerHTML = `
-                    <div style="
-                        background: var(--gp-white);
-                        border-radius: 16px;
-                        padding: 30px;
-                        max-width: 600px;
-                        width: 90%;
-                        max-height: 80vh;
-                        overflow-y: auto;
-                        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-                    ">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                            <h3 style="color: var(--gp-blue); font-size: 1.5rem;">Transaction Details</h3>
-                            <button onclick="document.getElementById('transaction-modal').remove()" style="
-                                background: none;
-                                border: none;
-                                font-size: 1.5rem;
-                                cursor: pointer;
-                                color: var(--gp-gray);
-                                padding: 5px;
-                            ">&times;</button>
-                        </div>
-                        
-                        <div style="display: grid; gap: 15px;">
-                            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; padding: 15px; background: var(--gp-light-gray); border-radius: 8px;">
-                                <strong>Transaction ID:</strong>
-                                <span style="font-family: monospace;">${transaction.id || 'N/A'}</span>
-                                
-                                <strong>Status:</strong>
-                                <span class="status-badge status-${transaction.status}" style="display: inline-block; width: fit-content;">
-                                    ${transaction.status}
+                tbody.innerHTML = paginatedTransactions.map(transaction => `
+                    <tr>
+                        <td><strong>${transaction.id || 'N/A'}</strong></td>
+                        <td>${this.getTransactionTypeBadge(transaction)}</td>
+                        <td>${transaction.timestamp || 'N/A'}</td>
+                        <td>
+                            <span class="status-badge status-${transaction.status}">
+                                ${transaction.status}
+                            </span>
+                        </td>
+                        <td>${this.getAmountDisplay(transaction)}</td>
+                        <td>
+                            <div class="card-info">
+                                <span class="card-type">${transaction.card?.type || 'N/A'}</span>
+                                <span>${transaction.card?.last4 ? '****' + transaction.card.last4 : 'N/A'}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="response-info">
+                                <strong style="font-family: monospace; color: var(--gp-blue);">
+                                    ${transaction.response?.code || 'N/A'}
+                                </strong>
+                                <br>
+                                <span style="color: var(--gp-gray); font-size: 0.85em;">
+                                    ${(transaction.response?.message || 'N/A').substring(0, 35)}
                                 </span>
-                                
-                                <strong>Amount:</strong>
-                                <span style="font-size: 1.1em; font-weight: 600;">${transaction.amount === 'VERIFY' ? 'VERIFICATION' : (transaction.amount ? '$' + parseFloat(transaction.amount).toFixed(2) : 'N/A')}</span>
-                                
-                                <strong>Currency:</strong>
-                                <span>${transaction.currency || 'USD'}</span>
-                                
-                                <strong>Date & Time:</strong>
-                                <span>${transaction.timestamp ? this.formatExactTimestamp(transaction.timestamp) : 'N/A'}</span>
-                                
-                                <strong>Transaction Type:</strong>
-                                <span style="text-transform: capitalize; font-weight: 600;">${transaction.type || 'N/A'}</span>
-                                
-                                <strong>Reference Number:</strong>
-                                <span style="font-family: monospace;">${transaction.reference || 'N/A'}</span>
-                                
-                                <strong>Batch ID:</strong>
-                                <span style="font-family: monospace;">${transaction.batch_id || 'N/A'}</span>
                             </div>
-                            
-                            <div style="padding: 15px; background: var(--gp-light-gray); border-radius: 8px;">
-                                <h4 style="margin-bottom: 10px; color: var(--gp-black);">Card Information</h4>
-                                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
-                                    <strong>Card Type:</strong>
-                                    <span>${transaction.card.type || 'N/A'}</span>
-                                    
-                                    <strong>Card Number:</strong>
-                                    <span style="font-family: monospace;">${transaction.card.last4 ? '****' + transaction.card.last4 : 'Card Info Unavailable'}</span>
-                                    
-                                    <strong>Expiry:</strong>
-                                    <span>${transaction.card.exp_month || 'N/A'}/${transaction.card.exp_year || 'N/A'}</span>
-                                </div>
-                            </div>
-                            
-                            <div style="padding: 15px; background: var(--gp-light-gray); border-radius: 8px;">
-                                <h4 style="margin-bottom: 10px; color: var(--gp-black);">Response Details</h4>
-                                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
-                                    <strong>Response Code:</strong>
-                                    <span style="font-family: monospace; background: var(--gp-white); padding: 2px 6px; border-radius: 4px;">${transaction.response.code || 'N/A'}</span>
-                                    
-                                    <strong>Response Message:</strong>
-                                    <span>${transaction.response.message || 'N/A'}</span>
-                                    
-                                    <strong>Gateway Response Code:</strong>
-                                    <span style="font-family: monospace; background: var(--gp-white); padding: 2px 6px; border-radius: 4px;">${transaction.gateway_response_code || 'N/A'}</span>
-                                    
-                                    <strong>Gateway Response Message:</strong>
-                                    <span>${transaction.gateway_response_message || 'N/A'}</span>
-                                </div>
-                            </div>
-                            
-                            ${transaction.avs && (transaction.avs.code || transaction.avs.message) ? `
-                                <div style="padding: 15px; background: var(--gp-light-gray); border-radius: 8px;">
-                                    <h4 style="margin-bottom: 10px; color: var(--gp-black);">Address Verification (AVS)</h4>
-                                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
-                                        <strong>AVS Code:</strong>
-                                        <span style="font-family: monospace;">${transaction.avs.code || 'N/A'}</span>
-                                        
-                                        <strong>AVS Message:</strong>
-                                        <span>${transaction.avs.message || 'N/A'}</span>
-                                    </div>
-                                </div>
-                            ` : ''}
-                            
-                            ${transaction.cvv && (transaction.cvv.code || transaction.cvv.message) ? `
-                                <div style="padding: 15px; background: var(--gp-light-gray); border-radius: 8px;">
-                                    <h4 style="margin-bottom: 10px; color: var(--gp-black);">CVV Verification</h4>
-                                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
-                                        <strong>CVV Code:</strong>
-                                        <span style="font-family: monospace;">${transaction.cvv.code || 'N/A'}</span>
-                                        
-                                        <strong>CVV Message:</strong>
-                                        <span>${transaction.cvv.message || 'N/A'}</span>
-                                    </div>
-                                </div>
-                            ` : ''}
-                        </div>
-                        
-                        <div style="margin-top: 20px; text-align: center;">
-                            <button onclick="document.getElementById('transaction-modal').remove()" class="btn btn-primary">
-                                Close
+                        </td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="dashboard.viewDetails('${transaction.id}')">
+                                View Details
                             </button>
-                        </div>
-                    </div>
+                        </td>
+                    </tr>
+                `).join('');
+
+                this.renderPagination();
+            }
+
+            getTransactionTypeBadge(transaction) {
+                if (transaction.type === 'verification') {
+                    return '<span class="type-badge type-verification">🔐 Verification</span>';
+                } else if (transaction.type === 'payment') {
+                    return '<span class="type-badge type-payment">💳 Payment</span>';
+                } else {
+                    return '<span class="type-badge type-unknown">❓ Unknown</span>';
+                }
+            }
+
+            getAmountDisplay(transaction) {
+                if (transaction.amount === 'VERIFY' || transaction.type === 'verification') {
+                    return '<span class="verify-badge">VERIFY</span>';
+                } else if (transaction.amount && transaction.amount !== '0.00') {
+                    const amount = parseFloat(transaction.amount);
+                    const currency = transaction.currency || 'USD';
+                    return `<span class="amount-display">$${amount.toFixed(2)} ${currency}</span>`;
+                } else {
+                    return '<span class="amount-na">N/A</span>';
+                }
+            }
+
+            renderPagination() {
+                const totalPages = Math.ceil(this.filteredTransactions.length / this.itemsPerPage);
+                const pagination = document.getElementById('pagination');
+                
+                if (totalPages <= 1) {
+                    pagination.innerHTML = '';
+                    return;
+                }
+
+                let paginationHTML = `
+                    <button ${this.currentPage === 1 ? 'disabled' : ''} 
+                            onclick="dashboard.goToPage(${this.currentPage - 1})">
+                        Previous
+                    </button>
                 `;
 
-                document.body.appendChild(modal);
-
-                // Close on backdrop click
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        modal.remove();
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === this.currentPage || i === 1 || i === totalPages || 
+                        (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
+                        paginationHTML += `
+                            <button class="${i === this.currentPage ? 'active' : ''}" 
+                                    onclick="dashboard.goToPage(${i})">
+                                ${i}
+                            </button>
+                        `;
                     }
-                });
+                }
+
+                paginationHTML += `
+                    <button ${this.currentPage === totalPages ? 'disabled' : ''} 
+                            onclick="dashboard.goToPage(${this.currentPage + 1})">
+                        Next
+                    </button>
+                `;
+
+                pagination.innerHTML = paginationHTML;
             }
 
-            showFilterStatus() {
+            goToPage(page) {
+                this.currentPage = page;
+                this.renderTransactions();
+            }
+
+            applyFilters() {
                 const statusFilter = document.getElementById('status-filter').value;
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
                 
-                let filters = [];
-                if (statusFilter) filters.push(`Status: ${statusFilter}`);
-                
-                // Remove existing filter status
-                const existingStatus = document.getElementById('filter-status');
-                if (existingStatus) {
-                    existingStatus.remove();
-                }
-                
-                if (filters.length > 0) {
-                    const filterStatus = document.createElement('div');
-                    filterStatus.id = 'filter-status';
-                    filterStatus.style.cssText = `
-                        background: var(--gp-blue);
-                        color: white;
-                        padding: 8px 15px;
-                        border-radius: 6px;
-                        margin: 10px 0;
-                        font-size: 0.9em;
-                        text-align: center;
-                    `;
-                    filterStatus.innerHTML = `
-                        🔍 Filters Applied: ${filters.join(' | ')} 
-                        <button onclick="dashboard.clearFilters()" style="
-                            background: rgba(255,255,255,0.2);
-                            border: none;
-                            color: white;
-                            padding: 2px 8px;
-                            border-radius: 4px;
-                            margin-left: 10px;
-                            cursor: pointer;
-                            font-size: 0.8em;
-                        ">Clear</button>
-                    `;
-                    
-                    const tableHeader = document.querySelector('.table-header');
-                    tableHeader.parentNode.insertBefore(filterStatus, tableHeader.nextSibling);
-                }
-            }
-
-            clearFilters() {
-                document.getElementById('status-filter').value = '';
-                
-                this.filteredTransactions = [...this.allTransactions];
-                this.currentPage = 1;
-                this.updateStats();
-                this.renderTransactions();
-                
-                // Remove filter status
-                const filterStatus = document.getElementById('filter-status');
-                if (filterStatus) {
-                    filterStatus.remove();
-                }
-            }
-
-            setDateRange(range) {
-                const today = new Date();
-                const startDate = new Date();
-                
-                switch(range) {
-                    case 'today':
-                        startDate.setHours(0, 0, 0, 0);
-                        break;
-                    case 'week':
-                        startDate.setDate(today.getDate() - 7);
-                        break;
-                    case 'month':
-                        startDate.setDate(today.getDate() - 30);
-                        break;
-                }
-                
-                document.getElementById('start-date').value = startDate.toISOString().split('T')[0];
-                document.getElementById('end-date').value = today.toISOString().split('T')[0];
-                this.loadTransactions();
-            }
-
-            clearDateRange() {
-                document.getElementById('start-date').value = '';
-                document.getElementById('end-date').value = '';
-                document.getElementById('status-filter').value = '';
-                // Reset to show all transactions
-                this.filteredTransactions = [...this.allTransactions];
-                this.currentPage = 1;
-                this.updateStats();
-                this.renderTransactions();
-                this.showFilterStatus();
-            }
-
-            formatExactTimestamp(timestamp) {
-                try {
-                    const date = new Date(timestamp);
-                    
-                    // Check if date is valid
-                    if (isNaN(date.getTime())) {
-                        return 'Invalid Date';
+                this.filteredTransactions = this.allTransactions.filter(transaction => {
+                    if (statusFilter && transaction.status !== statusFilter) {
+                        return false;
                     }
                     
-                    // Format as: Jul 23, 2025 • 1:45:18 PM
-                    const options = {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: true
-                    };
+                    if (startDate && transaction.timestamp < startDate) {
+                        return false;
+                    }
                     
-                    const formatted = date.toLocaleString('en-US', options);
-                    return formatted.replace(' at', ' •');
-                } catch (error) {
-                    console.error('Error formatting timestamp:', error);
-                    return 'Invalid Date';
-                }
+                    if (endDate && transaction.timestamp > endDate) {
+                        return false;
+                    }
+                    
+                    return true;
+                });
+
+                this.currentPage = 1;
+                this.updateStats();
+                this.renderTransactions();
+            }
+
+            viewDetails(transactionId) {
+                alert('Transaction details view - TODO: implement modal');
             }
 
             exportTransactions() {
                 if (this.filteredTransactions.length === 0) {
-                    this.showExportMessage('No transactions to export', 'warning');
+                    alert('No transactions to export');
                     return;
                 }
-
-                try {
-                    // Show loading state
-                    this.showExportMessage('Preparing CSV export...', 'info');
-                    
-                    const csvData = this.convertToCSV(this.filteredTransactions);
-                    const blob = new Blob([csvData], { 
-                        type: 'text/csv;charset=utf-8;' 
-                    });
-                    
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    
-                    // Generate filename with timestamp and count
-                    const timestamp = new Date().toISOString().split('T')[0];
-                    const count = this.filteredTransactions.length;
-                    a.download = `global_payments_transactions_${timestamp}_${count}_records.csv`;
-                    
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                    
-                    // Show success message
-                    this.showExportMessage(`Successfully exported ${count} transactions`, 'success');
-                    
-                } catch (error) {
-                    console.error('Export error:', error);
-                    this.showExportMessage('Failed to export transactions. Please try again.', 'error');
-                }
+                
+                // Basic CSV export
+                const csvData = this.convertToCSV(this.filteredTransactions);
+                const blob = new Blob([csvData], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
             }
 
             convertToCSV(transactions) {
-                // Comprehensive headers for readable CSV
-                const headers = [
-                    'Transaction ID',
-                    'Date & Time', 
-                    'Transaction Type',
-                    'Status',
-                    'Amount (USD)',
-                    'Currency',
-                    'Card Type',
-                    'Card Last 4 Digits',
-                    'Response Code',
-                    'Response Message',
-                    'Reference Number',
-                    'Gateway Response Code',
-                    'Gateway Response Message',
-                    'Batch ID',
-                    'CVV Code',
-                    'AVS Code'
-                ];
+                const headers = ['ID', 'Type', 'Status', 'Amount', 'Currency', 'Card Type', 'Card Last4'];
+                const rows = transactions.map(t => [
+                    t.id || '',
+                    t.type || '',
+                    t.status || '',
+                    t.amount || '',
+                    t.currency || '',
+                    t.card?.type || '',
+                    t.card?.last4 || ''
+                ]);
                 
-                const rows = transactions.map(t => {
-                    // Format amount properly
-                    let amount = '';
-                    if (t.amount === 'VERIFY') {
-                        amount = 'VERIFICATION';
-                    } else if (t.amount && !isNaN(parseFloat(t.amount))) {
-                        amount = '$' + parseFloat(t.amount).toFixed(2);
-                    } else {
-                        amount = t.amount || 'N/A';
-                    }
-                    
-                    // Format timestamp for readability
-                    let formattedDate = '';
-                    if (t.timestamp) {
-                        try {
-                            const date = new Date(t.timestamp);
-                            formattedDate = date.toLocaleString('en-US', {
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                                hour12: true
-                            });
-                        } catch (e) {
-                            formattedDate = t.timestamp;
-                        }
-                    }
-                    
-                    return [
-                        t.id || 'N/A',
-                        formattedDate || 'N/A',
-                        (t.type || 'verification').toUpperCase(),
-                        (t.status || 'Unknown').toUpperCase(),
-                        amount,
-                        t.currency || 'USD',
-                        t.card.type || 'N/A',
-                        t.card.last4 ? '****' + t.card.last4 : 'Card Info Unavailable',
-                        t.response.code || 'N/A',
-                        t.response.message || 'N/A',
-                        t.reference || 'N/A',
-                        t.gateway_response_code || 'N/A',
-                        t.gateway_response_message || 'N/A',
-                        t.batch_id || 'N/A',
-                        t.cvv.code || 'N/A',
-                        t.avs.code || 'N/A'
-                    ].map(field => {
-                        // Properly escape CSV fields
-                        const stringField = String(field).replace(/"/g, '""');
-                        return `"${stringField}"`;
-                    });
-                });
-                
-                // Add UTF-8 BOM for proper Excel compatibility
-                const BOM = '\uFEFF';
-                return BOM + [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+                return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
             }
 
-
-            showExportMessage(message, type = 'info') {
-                // Remove existing message
-                const existingMessage = document.getElementById('export-message');
-                if (existingMessage) {
-                    existingMessage.remove();
+            setDateRange(range) {
+                const startDateInput = document.getElementById('start-date');
+                const endDateInput = document.getElementById('end-date');
+                const today = new Date();
+                
+                // Clear any existing active states
+                document.querySelectorAll('.btn-outline').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // Add active state to the clicked button
+                event.target.classList.add('active');
+                
+                let startDate, endDate;
+                
+                switch(range) {
+                    case 'today':
+                        startDate = new Date(today);
+                        endDate = new Date(today);
+                        break;
+                    case 'week':
+                        startDate = new Date(today);
+                        startDate.setDate(today.getDate() - 7);
+                        endDate = new Date(today);
+                        break;
+                    case 'month':
+                        startDate = new Date(today);
+                        startDate.setDate(today.getDate() - 30);
+                        endDate = new Date(today);
+                        break;
+                    default:
+                        this.clearDateRange();
+                        return;
                 }
+                
+                // Format dates for input fields (YYYY-MM-DD)
+                startDateInput.value = startDate.toISOString().split('T')[0];
+                endDateInput.value = endDate.toISOString().split('T')[0];
+                
+                // Apply filters with new date range
+                this.applyFilters();
+            }
 
-                const messageEl = document.createElement('div');
-                messageEl.id = 'export-message';
+            clearDateRange() {
+                // Clear date inputs
+                document.getElementById('start-date').value = '';
+                document.getElementById('end-date').value = '';
                 
-                const colors = {
-                    success: { bg: '#10B981', border: '#059669' },
-                    error: { bg: '#EF4444', border: '#DC2626' },
-                    warning: { bg: '#F59E0B', border: '#D97706' },
-                    info: { bg: '#262AFF', border: '#1B1EC6' }
-                };
+                // Clear any existing active states
+                document.querySelectorAll('.btn-outline').forEach(btn => {
+                    btn.classList.remove('active');
+                });
                 
-                const color = colors[type] || colors.info;
+                // Add active state to "All Time" button
+                event.target.classList.add('active');
                 
-                messageEl.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: ${color.bg};
-                    color: white;
-                    padding: 12px 20px;
-                    border-radius: 8px;
-                    border-left: 4px solid ${color.border};
-                    font-size: 0.9rem;
-                    font-weight: 500;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                    z-index: 1000;
-                    max-width: 300px;
-                    animation: slideIn 0.3s ease;
-                `;
-                
-                messageEl.textContent = message;
-                document.body.appendChild(messageEl);
-                
-                // Auto remove after delay
-                setTimeout(() => {
-                    if (messageEl.parentNode) {
-                        messageEl.style.animation = 'slideOut 0.3s ease';
-                        setTimeout(() => messageEl.remove(), 300);
+                // Apply filters without date restriction
+                this.applyFilters();
+            }
+
+            applyFilters() {
+                const statusFilter = document.getElementById('status-filter').value;
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
+                const searchTerm = document.getElementById('search-input')?.value?.toLowerCase() || '';
+
+                this.filteredTransactions = this.allTransactions.filter(transaction => {
+                    // Status filter
+                    if (statusFilter && transaction.status !== statusFilter) {
+                        return false;
                     }
-                }, type === 'info' ? 1500 : 3000);
+
+                    // Date filter
+                    if (startDate || endDate) {
+                        const transactionDate = new Date(transaction.timestamp);
+                        if (startDate && transactionDate < new Date(startDate)) {
+                            return false;
+                        }
+                        if (endDate && transactionDate > new Date(endDate + 'T23:59:59')) {
+                            return false;
+                        }
+                    }
+
+                    // Search filter
+                    if (searchTerm) {
+                        const searchFields = [
+                            transaction.id,
+                            transaction.reference,
+                            transaction.status,
+                            transaction.type,
+                            transaction.card?.brand,
+                            transaction.card?.masked_number_last4
+                        ].join(' ').toLowerCase();
+                        
+                        if (!searchFields.includes(searchTerm)) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                });
+
+                this.currentPage = 1; // Reset to first page when filtering
+                this.updateStats();
+                this.renderTransactions();
+                this.renderPagination();
+            }
+
+            exportTransactions() {
+                if (this.filteredTransactions.length === 0) {
+                    alert('No transactions to export');
+                    return;
+                }
+                
+                const csv = this.convertToCSV(this.filteredTransactions);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }
+
+            viewDetails(transactionId) {
+                const transaction = this.allTransactions.find(t => t.id === transactionId);
+                if (transaction) {
+                    alert(`Transaction Details:\n\nID: ${transaction.id}\nStatus: ${transaction.status}\nAmount: ${transaction.amount} ${transaction.currency}\nType: ${transaction.type}`);
+                }
+            }
+
+            goToPage(page) {
+                this.currentPage = page;
+                this.renderTransactions();
+                this.renderPagination();
             }
         }
 
@@ -977,24 +569,18 @@
         function refreshTransactions() {
             if (dashboard) {
                 dashboard.loadTransactions();
-            } else {
-                console.error('Dashboard not yet initialized');
             }
         }
 
         function applyFilters() {
             if (dashboard) {
                 dashboard.applyFilters();
-            } else {
-                console.error('Dashboard not yet initialized');
             }
         }
 
         function searchTransactions() {
             if (dashboard) {
-                dashboard.searchTransactions();
-            } else {
-                console.error('Dashboard not yet initialized');
+                dashboard.applyFilters();
             }
         }
     </script>
