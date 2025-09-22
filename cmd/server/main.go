@@ -51,8 +51,8 @@ func main() {
 	router.Use(cors.New(corsConfig))
 
 	// Serve static files
-	router.Static("/public", "./public")
-	router.StaticFile("/", "./public/index.html")
+	router.Static("/public", "/app/public")
+	router.StaticFile("/", "/app/public/index.html")
 
 	// Initialize handlers
 	configHandler := handlers.NewConfigHandler(cfg, lgr, errorHandler)

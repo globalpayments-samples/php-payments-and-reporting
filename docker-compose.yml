@@ -1,5 +1,4 @@
 # Docker Compose for Go Payments API
-version: '3.8'
 
 services:
   # Main application service
