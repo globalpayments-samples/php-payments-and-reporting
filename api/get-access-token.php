@@ -17,6 +17,8 @@ use GlobalPayments\Api\Entities\Enums\Channel;
 use GlobalPayments\Api\ServicesContainer;
 use GlobalPayments\Api\Services\GpApiService;
 
+ini_set('display_errors', '0');
+
 // Set security headers
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
