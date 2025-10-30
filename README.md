@@ -2,6 +2,8 @@
 
 A comprehensive card verification and payment processing solution built with GP-API Drop-In UI and the GlobalPayments PHP SDK, featuring real-time transaction monitoring, secure payment processing, and professional dashboard interfaces.
 
+[View in CodeSandbox](https://githubbox.com/globalpayments-samples/php-payments-and-reporting).
+
 ## Table of Contents
 
 - [Features](#features)
