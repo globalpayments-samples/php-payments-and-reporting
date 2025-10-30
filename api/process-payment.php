@@ -154,19 +154,6 @@ try {
         $chargeBuilder = $chargeBuilder->withAddress($address);
     }
 
-    // Add customer information if provided
-    if (!empty($data['customer'])) {
-        $customer = $data['customer'];
-        $customerId = 'CUST_' . uniqid();
-        $description = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? ''));
-        
-        if (!empty($description)) {
-            $chargeBuilder = $chargeBuilder
-                ->withCustomerId($customerId)
-                ->withDescription("Payment for $description");
-        }
-    }
-
     // Execute the charge
     $result = $chargeBuilder->execute();
 
