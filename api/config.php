@@ -20,6 +20,8 @@ declare(strict_types=1);
 
 require_once '/../vendor/autoload.php';
 
+ini_set('display_errors', '0');
+
 use Dotenv\Dotenv;
 
 // Set security headers

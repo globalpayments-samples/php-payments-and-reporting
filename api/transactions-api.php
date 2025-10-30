@@ -23,6 +23,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+ini_set('display_errors', '0');
+
 use GlobalPayments\Examples\TransactionReporter;
 
 // Security headers
