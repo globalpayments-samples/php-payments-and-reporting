@@ -45,7 +45,7 @@ if (isset($api_endpoints[$clean_path])) {
 
 // Serve static files from public directory
 if ($clean_path === '/' || $clean_path === '/index.html') {
-    require __DIR__ . '/public/index.html';
+    header('Location: /public/index.html');
     return true;
 }
 
