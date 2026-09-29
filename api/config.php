@@ -18,7 +18,7 @@ declare(strict_types=1);
  * @link      https://github.com/globalpayments
  */
 
-require_once '/../vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 ini_set('display_errors', '0');
 
