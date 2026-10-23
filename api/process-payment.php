@@ -107,7 +107,7 @@ try {
         // Log account information for debugging
         error_log("GP-API Token Info - Account ID: " . ($tokenInfo->transactionProcessingAccountID ?? 'NOT_SET'));
         error_log("GP-API Token Info - Account Name: " . ($tokenInfo->transactionProcessingAccountName ?? 'NOT_SET'));
-        error_log("GP-API Token Info - Token: " . ($tokenInfo->accessToken ?? 'NOT_SET'));
+        error_log("GP-API Token Info - Token: " . (isset($tokenInfo->accessToken) ? '****' . substr($tokenInfo->accessToken, -4) : 'NOT_SET'));
         
         if (empty($tokenInfo->transactionProcessingAccountID) || empty($tokenInfo->transactionProcessingAccountName)) {
             throw new Exception('GP-API access token lacks transaction processing account scope. Check merchant/account assignment.');
@@ -170,7 +170,7 @@ try {
             'has_card' => property_exists($result, 'paymentMethod') && property_exists(safeGetProperty($result, 'paymentMethod'), 'card'),
             'card_properties' => (property_exists($result, 'paymentMethod') && property_exists(safeGetProperty($result, 'paymentMethod'), 'card')) ? get_object_vars(safeGetProperty(safeGetProperty($result, 'paymentMethod'), 'card')) : null,
             'request_card_info' => $data['card_info'] ?? null,
-            'token_value' => $tokenValue,
+            'token_value' => '****' . substr($tokenValue, -4),
         ],
         'system'
     );
@@ -300,7 +300,7 @@ try {
             $logger->info(
                 'Attempting to extract card info from token',
                 [
-                    'token_value' => $tokenValue,
+                    'token_value' => '****' . substr($tokenValue, -4),
                     'token_length' => strlen($tokenValue),
                 ],
                 'system'
