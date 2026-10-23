@@ -93,9 +93,8 @@ No authentication on any endpoint, CORS open to `*`, and transaction history sto
 ```bash
 composer install
 cp .env.example .env         # then set GP_API_APP_ID / GP_API_APP_KEY
-./run.sh                     # :8000, php -S 0.0.0.0:8000 -t . router.php
+./run.sh                     # :8000, loopback by default (HOST=0.0.0.0 to expose), checks the PHP version first
 ./run.sh -p 9000             # other port; -c checks only, -t runs tests first, -l tees logs/server.log
-php -S localhost:8000 router.php   # equivalent without the checks
 ```
 
 `run.sh` kills whatever is already listening on the chosen port. It requires the `curl`, `dom`, `openssl`, `json`, `mbstring`, `fileinfo`, and `intl` extensions. The card form is rendered in iframes by `globalpayments.js`, so verification and payment need a real browser at `http://localhost:8000/public/card-verification.html` and `/public/payment.html`.

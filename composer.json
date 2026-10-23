@@ -30,7 +30,7 @@
         }
     },
     "scripts": {
-        "serve": "php -S localhost:8000",
+        "serve": "./run.sh",
         "test": "phpunit --colors=always",
         "test:unit": "phpunit --colors=always --testdox",
         "test:coverage": "phpunit --colors=always --coverage-html coverage-html --coverage-text",

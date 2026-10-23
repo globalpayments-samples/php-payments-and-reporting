@@ -1,5 +1,5 @@
 # PHP Card Authentication - Docker Configuration
-FROM php:8.3-cli as development
+FROM php:8.3.36-cli as development
 
 # Set working directory
 WORKDIR /app
@@ -83,7 +83,7 @@ EXPOSE 8000
 CMD ["php", "-S", "0.0.0.0:8000", "router.php"]
 
 # Multi-stage build for production
-FROM php:8.3-cli as production
+FROM php:8.3.36-cli as production
 
 WORKDIR /app
 
