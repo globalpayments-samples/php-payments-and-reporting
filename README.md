@@ -35,7 +35,7 @@ A comprehensive card verification and payment processing solution built with GP-
 ## Quick Start Linux/MacOS
 
 ### Prerequisites
-- PHP 8.0 or higher
+- PHP 8.2.35+, 8.3.36+, 8.4.27+, or 8.5.12+
 - Composer
 - Global Payments GP-API sandbox account and app credentials
 
@@ -60,7 +60,7 @@ A comprehensive card verification and payment processing solution built with GP-
 
 4. **Start development server:**
    ```bash
-   php -S localhost:8000 router.php
+   ./run.sh
    ```
 
 5. **Access the application:**
@@ -74,7 +74,7 @@ For Windows users who need to set up the complete development environment:
 
 ### Prerequisites Installation
 
-1. **Install PHP 8.0+:**
+1. **Install PHP 8.2.35+, 8.3.36+, 8.4.27+, or 8.5.12+:**
    - Download from [php.net/downloads](https://www.php.net/downloads.php)
    - Choose "Thread Safe" version for Windows
    - Extract to `C:\php` (or your preferred location)

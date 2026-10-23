@@ -17,14 +17,16 @@ This guide covers deploying the Heartland Payment Integration system to various 
 
 ### Minimum Requirements
 
-- **PHP**: 8.0 or higher
+- **PHP**: PHP 8.2.35+, 8.3.36+, 8.4.27+, or 8.5.12+
 - **Memory**: 512MB RAM
 - **Storage**: 1GB free space
 - **Web Server**: Apache 2.4+ or Nginx 1.18+
 
+PHP-FPM and mod_php are both affected by CVE-2026-109618 and CVE-2026-109619, so only run a patched release. Distribution packages can carry the fix under an older version number, so if `php -v` shows something lower than the versions above, check the package changelog before deploying.
+
 ### Recommended Requirements
 
-- **PHP**: 8.2 or higher with OPcache enabled
+- **PHP**: PHP 8.2.35+, 8.3.36+, 8.4.27+, or 8.5.12+ with OPcache enabled
 - **Memory**: 2GB RAM
 - **Storage**: 5GB free space (with logs and backups)
 - **Web Server**: Nginx 1.20+ with SSL/TLS
