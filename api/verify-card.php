@@ -310,7 +310,7 @@ try {
     $cardLast4 = $verificationResult['payment_method']['card']['masked_number_last4'] ?? null;
     
     // Debug logging
-    error_log('Verification request data: ' . json_encode($data));
+    error_log('Verification request data: ' . json_encode(isset($data['payment_token']) ? array_merge($data, ['payment_token' => '****' . substr((string)$data['payment_token'], -4)]) : $data));
     error_log('Card details from request: ' . json_encode($data['card_details'] ?? 'NOT_FOUND'));
     error_log('Verification result: ' . json_encode($verificationResult));
     
