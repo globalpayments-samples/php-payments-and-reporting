@@ -239,10 +239,10 @@ Use these GlobalPayments test cards for development:
 
 | Card Number | Type | CVV | Exp | Expected Result |
 |-------------|------|-----|-----|-----------------|
-| 4000000000000002 | Visa | 123 | 12/25 | Approved |
-| 5400000000000005 | MasterCard | 123 | 12/25 | Approved |
-| 370000000000002 | Amex | 1234 | 12/25 | Approved |
-| 4000000000000010 | Visa | 123 | 12/25 | Declined |
+| 4000000000000002 | Visa | 123 | 12/30 | Approved |
+| 5400000000000005 | MasterCard | 123 | 12/30 | Approved |
+| 370000000000002 | Amex | 1234 | 12/30 | Approved |
+| 4000000000000010 | Visa | 123 | 12/30 | Declined |
 
 ## API Documentation
 
