@@ -30,7 +30,7 @@
 - [`public/dashboard.html`](public/dashboard.html): calls `transactions-api.php?limit=100` and filters client-side; detail view uses `?transaction_id=`
 
 ### Root
-- [`router.php`](router.php): router for `php -S`; serves `/api/*`, aliases `/config.php`, `/verify-card.php`, `/process-payment.php`, `/transactions-api.php`, redirects `/` to `/public/index.html`. It also maps `/heartland-process-payment.php` to a file that does not exist (returns 404).
+- [`router.php`](router.php): router for `php -S`; serves `/api/*`, aliases `/config.php`, `/verify-card.php`, `/process-payment.php`, `/transactions-api.php`, redirects `/` to `/public/index.html`. It also maps `/heartland-process-payment.php` to a file that does not exist (returns 404). Everything else (composer files, `vendor/`, `src/`, `logs/`, dot files, paths that leave `public/`) gets a 404.
 - [`run.sh`](run.sh): checks PHP extensions and Composer, creates `.env` from `.env.example` if missing, frees the port, starts the router
 - [`tests/`](tests/): `TransactionReporterTest.php` and `TransactionReporterIntegrationTest.php` (17 tests, local only, no network)
 - [`Dockerfile`](Dockerfile) and [`docker-compose.yml`](docker-compose.yml): `development` and `production` targets, `app`, `app-prod` (profile `production`), and `tests` (profile `testing`)

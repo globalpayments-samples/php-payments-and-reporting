@@ -10,10 +10,17 @@ $request_uri = $_SERVER['REQUEST_URI'];
 $path = parse_url($request_uri, PHP_URL_PATH);
 
 // Remove query string for path matching
-$clean_path = strtok($path, '?');
+$clean_path = rawurldecode(strtok($path, '?'));
+
+// Never serve dot files, vendor/, logs/ or anything outside the served folders
+if (preg_match('#(^|/)(\.|vendor/|logs/|node_modules/)#', $clean_path)) {
+    http_response_code(404);
+    echo json_encode(['success' => false, 'message' => 'Endpoint not found', 'error' => ['code' => 'NOT_FOUND']]);
+    return true;
+}
 
 // Route API requests to the api directory
-if (strpos($clean_path, '/api/') === 0) {
+if (preg_match('#^/api/[A-Za-z0-9_-]+\.php$#', $clean_path)) {
     $api_file = __DIR__ . $clean_path;
     if (file_exists($api_file) && is_file($api_file)) {
         require $api_file;
@@ -84,10 +91,13 @@ if (file_exists($public_file) && is_file($public_file)) {
     return true;
 }
 
-// Check if it's a root-level file
-$root_file = __DIR__ . $clean_path;
-if (file_exists($root_file) && is_file($root_file)) {
-    return false;
+// Pages and assets under /public/ (only real files inside public/)
+if (strpos($clean_path, '/public/') === 0) {
+    $public_root = realpath(__DIR__ . '/public');
+    $requested = realpath(__DIR__ . $clean_path);
+    if ($requested !== false && is_file($requested) && strpos($requested, $public_root . DIRECTORY_SEPARATOR) === 0) {
+        return false;
+    }
 }
 
 // 404 for everything else
