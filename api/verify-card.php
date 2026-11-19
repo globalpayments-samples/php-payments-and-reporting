@@ -105,12 +105,9 @@ function validateRequest(array $data): array
 {
     $errors = [];
 
-    // Check if we have either payment token (from Drop-In UI) or direct card details
-    $hasPaymentToken = !empty($data['payment_token']);
-    $hasCardDetails = !empty($data['card_number']) && !empty($data['expiry_month']) && !empty($data['expiry_year']);
-    
-    if (!$hasPaymentToken && !$hasCardDetails) {
-        $errors[] = 'Either payment_token (from Drop-In UI) or card details (card_number, expiry_month, expiry_year) are required';
+    // Card data never reaches this server, only the payment token from the Drop-In UI
+    if (empty($data['payment_token'])) {
+        $errors[] = 'payment_token (from the Drop-In UI) is required';
     }
 
     if (empty($data['verification_type'])) {
