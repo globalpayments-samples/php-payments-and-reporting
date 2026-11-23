@@ -6,11 +6,9 @@
 
 1. **Every request builds its own `GpApiConfig` and access token.** `api/get-access-token.php` calls `GpApiService::generateTransactionKey()` with `permissions = ['PMT_POST_Create_Single']` and returns the token to the browser for `GlobalPayments.configure()`. Unlike sibling samples, this token is generated through the SDK, not a hand-built `/ucp/accesstoken` call. `api/process-payment.php` also calls `generateTransactionKey()` as a preflight and fails with a 500 if the token has no `transactionProcessingAccountID` or `transactionProcessingAccountName`, so credentials must be linked to a transaction processing account.
 
-2. **Verification is a plain `verify()` and `verification_type` is cosmetic.** `performVerification()` in `api/verify-card.php` always calls `verify()->withCurrency()->withAllowDuplicates(true)` with a `VER_...` reference as client transaction ID and idempotency key. `validateRequest()` requires `verification_type` to be `basic`, `avs`, `cvv`, or `full`, but the value never reaches the SDK (the page always sends `basic`). `validateRequest()` also accepts raw `card_number` / `expiry_month` / `expiry_year`, yet `performVerification()` rejects anything that is not a `PMT_` or `TKN_` token. Any SDK error about `TRN_POST_Verify`, `action_type - VERIFY`, or missing merchant config is rewritten to "Card verification is not enabled for this account".
+2. **Verification is a plain `verify()` and `verification_type` is cosmetic.** `performVerification()` in `api/verify-card.php` always calls `verify()->withCurrency()->withAllowDuplicates(true)` with a `VER_...` reference as client transaction ID and idempotency key. `validateRequest()` requires `verification_type` to be `basic`, `avs`, `cvv`, or `full`, but the value never reaches the SDK (the page always sends `basic`). `validateRequest()` requires `payment_token`, and `performVerification()` rejects anything that is not a `PMT_` or `TKN_` token. Any SDK error about `TRN_POST_Verify`, `action_type - VERIFY`, or missing merchant config is rewritten to "Card verification is not enabled for this account".
 
 3. **The dashboard merges two sources with no de-duplication.** `api/transactions-api.php` combines `TransactionReporter::getRecentTransactions()` (SDK `ReportingService::findTransactions()` over the last 3 days) or `getTransactionsByDateRange()` with `getLocalTransactions()` (from `logs/all-transactions.json`), sorts, and slices. Payments are both recorded locally by `recordTransaction()` and returned by Reporting, so they can appear twice. Outside PHPUnit (`PHPUNIT_RUNNING` unset), `recordTransaction()` and `getLocalTransactions()` drop IDs that look like test data, including anything starting `ORDER-`. A declined payment with no transaction ID falls back to its `ORDER-...` order ID and is therefore never stored.
-
-4. **`api/config.php` is broken.** It does `require_once '/../vendor/autoload.php'` (a filesystem-root path, not `__DIR__`), so every request to `/api/config.php` or `/config.php` ends in a PHP fatal error. The Dockerfile `HEALTHCHECK` and both compose healthchecks target this URL. No page calls it, so the payment, verification, and dashboard flows still work.
 
 ## Repository Structure
 
@@ -19,7 +17,7 @@
 - [`api/verify-card.php`](api/verify-card.php): `loadEnvironmentAndToken()`, `validateRequest()`, `performVerification()`; records a `type: verification` row
 - [`api/process-payment.php`](api/process-payment.php): token preflight, `charge()` with order ID and idempotency key, decline detection by response-code list, local recording; `safeGetProperty()` helper
 - [`api/transactions-api.php`](api/transactions-api.php): `validateParams()`, `handleRequest()`; merges Reporting and local data
-- [`api/config.php`](api/config.php): static feature list; currently fatal (see Critical Patterns 4)
+- [`api/config.php`](api/config.php): static feature list; the Dockerfile and compose healthchecks call it
 
 ### Library (`src/`, PSR-4 `GlobalPayments\Examples\`)
 - [`src/TransactionReporter.php`](src/TransactionReporter.php): the reference for reporting; `configureSdk()`, `getRecentTransactions()`, `getTransactionsByDateRange()`, `getTransactionDetails()`, `recordTransaction()`, `getLocalTransactions()`, private `formatTransactionForDashboard()` and `validateTransactionAuthenticity()`
@@ -32,11 +30,11 @@
 - [`public/dashboard.html`](public/dashboard.html): calls `transactions-api.php?limit=100` and filters client-side; detail view uses `?transaction_id=`
 
 ### Root
-- [`router.php`](router.php): router for `php -S`; serves `/api/*`, aliases `/config.php`, `/verify-card.php`, `/process-payment.php`, `/transactions-api.php`, redirects `/` to `/public/index.html`. It also maps `/heartland-process-payment.php` to a file that does not exist (returns 404).
+- [`router.php`](router.php): router for `php -S`; serves `/api/*`, aliases `/config.php`, `/verify-card.php`, `/process-payment.php`, `/transactions-api.php`, redirects `/` to `/public/index.html`. It also maps `/heartland-process-payment.php` to a file that does not exist (returns 404). Everything else (composer files, `vendor/`, `src/`, `logs/`, dot files, paths that leave `public/`) gets a 404.
 - [`run.sh`](run.sh): checks PHP extensions and Composer, creates `.env` from `.env.example` if missing, frees the port, starts the router
 - [`tests/`](tests/): `TransactionReporterTest.php` and `TransactionReporterIntegrationTest.php` (17 tests, local only, no network)
 - [`Dockerfile`](Dockerfile) and [`docker-compose.yml`](docker-compose.yml): `development` and `production` targets, `app`, `app-prod` (profile `production`), and `tests` (profile `testing`)
-- [`docs/`](docs/): `API.md`, `ARCHITECTURE.md`, `DEPLOYMENT.md`; partly stale (Heartland / Portico naming, `SECRET_API_KEY` deployment steps)
+- [`docs/`](docs/): `API.md` (current), `ARCHITECTURE.md`, `DEPLOYMENT.md` (partly stale: Heartland / Portico naming, `SECRET_API_KEY` deployment steps)
 
 ## API Surface
 
@@ -46,7 +44,7 @@
 | POST | `/api/verify-card.php` | JSON `{payment_token, verification_type, currency?, card_details?}`; zero-amount verification |
 | POST | `/api/process-payment.php` | JSON `{payment_token or token_value, amount, currency?, billing_address?, client_reference?, card_details?}`; sale |
 | GET | `/api/transactions-api.php` | `limit` (1 to 100, default 25), `page` (echoed only), `start_date` / `end_date` (`YYYY-MM-DD`), `transaction_id` |
-| GET | `/api/config.php` | Broken (fatal error) |
+| GET | `/api/config.php` | Static feature list `{success, data: {apiVersion, supportedCardTypes, features, verification_types}}` |
 
 `amount` is in major units (for example `10.99`), capped at 999999.99. All endpoints send `Access-Control-Allow-Origin: *`.
 
@@ -74,7 +72,7 @@ A single `.env.example` sits at the repo root; copy it to `.env`. It also lists 
 | Mastercard | 5425230000004415 | Approved | 123 | Any future date |
 | Visa | 4000120000001154 | Declined | 123 | Any future date |
 
-`public/payment.html` lists the two Visa numbers. The table in `README.md` uses different numbers and is not the GP-API sandbox set. Get sandbox credentials at [developer.globalpayments.com](https://developer.globalpayments.com).
+`public/payment.html` lists the two Visa numbers. `README.md` and `docs/API.md` list more sandbox cards, all checked against the GP API sandbox. Get sandbox credentials at [developer.globalpayments.com](https://developer.globalpayments.com).
 
 ## Architecture Summary
 
@@ -111,7 +109,7 @@ curl -X POST http://localhost:8000/api/get-access-token.php
 curl "http://localhost:8000/api/transactions-api.php?limit=5"
 # Expected: {"success":true,"data":{"transactions":[...],"total_count":N,"source":"global_payments_api_and_local",...},"message":"...","request_info":{...}}
 
-# Needs a real PMT_ reference from the browser form
+# Needs a real PMT_ reference from the browser form, or tokenize a test card as shown in docs/API.md
 curl -X POST http://localhost:8000/api/verify-card.php -H "Content-Type: application/json" \
   -d '{"payment_token":"PMT_xxx","verification_type":"basic","currency":"USD"}'
 # Expected: {"success":true,"message":"Card verification successful","verification_result":{...},"data":{"verified":true,...}}
@@ -121,7 +119,7 @@ curl -X POST http://localhost:8000/api/process-payment.php -H "Content-Type: app
 # Expected: {"success":true,"message":"Payment processed successfully","data":{"transaction_id":"TRN_...",...}}
 ```
 
-Bad credentials return `{"success":false,...,"error":{"code":"VERIFICATION_ERROR","details":"Failed to generate access token: ..."}}` from `verify-card.php`. `/api/config.php` has no valid expected output until its `require_once` path is fixed.
+Bad credentials return `{"success":false,...,"error":{"code":"VERIFICATION_ERROR","details":"Failed to generate access token: ..."}}` from `verify-card.php`.
 
 ## Making Changes
 

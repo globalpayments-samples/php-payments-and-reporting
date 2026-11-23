@@ -240,13 +240,15 @@ Use these GlobalPayments test cards for development:
 | Card Number | Type | CVV | Exp | Expected Result |
 |-------------|------|-----|-----|-----------------|
 | 4000000000000002 | Visa | 123 | 12/30 | Approved |
-| 5400000000000005 | MasterCard | 123 | 12/30 | Approved |
-| 370000000000002 | Amex | 1234 | 12/30 | Approved |
+| 5425230000004415 | MasterCard | 123 | 12/30 | Approved |
+| 374101000000608 | Amex | 1234 | 12/30 | Approved |
 | 4000000000000010 | Visa | 123 | 12/30 | Declined |
 
 ## API Documentation
 
 ### Endpoints
+
+Card data never goes to the server. The pages tokenize the card with the Drop-In UI and post the payment token (`PMT_...`) to the endpoints. docs/API.md shows how to get a token without the page for testing.
 
 #### Card Verification
 ```
@@ -254,11 +256,8 @@ POST /api/verify-card.php
 Content-Type: application/json
 
 {
-  "number": "4000000000000002",
-  "exp_month": "12",
-  "exp_year": "25",
-  "cvv": "123",
-  "zip": "12345"
+  "payment_token": "PMT_...",
+  "verification_type": "basic"
 }
 ```
 
@@ -268,18 +267,15 @@ POST /api/process-payment.php
 Content-Type: application/json
 
 {
+  "payment_token": "PMT_...",
   "amount": "10.99",
-  "currency": "USD",
-  "number": "4000000000000002",
-  "exp_month": "12",
-  "exp_year": "25",
-  "cvv": "123"
+  "currency": "USD"
 }
 ```
 
 #### Transaction Data
 ```
-GET /api/transactions-api.php?limit=50&start_date=2025-01-01&end_date=2025-01-31
+GET /api/transactions-api.php?limit=50&start_date=2026-11-01&end_date=2026-11-30
 ```
 
 For complete API documentation, see [docs/API.md](docs/API.md).

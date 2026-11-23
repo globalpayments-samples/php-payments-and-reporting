@@ -1,6 +1,6 @@
 # API Documentation
 
-This document provides comprehensive documentation for all API endpoints in the Heartland Payment Integration system.
+The PHP endpoints behind the payment, card verification and dashboard pages of this sample. They run on the GP API through the GlobalPayments PHP SDK.
 
 ## Base URL
 
@@ -10,7 +10,35 @@ http://localhost:8000/api/
 
 ## Authentication
 
-All API endpoints use the GlobalPayments SDK with credentials configured in the `.env` file. No additional authentication headers are required for local development.
+The endpoints use the GP API credentials in your `.env` file (`GP_API_APP_ID`, `GP_API_APP_KEY`). No extra headers are needed for local development.
+
+## How payments work in this sample
+
+Card data never goes to this server. The pages load the Drop-In UI (globalpayments.js hosted fields), which tokenizes the card straight with Global Payments and hands the page a payment token (`PMT_...`). The page then posts that token to `verify-card.php` or `process-payment.php`.
+
+So to call these endpoints yourself you need a payment token first:
+
+1. `POST /api/get-access-token.php` returns a short lived access token that can only create single use payment tokens.
+2. Tokenize a test card with that access token, the same way the Drop-In UI does:
+
+```bash
+curl --compressed https://apis.sandbox.globalpay.com/ucp/payment-methods \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "X-GP-Version: 2021-03-22" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reference": "my-test-1",
+    "usage_mode": "SINGLE",
+    "card": {
+      "number": "4263970000005262",
+      "expiry_month": "12",
+      "expiry_year": "30",
+      "cvv": "123"
+    }
+  }'
+```
+
+3. Use the `id` from that response (`PMT_...`) as `payment_token` below. Each token is single use, so get a new one for every request.
 
 ## Endpoints
 
@@ -18,48 +46,75 @@ All API endpoints use the GlobalPayments SDK with credentials configured in the 
 
 **Endpoint:** `GET /api/config.php`
 
-Returns SDK configuration for frontend JavaScript integration.
+Returns what the frontend needs to know about the integration.
 
 #### Response
 
 ```json
 {
   "success": true,
-  "config": {
-    "apiKey": "public_api_key",
-    "environment": "sandbox",
-    "version": "v1"
-  }
-}
-```
-
-#### Error Response
-
-```json
-{
-  "success": false,
-  "error": "Configuration error message"
+  "data": {
+    "apiVersion": "v1",
+    "supportedCardTypes": ["visa", "mastercard", "amex", "discover", "jcb", "diners"],
+    "features": {
+      "tokenization": true,
+      "avs_verification": true,
+      "cvv_verification": true,
+      "three_d_secure": true,
+      "stored_credentials": true
+    },
+    "verification_types": {
+      "basic": "Basic card validation",
+      "avs": "Address Verification Service",
+      "cvv": "Card Verification Value check",
+      "full": "Complete verification with all checks"
+    }
+  },
+  "timestamp": "2026-11-19T17:09:49+00:00",
+  "version": "1.0.0"
 }
 ```
 
 ---
 
-### 2. Card Verification
+### 2. Access Token
+
+**Endpoint:** `POST /api/get-access-token.php`
+
+Returns a GP API access token limited to creating single use payment tokens (`PMT_POST_Create_Single`). The Drop-In UI uses it to tokenize the card in the browser.
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "4DX3T1SngX3p2HBtLyLGK7ke1QZJ",
+    "environment": "sandbox"
+  }
+}
+```
+
+---
+
+### 3. Card Verification
 
 **Endpoint:** `POST /api/verify-card.php`
 
-Performs zero-charge card verification with AVS and CVV validation.
+Runs a zero amount verification on the tokenized card.
 
 #### Request Body
 
 ```json
 {
-  "number": "4000000000000002",
-  "exp_month": "12",
-  "exp_year": "25",
-  "cvv": "123",
-  "zip": "12345",
-  "address": "123 Main St"
+  "payment_token": "PMT_...",
+  "verification_type": "basic",
+  "card_details": {
+    "type": "visa",
+    "last4": "5262",
+    "exp_month": "12",
+    "exp_year": "30"
+  }
 }
 ```
 
@@ -67,79 +122,83 @@ Performs zero-charge card verification with AVS and CVV validation.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `number` | string | Yes | Card number (16 digits for Visa/MC, 15 for Amex) |
-| `exp_month` | string | Yes | Expiration month (MM) |
-| `exp_year` | string | Yes | Expiration year (YY) |
-| `cvv` | string | Yes | Card security code (3-4 digits) |
-| `zip` | string | No | Billing ZIP code for AVS |
-| `address` | string | No | Billing address for AVS |
+| `payment_token` | string | Yes | Payment token from the Drop-In UI (`PMT_...`) |
+| `verification_type` | string | Yes | One of `basic`, `avs`, `cvv`, `full`. The sample runs the same verification for all of them and echoes the value back |
+| `currency` | string | No | Currency code (default: `GP_API_CURRENCY` or USD) |
+| `card_details` | object | No | Card type, last 4 and expiry as shown on the page, only used to label the result |
 
 #### Success Response
 
 ```json
 {
   "success": true,
+  "message": "Card verification successful",
+  "verification_result": {
+    "id": "VER_wwHhRLsT8VhNYQ4DNp4jymi9Ti2JEf",
+    "status": "VERIFIED",
+    "channel": "CNP",
+    "country": "US",
+    "reference": "VER_20261119171026_d615e39f",
+    "payment_method": {
+      "result": "SUCCESS",
+      "message": "VERIFIED",
+      "entry_mode": "ECOM",
+      "card": {
+        "brand": "visa",
+        "masked_number_last4": "5262"
+      }
+    },
+    "action": {
+      "result_code": "SUCCESS"
+    }
+  },
   "data": {
-    "transaction_id": "123456789",
-    "status": "approved",
-    "response_code": "00",
-    "response_message": "Approved",
-    "avs_response": {
-      "code": "Y",
-      "message": "Address and postal code match"
-    },
-    "cvv_response": {
-      "code": "M",
-      "message": "CVV matches"
-    },
-    "card": {
-      "type": "Visa",
-      "last4": "0002",
-      "exp_month": "12",
-      "exp_year": "25"
-    },
-    "timestamp": "2025-01-30T10:30:00Z"
+    "verified": true,
+    "verification_type": "basic",
+    "transaction_id": "VER_wwHhRLsT8VhNYQ4DNp4jymi9Ti2JEf",
+    "reference": "VER_20261119171026_d615e39f"
   }
 }
 ```
 
-#### Error Response
+#### Error Response (400)
 
 ```json
 {
   "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid card number",
-    "details": "Card number must be 15-16 digits"
-  }
+  "message": "Validation failed",
+  "errors": [
+    "payment_token (from the Drop-In UI) is required"
+  ]
 }
 ```
 
 ---
 
-### 3. Payment Processing
+### 4. Payment Processing
 
 **Endpoint:** `POST /api/process-payment.php`
 
-Processes secure payment transactions through GlobalPayments.
+Charges the tokenized card.
 
 #### Request Body
 
 ```json
 {
+  "payment_token": "PMT_...",
   "amount": "10.99",
   "currency": "USD",
-  "number": "4000000000000002",
-  "exp_month": "12",
-  "exp_year": "25",
-  "cvv": "123",
-  "billing": {
-    "name": "John Doe",
-    "address": "123 Main St",
+  "card_details": {
+    "type": "visa",
+    "last4": "5262",
+    "exp_month": "12",
+    "exp_year": "30"
+  },
+  "billing_address": {
+    "street": "123 Main St",
     "city": "Anytown",
     "state": "NY",
-    "zip": "12345",
+    "postal_code": "12345",
     "country": "US"
   }
 }
@@ -149,65 +208,71 @@ Processes secure payment transactions through GlobalPayments.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `amount` | string | Yes | Payment amount (decimal format) |
-| `currency` | string | No | Currency code (default: USD) |
-| `number` | string | Yes | Card number |
-| `exp_month` | string | Yes | Expiration month (MM) |
-| `exp_year` | string | Yes | Expiration year (YY) |
-| `cvv` | string | Yes | Card security code |
-| `billing` | object | No | Billing information object |
+| `payment_token` | string | Yes | Payment token from the Drop-In UI (`PMT_...`). `token_value` works too |
+| `amount` | string | Yes | Amount in decimal format |
+| `currency` | string | No | Currency code (default: `GP_API_CURRENCY` or USD) |
+| `card_details` | object | No | Card type, last 4 and expiry for the local transaction record |
+| `billing_address` | object | No | Billing address sent with the charge for AVS |
+| `client_reference` | string | No | Your own order reference (one is generated if missing) |
 
 #### Success Response
 
 ```json
 {
   "success": true,
+  "message": "Payment processed successfully",
   "data": {
-    "transaction_id": "987654321",
-    "status": "approved",
+    "transaction_id": "TRN_HrxO7rvJorRl988uAVSvfa5Rh2FDdb_0cc7f3a22d0b",
     "amount": "10.99",
     "currency": "USD",
-    "response_code": "00",
-    "response_message": "Approved",
+    "status": "approved",
     "authorization_code": "123456",
-    "reference_number": "REF123456789",
-    "batch_id": "BATCH001",
-    "card": {
-      "type": "Visa",
-      "last4": "0002",
-      "exp_month": "12",
-      "exp_year": "25"
-    },
-    "gateway_response": {
-      "code": "00",
-      "message": "Transaction approved"
-    },
-    "timestamp": "2025-01-30T10:30:00Z"
+    "response_code": "SUCCESS",
+    "response_message": "CAPTURED",
+    "processed_at": "2026-11-19T17:10:32+00:00",
+    "card_type": "VISA",
+    "card_last4": "XXXXXXXXXXXX5262",
+    "avs_code": "MATCHED",
+    "cvv_code": null
   }
 }
 ```
 
-#### Error Response
+#### Declined (422)
 
 ```json
 {
   "success": false,
+  "message": "Payment declined",
   "error": {
-    "code": "PAYMENT_DECLINED",
-    "message": "Transaction declined",
-    "details": "Insufficient funds",
-    "response_code": "51"
+    "code": "DECLINED",
+    "details": "DECLINED",
+    "gp_response_code": "DECLINED",
+    "gp_response_message": "DECLINED"
+  }
+}
+```
+
+#### Error Response (400)
+
+```json
+{
+  "success": false,
+  "message": "Payment token is required",
+  "error": {
+    "code": "PROCESSING_ERROR",
+    "details": "Payment processing failed"
   }
 }
 ```
 
 ---
 
-### 4. Transaction Data API
+### 5. Transaction Data API
 
 **Endpoint:** `GET /api/transactions-api.php`
 
-Retrieves transaction data for dashboard display with filtering and pagination.
+Returns transactions for the dashboard, from the GP API reporting endpoints plus the verifications this sample saved locally.
 
 #### Query Parameters
 
@@ -215,21 +280,21 @@ Retrieves transaction data for dashboard display with filtering and pagination.
 |-----------|------|----------|-------------|
 | `limit` | integer | No | Number of transactions to return (1-100, default: 25) |
 | `page` | integer | No | Page number for pagination (default: 1) |
-| `start_date` | string | No | Start date filter (YYYY-MM-DD) |
-| `end_date` | string | No | End date filter (YYYY-MM-DD) |
-| `transaction_id` | string | No | Specific transaction ID to retrieve |
+| `start_date` | string | No | Start date filter (YYYY-MM-DD), use with `end_date` |
+| `end_date` | string | No | End date filter (YYYY-MM-DD), use with `start_date` |
+| `transaction_id` | string | No | One transaction by its GP API id (`TRN_...`) |
 
 #### Examples
 
 ```bash
-# Get recent transactions
+# Recent transactions
 GET /api/transactions-api.php?limit=50
 
-# Get transactions by date range
-GET /api/transactions-api.php?start_date=2025-01-01&end_date=2025-01-31
+# Transactions in a date range
+GET /api/transactions-api.php?start_date=2026-11-01&end_date=2026-11-30
 
-# Get specific transaction
-GET /api/transactions-api.php?transaction_id=123456789
+# One transaction
+GET /api/transactions-api.php?transaction_id=TRN_HrxO7rvJorRl988uAVSvfa5Rh2FDdb_0cc7f3a22d0b
 ```
 
 #### Success Response (List)
@@ -240,79 +305,51 @@ GET /api/transactions-api.php?transaction_id=123456789
   "data": {
     "transactions": [
       {
-        "id": "123456789",
+        "id": "TRN_HrxO7rvJorRl988uAVSvfa5Rh2FDdb_0cc7f3a22d0b",
+        "reference": "ORDER-1795108230-53585535",
+        "status": "approved",
         "amount": "10.99",
         "currency": "USD",
-        "status": "approved",
         "type": "payment",
-        "timestamp": "2025-01-30T10:30:00Z",
         "card": {
-          "type": "Visa",
-          "last4": "0002",
+          "type": "visa",
+          "last4": "5262",
           "exp_month": "12",
-          "exp_year": "25"
+          "exp_year": "30"
         },
         "response": {
-          "code": "00",
-          "message": "Approved"
+          "code": "SUCCESS",
+          "message": "CAPTURED"
         },
-        "reference": "REF123456789",
-        "batch_id": "BATCH001"
+        "gateway_response_code": "SUCCESS",
+        "avs": {
+          "code": "MATCHED",
+          "message": ""
+        },
+        "cvv": {
+          "code": "",
+          "message": "MATCHED"
+        },
+        "timestamp": "2026-11-19T17:10:32+00:00",
+        "gateway_response_message": "CAPTURED",
+        "batch_id": "BAT_1756607",
+        "auth_code": "123456"
       }
     ],
     "total_count": 1,
-    "api_transactions": 1,
-    "local_transactions": 0
+    "source": "global_payments_api_and_local",
+    "note": "Showing transactions from Global Payments API and local verification records"
   },
-  "message": "Transactions retrieved successfully",
+  "message": "Transactions retrieved successfully from multiple sources",
   "request_info": {
-    "endpoint": "/api/transactions-api.php",
+    "endpoint": "/api/transactions-api.php?limit=1",
     "method": "GET",
-    "timestamp": "2025-01-30T10:30:00Z",
+    "timestamp": "2026-11-19T17:10:41+00:00",
     "parameters": {
-      "limit": 25,
+      "limit": 1,
       "page": 1
     }
   }
-}
-```
-
-#### Success Response (Single Transaction)
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": "123456789",
-    "amount": "10.99",
-    "currency": "USD",
-    "status": "approved",
-    "type": "payment",
-    "timestamp": "2025-01-30T10:30:00Z",
-    "card": {
-      "type": "Visa",
-      "last4": "0002",
-      "exp_month": "12",
-      "exp_year": "25"
-    },
-    "response": {
-      "code": "00",
-      "message": "Approved"
-    },
-    "avs": {
-      "code": "Y",
-      "message": "Address and postal code match"
-    },
-    "cvv": {
-      "code": "M",
-      "message": "CVV matches"
-    },
-    "reference": "REF123456789",
-    "batch_id": "BATCH001",
-    "gateway_response_code": "00",
-    "gateway_response_message": "Transaction approved"
-  },
-  "message": "Transaction details retrieved successfully"
 }
 ```
 
@@ -321,84 +358,38 @@ GET /api/transactions-api.php?transaction_id=123456789
 ```json
 {
   "success": false,
-  "message": "Transaction not found",
+  "message": "Failed to retrieve transaction details: Status Code: RESOURCE_NOT_FOUND - Transactions TRN_nope not found at this /ucp/transactions/TRN_nope",
   "error": {
-    "code": "TRANSACTION_NOT_FOUND",
-    "details": "Transaction with ID '123456789' not found"
+    "code": "REPORTING_API_ERROR",
+    "details": "Status Code: RESOURCE_NOT_FOUND - Transactions TRN_nope not found at this /ucp/transactions/TRN_nope"
   }
 }
 ```
 
 ---
 
-## Response Codes
+## Response Values
 
-### Transaction Status Codes
-
-| Code | Status | Description |
-|------|--------|-------------|
-| `00` | Approved | Transaction approved |
-| `10` | Partially Approved | Partial approval |
-| `96` | Declined | Transaction declined |
-| `91` | Error | System error |
-
-### AVS Response Codes
-
-| Code | Description |
-|------|-------------|
-| `Y` | Address and postal code match |
-| `A` | Address matches, postal code does not |
-| `Z` | Postal code matches, address does not |
-| `N` | Neither address nor postal code match |
-| `U` | Address information unavailable |
-
-### CVV Response Codes
-
-| Code | Description |
-|------|-------------|
-| `M` | CVV matches |
-| `N` | CVV does not match |
-| `P` | CVV not processed |
-| `S` | CVV should be present but is not |
-| `U` | CVV service unavailable |
+| Field | Values |
+|-------|--------|
+| `status` | `approved`, `declined` |
+| `response_code` | GP API result, e.g. `SUCCESS`, `DECLINED` |
+| `response_message` | GP API transaction status, e.g. `CAPTURED`, `VERIFIED`, `DECLINED` |
+| `avs_code` | GP API AVS result, e.g. `MATCHED`, `NOT_MATCHED`, `NOT_CHECKED` |
 
 ---
 
 ## Error Handling
 
-All endpoints follow consistent error response format:
-
-```json
-{
-  "success": false,
-  "message": "Human-readable error message",
-  "error": {
-    "code": "ERROR_CODE",
-    "details": "Detailed error information"
-  }
-}
-```
-
-### Common Error Codes
+Errors come back with `success: false` and a `message`. Validation errors on verify-card list them in `errors`; the other endpoints put a code in `error.code`:
 
 | Code | HTTP Status | Description |
 |------|-------------|-------------|
-| `VALIDATION_ERROR` | 400 | Invalid request parameters |
-| `PAYMENT_DECLINED` | 400 | Payment was declined |
+| `PROCESSING_ERROR` | 400 | Missing or invalid request fields |
+| `DECLINED` | 422 | The payment was declined |
+| `METHOD_NOT_ALLOWED` | 405 | Wrong HTTP method |
 | `TRANSACTION_NOT_FOUND` | 404 | Transaction does not exist |
-| `METHOD_NOT_ALLOWED` | 405 | Invalid HTTP method |
-| `INTERNAL_ERROR` | 500 | Server error |
-| `REPORTING_API_ERROR` | 502 | GlobalPayments API error |
-
----
-
-## Rate Limiting
-
-Currently, no rate limiting is implemented for development purposes. In production:
-
-- Maximum 1000 requests per hour per IP
-- Maximum 100 requests per minute per IP
-- Burst limit of 10 requests per second
+| `REPORTING_API_ERROR` | 502 | The GP API reporting call failed |
 
 ---
 
@@ -406,45 +397,43 @@ Currently, no rate limiting is implemented for development purposes. In producti
 
 ### Test Cards
 
-Use these test card numbers for development:
+These approve on the GP API sandbox with any future expiry (e.g. 12/30):
 
-| Card Number | Type | Expected Result |
-|-------------|------|-----------------|
-| 4000000000000002 | Visa | Approved |
-| 5400000000000005 | MasterCard | Approved |
-| 370000000000002 | Amex | Approved |
-| 4000000000000010 | Visa | Declined |
-| 4000000000000028 | Visa | Expired Card |
-| 4000000000000036 | Visa | Invalid CVV |
+| Card Number | Type | CVV | Expected Result |
+|-------------|------|-----|-----------------|
+| 4263970000005262 | Visa | 123 | Approved |
+| 4000000000000002 | Visa | 123 | Approved |
+| 5425230000004415 | MasterCard | 123 | Approved |
+| 2223000010005780 | MasterCard | 123 | Approved |
+| 374101000000608 | Amex | 1234 | Approved |
+| 4000000000000010 | Visa | 123 | Declined |
 
-### Example Requests
+More test cards: [GP API test cards](https://developer.globalpay.com/resources/test-card-numbers).
 
-#### cURL Examples
+### cURL Examples
 
 ```bash
-# Card Verification
+# Access token for tokenizing
+curl -X POST http://localhost:8000/api/get-access-token.php
+
+# Card verification (payment_token from the Drop-In UI or the tokenize call above)
 curl -X POST http://localhost:8000/api/verify-card.php \
   -H "Content-Type: application/json" \
   -d '{
-    "number": "4000000000000002",
-    "exp_month": "12",
-    "exp_year": "25",
-    "cvv": "123",
-    "zip": "12345"
+    "payment_token": "PMT_...",
+    "verification_type": "basic"
   }'
 
-# Payment Processing
+# Payment (needs a new payment_token)
 curl -X POST http://localhost:8000/api/process-payment.php \
   -H "Content-Type: application/json" \
   -d '{
+    "payment_token": "PMT_...",
     "amount": "10.99",
-    "number": "4000000000000002",
-    "exp_month": "12",
-    "exp_year": "25",
-    "cvv": "123"
+    "currency": "USD"
   }'
 
-# Get Transactions
+# Transactions
 curl "http://localhost:8000/api/transactions-api.php?limit=10"
 ```
 
@@ -452,20 +441,16 @@ curl "http://localhost:8000/api/transactions-api.php?limit=10"
 
 ## Security Considerations
 
-1. **Input Validation**: All inputs are validated and sanitized
-2. **Error Handling**: Sensitive information is never exposed in error messages
-3. **HTTPS**: Use HTTPS in production environments
-4. **API Keys**: Secure storage of GlobalPayments credentials
-5. **Transaction Filtering**: Only authentic API transactions are displayed
+1. **No card data on the server**: the Drop-In UI tokenizes the card with Global Payments, the server only sees the payment token
+2. **Restricted access token**: the token handed to the browser can only create single use payment tokens
+3. **HTTPS**: use HTTPS in production
+4. **Credentials**: keep the GP API app key in `.env`, never in the frontend
 
 ---
 
 ## Support
 
-For API support:
-
-1. Check error messages and response codes
-2. Verify request format matches documentation
-3. Test with provided test cards
-4. Check application logs in `logs/` directory
-5. Use debug tools in `tools/` directory
+1. Check the error message and code in the response
+2. Check the request against the parameters above
+3. Test with the cards above
+4. Check the application logs in `logs/`
