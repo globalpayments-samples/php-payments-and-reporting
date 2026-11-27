@@ -202,7 +202,7 @@ function performVerification(string $accessToken, array $config, array $requestD
         // Convert SDK response to array format
         $result = [
             'id' => $response->transactionReference->transactionId,
-            'status' => 'VERIFIED',
+            'status' => $response->responseCode === 'SUCCESS' ? 'VERIFIED' : ($response->responseMessage ?: 'NOT_VERIFIED'),
             'channel' => 'CNP',
             'country' => $config['country'],
             'reference' => $reference,
