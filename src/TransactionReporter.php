@@ -11,6 +11,9 @@ use GlobalPayments\Api\Entities\Enums\Environment;
 use GlobalPayments\Api\Entities\Enums\Channel;
 use GlobalPayments\Api\ServicesContainer;
 use GlobalPayments\Api\Services\ReportingService;
+use GlobalPayments\Api\Entities\Reporting\SearchCriteria;
+use GlobalPayments\Api\Entities\Enums\TransactionSortProperty;
+use GlobalPayments\Api\Entities\Enums\SortDirection;
 use GlobalPayments\Api\Utils\Logging\Logger;
 use GlobalPayments\Api\Utils\Logging\SampleRequestLogger;
 
@@ -78,23 +81,20 @@ class TransactionReporter
         $this->configureSdk();
 
         try {
-            $reportingService = new ReportingService();
             // Default to last 3 days to balance freshness with finding transactions
             $startDate = new \DateTime('3 days ago');
             $endDate = new \DateTime('now');
 
-            // Format dates as strings - SDK has internal issues with DateTime objects
-            $startDateStr = $startDate->format('Y-m-d\TH:i:s.000\Z');
-            $endDateStr = $endDate->format('Y-m-d\TH:i:s.999\Z');
-
-            $response = $reportingService->findTransactions()
-                ->withStartDate($startDate)
-                ->withEndDate($endDate)
+            // GP API only supports the paged transaction search
+            $response = ReportingService::findTransactionsPaged(1, min($limit, 100))
+                ->orderBy(TransactionSortProperty::TIME_CREATED, SortDirection::DESC)
+                ->where(SearchCriteria::START_DATE, $startDate)
+                ->andWith(SearchCriteria::END_DATE, $endDate)
                 ->execute();
 
             $transactions = [];
-            if ($response && is_array($response)) {
-                foreach ($response as $transaction) {
+            if ($response && is_array($response->result)) {
+                foreach ($response->result as $transaction) {
                     // Validate transaction authenticity before adding
                     if ($this->validateTransactionAuthenticity($transaction)) {
                         $transactions[] = $this->formatTransactionForDashboard($transaction);
@@ -166,22 +166,15 @@ class TransactionReporter
         $this->configureSdk();
 
         try {
-            $reportingService = new ReportingService();
-
-            // Format dates as strings - SDK has internal issues with DateTime objects
-            $startDateObj = new \DateTime($startDate);
-            $endDateObj = new \DateTime($endDate);
-            $startDateStr = $startDateObj->format('Y-m-d\TH:i:s.000\Z');
-            $endDateStr = $endDateObj->format('Y-m-d\TH:i:s.999\Z');
-
-            $response = $reportingService->findTransactions()
-                ->withStartDate($startDate)
-                ->withEndDate($endDate)
+            $response = ReportingService::findTransactionsPaged(1, min($limit, 100))
+                ->orderBy(TransactionSortProperty::TIME_CREATED, SortDirection::DESC)
+                ->where(SearchCriteria::START_DATE, new \DateTime($startDate))
+                ->andWith(SearchCriteria::END_DATE, new \DateTime($endDate))
                 ->execute();
 
             $transactions = [];
-            if ($response && is_array($response)) {
-                foreach ($response as $transaction) {
+            if ($response && is_array($response->result)) {
+                foreach ($response->result as $transaction) {
                     // Apply same authenticity validation as getRecentTransactions
                     if ($this->validateTransactionAuthenticity($transaction)) {
                         $transactions[] = $this->formatTransactionForDashboard($transaction);
@@ -306,8 +299,13 @@ class TransactionReporter
         $displayId = $transaction->transactionId ?? $transaction->referenceNumber ?? null;
 
         // Determine amount - for card verification, show as verification instead of $0
-        $amount = isset($transaction->amount) && $transaction->amount > 0 ?
+        $isVerification = ($transaction->transactionType ?? null) === 'VERIFICATION';
+        $amount = !$isVerification && isset($transaction->amount) && $transaction->amount > 0 ?
                   $transaction->amount : 'VERIFY';
+        if (!$isVerification && !empty($transaction->transactionType) && $amount === 'VERIFY') {
+            // GP API reports a declined sale with amount 0, it is still a payment
+            $amount = '0.00';
+        }
 
         // Get the actual transaction timestamp from Global Payments API responseDate field
         $timestamp = null;
@@ -383,6 +381,18 @@ class TransactionReporter
      */
     private function getTransactionType($transaction, $amount): string
     {
+        // GP API summaries carry the transaction type directly
+        switch ($transaction->transactionType ?? '') {
+            case 'SALE':
+            case 'AUTH':
+            case 'CAPTURE':
+                return 'payment';
+            case 'VERIFICATION':
+                return 'verification';
+            case 'REFUND':
+                return 'refund';
+        }
+
         // Check if it's a verification transaction (amount is 0 or VERIFY)
         if ($amount === 'VERIFY' || ($amount === 0 || $amount === '0' || $amount === '0.00')) {
             return 'verification';
@@ -531,6 +541,19 @@ class TransactionReporter
             case 'FAILED':
                 return 'error';
             default:
+                // GP API summaries have no responseCode, use the transaction status
+                switch ($transaction->transactionStatus ?? '') {
+                    case 'DECLINED':
+                    case 'NOT_VERIFIED':
+                    case 'REJECTED':
+                        return 'declined';
+                    case 'CAPTURED':
+                    case 'PREAUTHORIZED':
+                    case 'VERIFIED':
+                    case 'FUNDED':
+                        return 'approved';
+                }
+
                 // Check gateway response code as fallback
                 $gatewayCode = $transaction->gatewayResponseCode ?? null;
                 if ($gatewayCode === '00' || $gatewayCode === 'SUCCESS') {
@@ -581,37 +604,14 @@ class TransactionReporter
             }
         }
 
-        // Enhanced authenticity checks for Global Payments API data
-
-        // Check for required Global Payments specific fields
-        if (!isset($transaction->responseDate) || empty($transaction->responseDate)) {
-            error_log(
-                'Suspicious transaction: Missing responseDate field - ' .
-                ($transaction->transactionId ?? 'unknown')
-            );
+        // GP API transaction summaries always carry the time they were created
+        if (empty($transaction->transactionDate)) {
+            error_log('Suspicious transaction: Missing transactionDate - ' . ($transaction->transactionId ?? 'unknown'));
             return false;
         }
 
-        // Check for Global Payments specific service names (expanded list)
-        $validServices = [
-            'CreditSale', 'CreditAuth', 'CreditCapture', 'CreditVoid', 'CreditAccountVerify',
-            'CreditCPCEdit', 'CheckSale', 'CheckVoid', 'CheckQuery', 'RecurringBilling',
-            'RecurringBillingAuth', 'Tokenize', 'DebitSale', 'DebitReturn'
-        ];
-        if (!isset($transaction->serviceName) || !in_array($transaction->serviceName, $validServices)) {
-            error_log('Suspicious transaction: Invalid serviceName - ' . ($transaction->serviceName ?? 'unknown'));
-            return false;
-        }
-
-        // Check for Global Payments username pattern (should not be generic)
-        if (!isset($transaction->username) || empty($transaction->username)) {
-            error_log('Suspicious transaction: Missing username field');
-            return false;
-        }
-
-        // Verify responseDate format matches Global Payments ISO format
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$/', $transaction->responseDate)) {
-            error_log('Suspicious transaction: Invalid responseDate format - ' . $transaction->responseDate);
+        // 3DS authentications (AUT_) come back from the same search, they are not payments
+        if (strpos((string)($transaction->transactionId ?? ''), 'AUT_') === 0) {
             return false;
         }
 

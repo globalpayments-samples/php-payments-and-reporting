@@ -323,19 +323,29 @@ class TransactionReporterTest extends TestCase
         $isValid = $this->callPrivateMethod('validateTransactionAuthenticity', [$mockTransaction]);
         $this->assertFalse($isValid);
         
-        // Test transaction without responseDate
-        $noDateTransaction = $this->createMockTransaction(['responseDate' => null]);
+        // Test transaction without transactionDate
+        $noDateTransaction = $this->createMockTransaction(['transactionDate' => null]);
         $isValid = $this->callPrivateMethod('validateTransactionAuthenticity', [$noDateTransaction]);
         $this->assertFalse($isValid);
-        
-        // Test transaction with invalid service name
-        $invalidServiceTransaction = $this->createMockTransaction(['serviceName' => 'InvalidService']);
-        $isValid = $this->callPrivateMethod('validateTransactionAuthenticity', [$invalidServiceTransaction]);
-        $this->assertFalse($isValid);
-        
-        // Test transaction without username - add username to mock defaults
-        $noUsernameTransaction = $this->createMockTransaction(['username' => null]);
-        $isValid = $this->callPrivateMethod('validateTransactionAuthenticity', [$noUsernameTransaction]);
+
+        // GP API summary: no Portico serviceName, username or responseDate
+        $gpApiTransaction = $this->createMockTransaction([
+            'transactionId' => 'TRN_abcdef123456',
+            'transactionType' => 'SALE',
+            'serviceName' => null,
+            'username' => null,
+            'responseDate' => null
+        ]);
+        $isValid = $this->callPrivateMethod('validateTransactionAuthenticity', [$gpApiTransaction]);
+        $this->assertTrue($isValid);
+
+        // 3DS authentication rows are not payments
+        $authenticationRow = $this->createMockTransaction([
+            'transactionId' => 'AUT_abcdef123456',
+            'transactionType' => 'SALE',
+            'transactionStatus' => 'AVAILABLE'
+        ]);
+        $isValid = $this->callPrivateMethod('validateTransactionAuthenticity', [$authenticationRow]);
         $this->assertFalse($isValid);
     }
 
