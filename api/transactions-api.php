@@ -106,6 +106,28 @@ function validateParams(array $params): array
 }
 
 /**
+ * Add Reporting API rows that are not already in the local log
+ *
+ * Payments made here are logged locally and also come back from Reporting,
+ * keep the local row (it has the card details) and skip the copy.
+ */
+function mergeWithoutDuplicates(array $local, array $api): array
+{
+    $seen = [];
+    foreach ($local as $transaction) {
+        if (!empty($transaction['id'])) {
+            $seen[$transaction['id']] = true;
+        }
+    }
+    foreach ($api as $transaction) {
+        if (empty($transaction['id']) || !isset($seen[$transaction['id']])) {
+            $local[] = $transaction;
+        }
+    }
+    return $local;
+}
+
+/**
  * Handle API request and return appropriate response
  *
  * @param TransactionReporter $reporter The transaction reporter instance
@@ -131,14 +153,14 @@ function handleRequest(TransactionReporter $reporter, array $params): array
 
             $transactions = [];
             
-            // Add API transactions
-            if ($apiResult['success'] && isset($apiResult['data']['transactions'])) {
-                $transactions = array_merge($transactions, $apiResult['data']['transactions']);
-            }
-            
             // Add local transactions (including verifications)
             if ($localResult['success'] && isset($localResult['data']['transactions'])) {
-                $transactions = array_merge($transactions, $localResult['data']['transactions']);
+                $transactions = $localResult['data']['transactions'];
+            }
+
+            // Add API transactions that are not already in the local log
+            if ($apiResult['success'] && isset($apiResult['data']['transactions'])) {
+                $transactions = mergeWithoutDuplicates($transactions, $apiResult['data']['transactions']);
             }
             
             // Sort by timestamp (newest first) and limit
@@ -172,14 +194,14 @@ function handleRequest(TransactionReporter $reporter, array $params): array
 
         $transactions = [];
         
-        // Add API transactions
-        if ($apiResult['success'] && isset($apiResult['data']['transactions'])) {
-            $transactions = array_merge($transactions, $apiResult['data']['transactions']);
-        }
-        
         // Add local transactions (including verifications)
         if ($localResult['success'] && isset($localResult['data']['transactions'])) {
-            $transactions = array_merge($transactions, $localResult['data']['transactions']);
+            $transactions = $localResult['data']['transactions'];
+        }
+
+        // Add API transactions that are not already in the local log
+        if ($apiResult['success'] && isset($apiResult['data']['transactions'])) {
+            $transactions = mergeWithoutDuplicates($transactions, $apiResult['data']['transactions']);
         }
         
         // Sort by timestamp (newest first) and limit
