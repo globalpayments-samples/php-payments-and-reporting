@@ -239,9 +239,11 @@ Use these GlobalPayments test cards for development:
 
 | Card Number | Type | CVV | Exp | Expected Result |
 |-------------|------|-----|-----|-----------------|
+| 4263970000005262 | Visa | 123 | 12/30 | Approved |
 | 4000000000000002 | Visa | 123 | 12/30 | Approved |
 | 5425230000004415 | MasterCard | 123 | 12/30 | Approved |
 | 374101000000608 | Amex | 1234 | 12/30 | Approved |
+| 4000120000001154 | Visa | 123 | 12/30 | Declined |
 | 4000000000000010 | Visa | 123 | 12/30 | Declined |
 
 ## API Documentation
@@ -257,7 +259,8 @@ Content-Type: application/json
 
 {
   "payment_token": "PMT_...",
-  "verification_type": "basic"
+  "verification_type": "basic",
+  "currency": "USD"
 }
 ```
 
@@ -272,6 +275,8 @@ Content-Type: application/json
   "currency": "USD"
 }
 ```
+
+The `payment_token` is the `PMT_` reference the hosted card form returns in the browser. The endpoints never take raw card numbers.
 
 #### Transaction Data
 ```
@@ -329,9 +334,10 @@ Current test coverage:
 
 1. **Environment Setup:**
    ```bash
-   # Use production API credentials
-   SECRET_API_KEY=prod_secret_key
-   SERVICE_URL=https://api2.heartlandportico.com
+   # Use production GP-API app credentials
+   GP_API_APP_ID=your_production_app_id
+   GP_API_APP_KEY=your_production_app_key
+   GP_API_ENVIRONMENT=production
    ENABLE_REQUEST_LOGGING=false
    ```
 
