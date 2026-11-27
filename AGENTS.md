@@ -8,9 +8,9 @@
 
 2. **Verification is a plain `verify()` and `verification_type` is cosmetic.** `performVerification()` in `api/verify-card.php` always calls `verify()->withCurrency()->withAllowDuplicates(true)` with a `VER_...` reference as client transaction ID and idempotency key. `validateRequest()` requires `verification_type` to be `basic`, `avs`, `cvv`, or `full`, but the value never reaches the SDK (the page always sends `basic`). `validateRequest()` also accepts raw `card_number` / `expiry_month` / `expiry_year`, yet `performVerification()` rejects anything that is not a `PMT_` or `TKN_` token. Any SDK error about `TRN_POST_Verify`, `action_type - VERIFY`, or missing merchant config is rewritten to "Card verification is not enabled for this account".
 
-3. **The dashboard merges two sources with no de-duplication.** `api/transactions-api.php` combines `TransactionReporter::getRecentTransactions()` (SDK `ReportingService::findTransactions()` over the last 3 days) or `getTransactionsByDateRange()` with `getLocalTransactions()` (from `logs/all-transactions.json`), sorts, and slices. Payments are both recorded locally by `recordTransaction()` and returned by Reporting, so they can appear twice. Outside PHPUnit (`PHPUNIT_RUNNING` unset), `recordTransaction()` and `getLocalTransactions()` drop IDs that look like test data, including anything starting `ORDER-`. A declined payment with no transaction ID falls back to its `ORDER-...` order ID and is therefore never stored.
+3. **The dashboard merges two sources and drops duplicates by ID.** `api/transactions-api.php` combines `getLocalTransactions()` (from `logs/all-transactions.json`) with `TransactionReporter::getRecentTransactions()` (SDK `ReportingService::findTransactionsPaged()` over the last 3 days, newest first) or `getTransactionsByDateRange()`, skips Reporting rows whose ID is already in the local log, sorts, and slices. GP API only supports the paged search; the unpaged `findTransactions()` throws "Unknown report type!". `validateTransactionAuthenticity()` drops rows without `transactionDate` and 3DS authentication rows (`AUT_` IDs). Outside PHPUnit (`PHPUNIT_RUNNING` unset), `recordTransaction()` and `getLocalTransactions()` drop IDs that look like test data, including anything starting `ORDER-`. A declined payment with no transaction ID falls back to its `ORDER-...` order ID and is therefore never stored.
 
-4. **`api/config.php` is broken.** It does `require_once '/../vendor/autoload.php'` (a filesystem-root path, not `__DIR__`), so every request to `/api/config.php` or `/config.php` ends in a PHP fatal error. The Dockerfile `HEALTHCHECK` and both compose healthchecks target this URL. No page calls it, so the payment, verification, and dashboard flows still work.
+4. **`api/config.php` is a static feature list.** It loads `.env`, checks the credentials are set, and returns supported card types and features. No page calls it; the Dockerfile `HEALTHCHECK` and both compose healthchecks target it.
 
 ## Repository Structure
 
@@ -19,7 +19,7 @@
 - [`api/verify-card.php`](api/verify-card.php): `loadEnvironmentAndToken()`, `validateRequest()`, `performVerification()`; records a `type: verification` row
 - [`api/process-payment.php`](api/process-payment.php): token preflight, `charge()` with order ID and idempotency key, decline detection by response-code list, local recording; `safeGetProperty()` helper
 - [`api/transactions-api.php`](api/transactions-api.php): `validateParams()`, `handleRequest()`; merges Reporting and local data
-- [`api/config.php`](api/config.php): static feature list; currently fatal (see Critical Patterns 4)
+- [`api/config.php`](api/config.php): static feature list (see Critical Patterns 4)
 
 ### Library (`src/`, PSR-4 `GlobalPayments\Examples\`)
 - [`src/TransactionReporter.php`](src/TransactionReporter.php): the reference for reporting; `configureSdk()`, `getRecentTransactions()`, `getTransactionsByDateRange()`, `getTransactionDetails()`, `recordTransaction()`, `getLocalTransactions()`, private `formatTransactionForDashboard()` and `validateTransactionAuthenticity()`
@@ -46,7 +46,7 @@
 | POST | `/api/verify-card.php` | JSON `{payment_token, verification_type, currency?, card_details?}`; zero-amount verification |
 | POST | `/api/process-payment.php` | JSON `{payment_token or token_value, amount, currency?, billing_address?, client_reference?, card_details?}`; sale |
 | GET | `/api/transactions-api.php` | `limit` (1 to 100, default 25), `page` (echoed only), `start_date` / `end_date` (`YYYY-MM-DD`), `transaction_id` |
-| GET | `/api/config.php` | Broken (fatal error) |
+| GET | `/api/config.php` | Static `{success, data: {apiVersion, supportedCardTypes, features, verification_types}}` |
 
 `amount` is in major units (for example `10.99`), capped at 999999.99. All endpoints send `Access-Control-Allow-Origin: *`.
 
@@ -82,7 +82,7 @@ A single `.env.example` sits at the repo root; copy it to `.env`. It also lists 
 
 **Verify / Pay:** page → `verify-card.php` or `process-payment.php` with the reference → new `GpApiConfig` → `CreditCardData` with `token` → `verify()` or `charge()` → `TransactionReporter::recordTransaction()` writes `logs/transactions-YYYY-MM-DD.json` and `logs/all-transactions.json` (last 5000).
 
-**Report:** `dashboard.html` → `transactions-api.php` → Reporting API results plus local log → merged, sorted, limited.
+**Report:** `dashboard.html` → `transactions-api.php` → local log plus Reporting API results not already in it → sorted, limited.
 
 ## Security Notes
 
@@ -121,7 +121,7 @@ curl -X POST http://localhost:8000/api/process-payment.php -H "Content-Type: app
 # Expected: {"success":true,"message":"Payment processed successfully","data":{"transaction_id":"TRN_...",...}}
 ```
 
-Bad credentials return `{"success":false,...,"error":{"code":"VERIFICATION_ERROR","details":"Failed to generate access token: ..."}}` from `verify-card.php`. `/api/config.php` has no valid expected output until its `require_once` path is fixed.
+Bad credentials return `{"success":false,...,"error":{"code":"VERIFICATION_ERROR","details":"Failed to generate access token: ..."}}` from `verify-card.php`.
 
 ## Making Changes
 
