@@ -276,8 +276,6 @@ Content-Type: application/json
 }
 ```
 
-The `payment_token` is the `PMT_` reference the hosted card form returns in the browser. The endpoints never take raw card numbers.
-
 #### Transaction Data
 ```
 GET /api/transactions-api.php?limit=50&start_date=2026-11-01&end_date=2026-11-30
