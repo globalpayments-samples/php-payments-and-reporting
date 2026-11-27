@@ -239,10 +239,9 @@ Use these GlobalPayments test cards for development:
 
 | Card Number | Type | CVV | Exp | Expected Result |
 |-------------|------|-----|-----|-----------------|
-| 4000000000000002 | Visa | 123 | 12/30 | Approved |
-| 5400000000000005 | MasterCard | 123 | 12/30 | Approved |
-| 370000000000002 | Amex | 1234 | 12/30 | Approved |
-| 4000000000000010 | Visa | 123 | 12/30 | Declined |
+| 4263970000005262 | Visa | 123 | 12/30 | Approved |
+| 5425230000004415 | MasterCard | 123 | 12/30 | Approved |
+| 4000120000001154 | Visa | 123 | 12/30 | Declined |
 
 ## API Documentation
 
@@ -254,11 +253,9 @@ POST /api/verify-card.php
 Content-Type: application/json
 
 {
-  "number": "4000000000000002",
-  "exp_month": "12",
-  "exp_year": "25",
-  "cvv": "123",
-  "zip": "12345"
+  "payment_token": "PMT_...",
+  "verification_type": "basic",
+  "currency": "USD"
 }
 ```
 
@@ -268,14 +265,13 @@ POST /api/process-payment.php
 Content-Type: application/json
 
 {
-  "amount": "10.99",
-  "currency": "USD",
-  "number": "4000000000000002",
-  "exp_month": "12",
-  "exp_year": "25",
-  "cvv": "123"
+  "payment_token": "PMT_...",
+  "amount": 10.99,
+  "currency": "USD"
 }
 ```
+
+The `payment_token` is the `PMT_` reference the hosted card form returns in the browser. The endpoints never take raw card numbers.
 
 #### Transaction Data
 ```
@@ -333,9 +329,10 @@ Current test coverage:
 
 1. **Environment Setup:**
    ```bash
-   # Use production API credentials
-   SECRET_API_KEY=prod_secret_key
-   SERVICE_URL=https://api2.heartlandportico.com
+   # Use production GP-API app credentials
+   GP_API_APP_ID=your_production_app_id
+   GP_API_APP_KEY=your_production_app_key
+   GP_API_ENVIRONMENT=production
    ENABLE_REQUEST_LOGGING=false
    ```
 
