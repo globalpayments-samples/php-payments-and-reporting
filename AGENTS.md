@@ -8,7 +8,7 @@
 
 2. **Verification is a plain `verify()` and `verification_type` is cosmetic.** `performVerification()` in `api/verify-card.php` always calls `verify()->withCurrency()->withAllowDuplicates(true)` with a `VER_...` reference as client transaction ID and idempotency key. `validateRequest()` requires `verification_type` to be `basic`, `avs`, `cvv`, or `full`, but the value never reaches the SDK (the page always sends `basic`). `validateRequest()` requires `payment_token`, and `performVerification()` rejects anything that is not a `PMT_` or `TKN_` token. Any SDK error about `TRN_POST_Verify`, `action_type - VERIFY`, or missing merchant config is rewritten to "Card verification is not enabled for this account".
 
-3. **The dashboard merges two sources with no de-duplication.** `api/transactions-api.php` combines `TransactionReporter::getRecentTransactions()` (SDK `ReportingService::findTransactions()` over the last 3 days) or `getTransactionsByDateRange()` with `getLocalTransactions()` (from `logs/all-transactions.json`), sorts, and slices. Payments are both recorded locally by `recordTransaction()` and returned by Reporting, so they can appear twice. Outside PHPUnit (`PHPUNIT_RUNNING` unset), `recordTransaction()` and `getLocalTransactions()` drop IDs that look like test data, including anything starting `ORDER-`. A declined payment with no transaction ID falls back to its `ORDER-...` order ID and is therefore never stored.
+3. **The dashboard merges two sources and drops duplicates by ID.** `api/transactions-api.php` combines `getLocalTransactions()` (from `logs/all-transactions.json`) with `TransactionReporter::getRecentTransactions()` (SDK `ReportingService::findTransactionsPaged()` over the last 3 days, newest first) or `getTransactionsByDateRange()`, skips Reporting rows whose ID is already in the local log, sorts, and slices. GP API only supports the paged search; the unpaged `findTransactions()` throws "Unknown report type!". `validateTransactionAuthenticity()` drops rows without `transactionDate` and 3DS authentication rows (`AUT_` IDs). Outside PHPUnit (`PHPUNIT_RUNNING` unset), `recordTransaction()` and `getLocalTransactions()` drop IDs that look like test data, including anything starting `ORDER-`. A declined payment with no transaction ID falls back to its `ORDER-...` order ID and is therefore never stored.
 
 ## Repository Structure
 
@@ -80,7 +80,7 @@ A single `.env.example` sits at the repo root; copy it to `.env`. It also lists 
 
 **Verify / Pay:** page → `verify-card.php` or `process-payment.php` with the reference → new `GpApiConfig` → `CreditCardData` with `token` → `verify()` or `charge()` → `TransactionReporter::recordTransaction()` writes `logs/transactions-YYYY-MM-DD.json` and `logs/all-transactions.json` (last 5000).
 
-**Report:** `dashboard.html` → `transactions-api.php` → Reporting API results plus local log → merged, sorted, limited.
+**Report:** `dashboard.html` → `transactions-api.php` → local log plus Reporting API results not already in it → sorted, limited.
 
 ## Security Notes
 
